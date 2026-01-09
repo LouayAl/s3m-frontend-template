@@ -1,4 +1,6 @@
+// frontend-template/vite/src/routes/MainRoutes.jsx
 import { lazy } from 'react';
+import ProtectedRoute from './ProtectedRoute';
 
 // project imports
 import MainLayout from 'layout/MainLayout';
@@ -22,15 +24,15 @@ const MainRoutes = {
   element: <MainLayout />,
   children: [
     {
-      path: '/',
-      element: <DashboardDefault />
-    },
-    {
       path: 'dashboard',
       children: [
         {
           path: 'default',
-          element: <DashboardDefault />
+          element: (
+            <ProtectedRoute>
+              <DashboardDefault />
+            </ProtectedRoute>
+          )
         }
       ]
     },
@@ -47,7 +49,7 @@ const MainRoutes = {
       element: <UtilsShadow />
     },
     {
-      path: '/sample-page',
+      path: 'sample-page',
       element: <SamplePage />
     }
   ]

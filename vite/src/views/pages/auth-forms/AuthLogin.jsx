@@ -1,5 +1,8 @@
+// frontend-template/vite/src/views/pages/auth-forms/AuthLogin.jsx
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from 'contexts/auth/AuthContext';
+import { login as loginApi } from 'api/authApi';
 
 // material-ui
 import Button from '@mui/material/Button';
@@ -24,31 +27,51 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 // ===============================|| JWT - LOGIN ||=============================== //
 
 export default function AuthLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [checked, setChecked] = useState(true);
-
   const [showPassword, setShowPassword] = useState(false);
-  const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+  const [error, setError] = useState('');
 
-  const handleMouseDownPassword = (event) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleMouseDownPassword = (event) => event.preventDefault();
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setError('');
+
+    try {
+      const data = await loginApi({ email, password });
+      login(data.token); // save token in AuthContext
+      navigate('/'); // redirect to homepage
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    }
   };
 
   return (
-    <>
-      <CustomFormControl fullWidth>
-        <InputLabel htmlFor="outlined-adornment-email-login">Email Address / Username</InputLabel>
-        <OutlinedInput id="outlined-adornment-email-login" type="email" value="info@codedthemes.com" name="email" />
+    <form onSubmit={handleSubmit}>
+      <CustomFormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel htmlFor="email-login">Adresse e-mail / Nom d'utilisateur</InputLabel>
+        <OutlinedInput
+          id="email-login"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          name="email"
+        />
       </CustomFormControl>
 
-      <CustomFormControl fullWidth>
-        <InputLabel htmlFor="outlined-adornment-password-login">Password</InputLabel>
+      <CustomFormControl fullWidth sx={{ mb: 1 }}>
+        <InputLabel htmlFor="password-login">Mot de passe</InputLabel>
         <OutlinedInput
-          id="outlined-adornment-password-login"
+          id="password-login"
           type={showPassword ? 'text' : 'password'}
-          value="123456"
-          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           endAdornment={
             <InputAdornment position="end">
               <IconButton
@@ -66,26 +89,49 @@ export default function AuthLogin() {
         />
       </CustomFormControl>
 
-      <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+      {error && (
+        <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+
+      <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Grid>
           <FormControlLabel
-            control={<Checkbox checked={checked} onChange={(event) => setChecked(event.target.checked)} name="checked" color="primary" />}
-            label="Keep me logged in"
+            control={
+              <Checkbox
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+                name="checked"
+                color="primary"
+              />
+            }
+            label="Rester connecté"
           />
         </Grid>
         <Grid>
-          <Typography variant="subtitle1" component={Link} to="#!" sx={{ textDecoration: 'none', color: 'secondary.main' }}>
-            Forgot Password?
+          <Typography
+            variant="subtitle1"
+            component={Link}
+            to="#!"
+            sx={{ textDecoration: 'none', color: 'secondary.main', cursor: 'pointer' }}
+          >
+            Mot de passe oublié ?
           </Typography>
         </Grid>
       </Grid>
-      <Box sx={{ mt: 2 }}>
+
+      <Box>
         <AnimateButton>
-          <Button color="secondary" fullWidth size="large" type="submit" variant="contained">
-            Sign In
+          <Button color="secondary" fullWidth size="large" type="submit" variant="contained"
+            sx={{
+              color: '#ffffffff', // force white text
+            }}
+          >
+            Se connecter
           </Button>
         </AnimateButton>
       </Box>
-    </>
+    </form>
   );
 }

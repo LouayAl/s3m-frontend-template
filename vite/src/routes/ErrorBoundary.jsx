@@ -1,3 +1,4 @@
+// frontend-template/vite/src/routes/ErrorBoundary.jsx
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
 
 // material-ui

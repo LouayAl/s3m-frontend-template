@@ -1,4 +1,7 @@
+// frontend-template/vite/src/layout/MainLayout/Header/ProfileSection/index.jsx
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from 'contexts/auth/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -22,7 +25,6 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
 // project imports
-import UpgradePlanCard from './UpgradePlanCard';
 import MainCard from 'ui-component/cards/MainCard';
 import Transitions from 'ui-component/extended/Transitions';
 import useConfig from 'hooks/useConfig';
@@ -31,22 +33,20 @@ import useConfig from 'hooks/useConfig';
 import User1 from 'assets/images/users/user-round.svg';
 import { IconLogout, IconSearch, IconSettings, IconUser } from '@tabler/icons-react';
 
-// ==============================|| PROFILE MENU ||============================== //
-
 export default function ProfileSection() {
   const theme = useTheme();
   const {
     state: { borderRadius }
   } = useConfig();
 
+  const { user, logout } = useAuth(); // ✅ get real user
+  const navigate = useNavigate();
+
   const [sdm, setSdm] = useState(true);
   const [value, setValue] = useState('');
   const [notification, setNotification] = useState(false);
   const [open, setOpen] = useState(false);
 
-  /**
-   * anchorRef is used on different components and specifying one type leads to other components throwing an error
-   * */
   const anchorRef = useRef(null);
 
   const handleToggle = () => {
@@ -57,8 +57,13 @@ export default function ProfileSection() {
     if (anchorRef.current && anchorRef.current.contains(event.target)) {
       return;
     }
-
     setOpen(false);
+  };
+
+  const handleLogout = () => {
+    setOpen(false); // close popper immediately
+    logout();       // clear token + user
+    navigate('/login', { replace: true });
   };
 
   const prevOpen = useRef(open);
@@ -66,7 +71,6 @@ export default function ProfileSection() {
     if (prevOpen.current === true && open === false) {
       anchorRef.current.focus();
     }
-
     prevOpen.current = open;
   }, [open]);
 
@@ -101,30 +105,23 @@ export default function ProfileSection() {
         role={undefined}
         transition
         disablePortal
-        modifiers={[
-          {
-            name: 'offset',
-            options: {
-              offset: [0, 14]
-            }
-          }
-        ]}
+        modifiers={[{ name: 'offset', options: { offset: [0, 14] } }]}
       >
         {({ TransitionProps }) => (
           <ClickAwayListener onClickAway={handleClose}>
             <Transitions in={open} {...TransitionProps}>
               <Paper>
                 {open && (
-                  <MainCard border={false} elevation={16} content={false} boxShadow shadow={theme.shadows[16]}>
+                  <MainCard border={false} elevation={16} content={false} boxShadow={theme.shadows[16]}>
                     <Box sx={{ p: 2, pb: 0 }}>
                       <Stack>
                         <Stack direction="row" sx={{ alignItems: 'center', gap: 0.5 }}>
                           <Typography variant="h4">Good Morning,</Typography>
                           <Typography component="span" variant="h4" sx={{ fontWeight: 400 }}>
-                            Johne Doe
+                            {user ? `${user.prenom} ${user.nom}` : 'John Doe'}
                           </Typography>
                         </Stack>
-                        <Typography variant="subtitle2">Project Admin</Typography>
+                        <Typography variant="subtitle2">{user ? user.role : 'Project Admin'}</Typography>
                       </Stack>
                       <OutlinedInput
                         sx={{ width: '100%', pr: 1, pl: 2, my: 2 }}
@@ -152,7 +149,6 @@ export default function ProfileSection() {
                         '&::-webkit-scrollbar': { width: 5 }
                       }}
                     >
-                      <UpgradePlanCard />
                       <Divider />
                       <Card sx={{ bgcolor: 'primary.light', my: 2 }}>
                         <CardContent>
@@ -193,20 +189,12 @@ export default function ProfileSection() {
                             primary={
                               <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="body2">Social Profile</Typography>
-                                <Chip
-                                  slotProps={{
-                                    label: { sx: { mt: 0.25 } }
-                                  }}
-                                  label="02"
-                                  variant="filled"
-                                  size="small"
-                                  color="warning"
-                                />
+                                <Chip slotProps={{ label: { sx: { mt: 0.25 } } }} label="02" variant="filled" size="small" color="warning" />
                               </Stack>
                             }
                           />
                         </ListItemButton>
-                        <ListItemButton sx={{ borderRadius: `${borderRadius}px` }}>
+                        <ListItemButton sx={{ borderRadius: `${borderRadius}px` }} onClick={handleLogout}>
                           <ListItemIcon>
                             <IconLogout stroke={1.5} size="20px" />
                           </ListItemIcon>

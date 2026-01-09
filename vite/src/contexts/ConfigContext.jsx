@@ -1,3 +1,4 @@
+// frontend-template/vite/src/contexts/ConfigContext.jsx
 import PropTypes from 'prop-types';
 import { createContext, useMemo } from 'react';
 
