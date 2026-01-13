@@ -1,3 +1,4 @@
+//frontend-template/vite/src/views/dashboard/Default/TotalGrowthBarChart.jsx
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 

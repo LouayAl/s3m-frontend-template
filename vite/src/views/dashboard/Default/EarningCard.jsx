@@ -1,3 +1,4 @@
+//frontend-template/vite/src/views/dashboard/Default/EarningCard.jsx
 import PropTypes from 'prop-types';
 import React from 'react';
 
