@@ -1,7 +1,8 @@
+// frontend-template/vite/src/ui-component/cards/TotalSessionsCardDark.jsx
 import PropTypes from 'prop-types';
-
 // material-ui
-import { useTheme, styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
+import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import Avatar from '@mui/material/Avatar';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -12,11 +13,15 @@ import Box from '@mui/material/Box';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
-import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
-import { withAlpha } from 'utils/colorUtils';
+import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard'; // Skeleton stays the same
+
+// assets
+import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 
 // styles
 const CardWrapper = styled(MainCard)(({ theme }) => ({
+  backgroundColor: theme.vars.palette.primary.dark,
+  color: theme.vars.palette.primary.light,
   overflow: 'hidden',
   position: 'relative',
   '&:after': {
@@ -24,7 +29,7 @@ const CardWrapper = styled(MainCard)(({ theme }) => ({
     position: 'absolute',
     width: 210,
     height: 210,
-    background: `linear-gradient(210.04deg, ${theme.vars.palette.warning.dark} -50.94%, rgba(144, 202, 249, 0) 83.49%)`,
+    background: `linear-gradient(210.04deg, ${theme.vars.palette.primary[200]} -50.94%, rgba(144, 202, 249, 0) 83.49%)`,
     borderRadius: '50%',
     top: -30,
     right: -180
@@ -34,14 +39,14 @@ const CardWrapper = styled(MainCard)(({ theme }) => ({
     position: 'absolute',
     width: 210,
     height: 210,
-    background: `linear-gradient(140.9deg, ${theme.vars.palette.warning.dark} -14.02%, rgba(144, 202, 249, 0) 70.50%)`,
+    background: `linear-gradient(140.9deg, ${theme.vars.palette.primary[200]} -14.02%, rgba(144, 202, 249, 0) 77.58%)`,
     borderRadius: '50%',
     top: -160,
     right: -130
   }
 }));
 
-export default function TotalIncomeLightCard({ isLoading, total, icon, label }) {
+export default function TotalSessionsCardDark({ isLoading, totalSessions }) {
   const theme = useTheme();
 
   return (
@@ -59,19 +64,27 @@ export default function TotalIncomeLightCard({ isLoading, total, icon, label }) 
                     sx={{
                       ...theme.typography.largeAvatar,
                       borderRadius: 2,
-                      bgcolor: label === 'Meeting attends' ? withAlpha(theme.vars.palette.error.light, 0.25) : 'warning.light',
-                      color: label === 'Meeting attends' ? 'error.dark' : 'warning.dark'
+                      bgcolor: 'primary.800',
+                      color: 'common.white'
                     }}
                   >
-                    {icon}
+                    <EventNoteOutlinedIcon fontSize="inherit" />
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  sx={{ py: 0, mt: 0.45, mb: 0.45 }}
-                  primary={<Typography variant="h4">${total}k</Typography>}
+                  sx={{
+                    py: 0,
+                    mt: 0.45,
+                    mb: 0.45
+                  }}
+                  primary={
+                    <Typography variant="h4" sx={{ color: 'common.white' }}>
+                      {totalSessions ?? 0}
+                    </Typography>
+                  }
                   secondary={
-                    <Typography variant="subtitle2" sx={{ color: 'grey.500', mt: 0.5 }}>
-                      {label}
+                    <Typography variant="subtitle2" sx={{ color: 'primary.light', mt: 0.25 }}>
+                      Total des sessions de formation
                     </Typography>
                   }
                 />
@@ -84,4 +97,7 @@ export default function TotalIncomeLightCard({ isLoading, total, icon, label }) 
   );
 }
 
-TotalIncomeLightCard.propTypes = { isLoading: PropTypes.bool, total: PropTypes.number, icon: PropTypes.node, label: PropTypes.string };
+TotalSessionsCardDark.propTypes = {
+  isLoading: PropTypes.bool,
+  totalSessions: PropTypes.number
+};

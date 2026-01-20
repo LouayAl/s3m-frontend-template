@@ -5,14 +5,18 @@ import { useEffect, useState } from 'react';
 import Grid from '@mui/material/Grid';
 
 // project imports
-import EarningCard from './EarningCard';
+import TotalFormationHoursCard from './TotalFormationHoursCard';
 import PopularCard from './PopularCard';
 import TotalOrderLineChartCard from './TotalOrderLineChartCard';
-import TotalIncomeDarkCard from '../../../ui-component/cards/TotalIncomeDarkCard';
-import TotalIncomeLightCard from '../../../ui-component/cards/TotalIncomeLightCard';
+import TotalSessionsCardDark from '../../../ui-component/cards/TotalSessionsDarkCard';
+import TotalParticipantsCard from '../../../ui-component/cards/TotalParticipantsCard';
 import TotalGrowthBarChart from './TotalGrowthBarChart';
 import DepartmentBarChart from './DepartementBarChart';
 import FournisseurPieChart from './FournisseurPieChart';
+import GenderPieChart from './GenderPieChart';
+import CspPieChart from './CspPieChart';
+import RemboursementPieChart from './RemboursementPieChart';
+
 import { gridSpacing } from 'store/constant';
 import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientKpis } from 'api/kpiApi';
@@ -24,11 +28,15 @@ export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
 
   useEffect(() => {
-    if (!user?.entrepriseId) return setLoading(false);
+    if (!user?.entrepriseId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchKpis = async () => {
       try {
         const data = await getClientKpis(user.entrepriseId, token);
+
         setKpis(data);
       } catch (err) {
         console.error('Failed to fetch KPIs:', err);
@@ -48,31 +56,46 @@ export default function Dashboard() {
     participantsByDepartment,
     hoursByDepartment,
     hoursByFamilleFormation,
-    hoursByFournisseur
+    hoursByFournisseur,
+    population,
+    remboursementByType,
+    totalFormationHours,
+    totalSessions
   } = kpis;
 
   return (
     <Grid container spacing={gridSpacing}>
-      {/* Top Row: Earning, Orders, Income */}
+
+      {/* Top Row */}
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <EarningCard isLoading={isLoading} />
+            <TotalFormationHoursCard 
+            isLoading={isLoading}
+            totalHours={totalFormationHours}
+            />
           </Grid>
+
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalOrderLineChartCard isLoading={isLoading} />
+            <TotalOrderLineChartCard 
+            isLoading={isLoading}
+            />
           </Grid>
+
           <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
             <Grid container spacing={gridSpacing}>
+
               <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TotalIncomeDarkCard isLoading={isLoading} />
+                <TotalSessionsCardDark 
+                isLoading={isLoading} 
+                totalSessions={totalSessions} 
+                />
               </Grid>
+
               <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TotalIncomeLightCard
+                <TotalParticipantsCard
                   isLoading={isLoading}
-                  total={203}
-                  label="Total Income"
-                  icon={<StorefrontTwoToneIcon fontSize="inherit" />}
+                  totalParticipants={population?.totalParticipants || 0}
                 />
               </Grid>
             </Grid>
@@ -80,7 +103,7 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      {/* Growth Chart + Popular Card */}
+      {/* Growth + Popular */}
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, md: 8 }}>
@@ -92,29 +115,29 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      {/* Added Charts: Department & Training Family & Pie Chart */}
+      {/* Department charts */}
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, md: 4 }}>
             <DepartmentBarChart
-              title="Participants by Department"
-              data={participantsByDepartment?.length ? participantsByDepartment : []}
+              title="Participants par Département"
+              data={participantsByDepartment || []}
               isLoading={isLoading}
               type="participants"
             />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <DepartmentBarChart
-              title="Hours by Department"
-              data={hoursByDepartment?.length ? hoursByDepartment : []}
+              title="Heures par Département"
+              data={hoursByDepartment || []}
               isLoading={isLoading}
               type="hours"
             />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <DepartmentBarChart
-              title="Hours by Training Family"
-              data={hoursByFamilleFormation?.length ? hoursByFamilleFormation : []}
+              title="Heures par Famille de Formation"
+              data={hoursByFamilleFormation || []}
               isLoading={isLoading}
               type="famille"
             />
@@ -122,15 +145,37 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
+      {/* Pie charts */}
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, md: 6 }}>
             <FournisseurPieChart
-              title="Hours by Trainer"
-              data={hoursByFournisseur?.length ? hoursByFournisseur : []}
+              data={hoursByFournisseur || []}
               isLoading={isLoading}
             />
           </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <RemboursementPieChart
+              data={remboursementByType || []}
+              isLoading={isLoading}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <GenderPieChart
+              isLoading={isLoading}
+              data={population?.genderHours || []}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <CspPieChart
+              isLoading={isLoading}
+              data={population?.cspHours || []}
+            />
+          </Grid>
+          
         </Grid>
       </Grid>
     </Grid>

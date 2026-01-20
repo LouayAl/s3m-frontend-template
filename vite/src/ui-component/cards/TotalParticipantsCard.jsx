@@ -1,6 +1,9 @@
+// frontend-template/vite/src/ui-component/cards/TotalParticipantsCard.jsx
 import PropTypes from 'prop-types';
+
 // material-ui
 import { styled, useTheme } from '@mui/material/styles';
+import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined';
 import Avatar from '@mui/material/Avatar';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -11,14 +14,11 @@ import Box from '@mui/material/Box';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
-import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
-
-// assets
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
+import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard'; // Skeleton stays the same
 
 // styles
 const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.primary.dark,
+  backgroundColor: theme.vars.palette.primary,
   color: theme.vars.palette.primary.light,
   overflow: 'hidden',
   position: 'relative',
@@ -27,7 +27,7 @@ const CardWrapper = styled(MainCard)(({ theme }) => ({
     position: 'absolute',
     width: 210,
     height: 210,
-    background: `linear-gradient(210.04deg, ${theme.vars.palette.primary[200]} -50.94%, rgba(144, 202, 249, 0) 83.49%)`,
+    background: `linear-gradient(210.04deg, ${theme.vars.palette.primary[200]} -50.94%, rgba(30, 126, 204, 0) 83.49%)`,
     borderRadius: '50%',
     top: -30,
     right: -180
@@ -37,14 +37,14 @@ const CardWrapper = styled(MainCard)(({ theme }) => ({
     position: 'absolute',
     width: 210,
     height: 210,
-    background: `linear-gradient(140.9deg, ${theme.vars.palette.primary[200]} -14.02%, rgba(144, 202, 249, 0) 77.58%)`,
+    background: `linear-gradient(140.9deg, ${theme.vars.palette.primary[200]} -14.02%, rgba(48, 152, 236, 0) 77.58%)`,
     borderRadius: '50%',
     top: -160,
     right: -130
   }
 }));
 
-export default function TotalIncomeDarkCard({ isLoading }) {
+export default function TotalParticipantsCard({ isLoading, totalParticipants }) {
   const theme = useTheme();
 
   return (
@@ -62,27 +62,23 @@ export default function TotalIncomeDarkCard({ isLoading }) {
                     sx={{
                       ...theme.typography.largeAvatar,
                       borderRadius: 2,
-                      bgcolor: 'primary.800',
+                      bgcolor: 'primary.dark', // same as TotalSessionsCardDark
                       color: 'common.white'
                     }}
                   >
-                    <TableChartOutlinedIcon fontSize="inherit" />
+                    <PeopleOutlineOutlinedIcon fontSize="inherit" />
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  sx={{
-                    py: 0,
-                    mt: 0.45,
-                    mb: 0.45
-                  }}
+                  sx={{ py: 0, mt: 0.45, mb: 0.45 }}
                   primary={
-                    <Typography variant="h4" sx={{ color: 'common.white' }}>
-                      $203k
+                    <Typography variant="h4" sx={{ color: 'primary.dark' }}>
+                      {totalParticipants ?? 0}
                     </Typography>
                   }
                   secondary={
-                    <Typography variant="subtitle2" sx={{ color: 'primary.light', mt: 0.25 }}>
-                      Total Income
+                    <Typography variant="subtitle2" sx={{ color: 'primary.dark', mt: 0.25 }}>
+                      Total des participants
                     </Typography>
                   }
                 />
@@ -95,4 +91,7 @@ export default function TotalIncomeDarkCard({ isLoading }) {
   );
 }
 
-TotalIncomeDarkCard.propTypes = { isLoading: PropTypes.bool };
+TotalParticipantsCard.propTypes = {
+  isLoading: PropTypes.bool,
+  totalParticipants: PropTypes.number
+};

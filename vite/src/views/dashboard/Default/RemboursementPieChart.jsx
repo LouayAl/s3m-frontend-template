@@ -1,4 +1,4 @@
-// frontend-template/vite/src/views/dashboard/Default/FournisseurPieChart.jsx
+// frontend-template/vite/src/views/dashboard/Default/RemboursementPieChart.jsx
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -12,14 +12,20 @@ import SkeletonTotalGrowthBarChart from 'ui-component/cards/Skeleton/TotalGrowth
 import { gridSpacing } from 'store/constant';
 import useConfig from 'hooks/useConfig';
 
-export default function FournisseurPieChart({ isLoading = false, data = [] }) {
+export default function RemboursementPieChart({ isLoading = false, data = [] }) {
   const theme = useTheme();
   const {
     state: { fontFamily }
   } = useConfig();
+
   const [chartOptions, setChartOptions] = useState({
     labels: [],
-    colors: [theme.palette.primary.main],
+    colors: [
+      theme.palette.primary.main,
+      theme.palette.secondary.main,
+      theme.palette.error.main,
+      theme.palette.warning.main
+    ],
     legend: { position: 'bottom', labels: { colors: theme.palette.text.primary } },
     chart: { fontFamily },
     tooltip: { theme: 'light' }
@@ -28,13 +34,10 @@ export default function FournisseurPieChart({ isLoading = false, data = [] }) {
 
   useEffect(() => {
     if (Array.isArray(data) && data.length > 0) {
-      setSeries(data.map((d) => d.totalHeures || 0));
+      setSeries(data.map((d) => Number(d.totalHeures ?? 0)));
       setChartOptions((prev) => ({
         ...prev,
-        labels: data.map((d) => d.fournisseur || 'Unknown'),
-        colors: [theme.palette.primary.main],
-        legend: { position: 'bottom', labels: { colors: theme.palette.text.primary } },
-        chart: { fontFamily }
+        labels: data.map((d) => d.typeRemboursement || 'Unknown')
       }));
     } else {
       setSeries([]);
@@ -47,7 +50,7 @@ export default function FournisseurPieChart({ isLoading = false, data = [] }) {
   ) : (
     <MainCard>
       <Stack spacing={gridSpacing}>
-        <Typography variant="h6">Heures par fournisseur</Typography>
+        <Typography variant="h6">Répartition nb heures par dispositif de remboursement prévu</Typography>
         <Box>
           {series.length > 0 ? (
             <Chart options={chartOptions} series={series} type="pie" height={400} />
@@ -62,11 +65,11 @@ export default function FournisseurPieChart({ isLoading = false, data = [] }) {
   );
 }
 
-FournisseurPieChart.propTypes = {
+RemboursementPieChart.propTypes = {
   isLoading: PropTypes.bool,
   data: PropTypes.arrayOf(
     PropTypes.shape({
-      fournisseur: PropTypes.string,
+      typeRemboursement: PropTypes.string,
       totalHeures: PropTypes.number
     })
   )
