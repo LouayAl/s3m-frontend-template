@@ -1,3 +1,4 @@
+// frontend-template/vite/src/menu-items/utilities.js
 // assets
 import { IconTypography, IconPalette, IconShadow, IconWindmill } from '@tabler/icons-react';
 

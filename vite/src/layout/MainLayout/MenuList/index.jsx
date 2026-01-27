@@ -1,3 +1,4 @@
+// frontend-template/vite/src/layout/MainLayout/MenuList/index.jsx
 import { Activity, memo, useState } from 'react';
 
 import Divider from '@mui/material/Divider';

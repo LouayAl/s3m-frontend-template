@@ -57,7 +57,8 @@ function decodeToken(token) {
   if (!token || typeof token !== "string") return null;
 
   try {
-    const decoded = jwt_decode(token);
+      const decoded = jwt_decode(token);
+
 
     if (!decoded.sub) return null;
 

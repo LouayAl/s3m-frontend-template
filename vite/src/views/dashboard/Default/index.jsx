@@ -20,7 +20,6 @@ import RemboursementPieChart from './RemboursementPieChart';
 import { gridSpacing } from 'store/constant';
 import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientKpis } from 'api/kpiApi';
-import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 
 export default function Dashboard() {
   const { token, user } = useAuth();

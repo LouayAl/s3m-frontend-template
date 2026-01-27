@@ -1,3 +1,4 @@
+// frontend-template/vite/src/menu-items/dashboard.js
 // assets
 import { IconDashboard } from '@tabler/icons-react';
 

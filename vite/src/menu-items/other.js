@@ -1,3 +1,4 @@
+// frontend-template/vite/src/menu-items/other.js
 // assets
 import { IconBrandChrome, IconHelp } from '@tabler/icons-react';
 

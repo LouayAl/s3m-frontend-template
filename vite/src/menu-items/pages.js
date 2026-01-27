@@ -1,3 +1,4 @@
+// frontend-template/vite/src/menu-items/pages.js
 // assets
 import { IconKey } from '@tabler/icons-react';
 
