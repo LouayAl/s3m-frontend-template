@@ -68,7 +68,6 @@ export const deleteFormation = async (id) => {
     const res = await api.delete(`${BASE_URL}/${id}`);
     return res.data;
   } catch (err) {
-    console.error("Error deleting formation:", err);
     throw err;
   }
 };

@@ -3,14 +3,15 @@ import dashboard from './dashboard';
 import pages from './pages';
 import utilities from './utilities';
 import other from './other';
-import saisie from './saisie';
+import session from './session';
 import formation from './formation';
 import entreprise from './entreprise';
+import employe from './employe';
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard, pages, utilities, other, saisie, formation,entreprise]
+  items: [dashboard, pages, utilities, other, session, formation, entreprise, employe]
 };
 
 export default menuItems;

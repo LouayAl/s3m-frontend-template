@@ -1,69 +1,60 @@
 // frontend-template/vite/src/api/employeApi.js
-import api from "./axios";
+import api from "./axios"; // votre instance axios
 
-const BASE_URL = "/employes";
+const BASE_URL = "/employes"; // relatif à la baseURL définie dans axios.js
 
-// ✅ Get all entreprises
-export const getAllEntreprises = async () => {
+// ✅ Récupérer tous les employés
+export const getAllEmployes = async () => {
   try {
     const res = await api.get(BASE_URL);
     return res.data;
   } catch (err) {
-    console.error("Error loading entreprises:", err);
+    console.error("Erreur lors du chargement des employés :", err);
     throw err;
   }
 };
 
-// ✅ Search entreprises by keyword
-export const searchEntreprises = async (keyword) => {
+// ✅ Rechercher des employés par mot-clé (nom ou prénom)
+export const searchEmployes = async (keyword) => {
   try {
     const res = await api.get(`${BASE_URL}/search`, {
       params: { keyword }
     });
     return res.data;
   } catch (err) {
-    console.error("Error searching entreprises:", err);
+    console.error("Erreur lors de la recherche des employés :", err);
     throw err;
   }
 };
 
-// ✅ Filter entreprises
-export const filterEntreprises = async (filters) => {
-  try {
-    const res = await api.get(`${BASE_URL}/filter`, {
-      params: filters
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Error filtering entreprises:", err);
-    throw err;
-  }
-};
-
-// ✅ Create a new entreprise
-export const createEntreprise = async (payload) => {
+// ✅ Créer un nouvel employé
+export const createEmploye = async (payload) => {
   try {
     const res = await api.post(BASE_URL, payload);
     return res.data;
   } catch (err) {
-    console.error("Error creating entreprise:", err);
+    console.error("Erreur lors de la création de l'employé :", err);
     throw err;
   }
 };
 
-// ✅ Update an entreprise
-export const updateEntreprise = async (id, payload) => {
+// ✅ Mettre à jour un employé
+export const updateEmploye = async (id, payload) => {
   try {
     const res = await api.put(`${BASE_URL}/${id}`, payload);
     return res.data;
   } catch (err) {
-    console.error("Error updating entreprise:", err);
+    console.error("Erreur lors de la mise à jour de l'employé :", err);
     throw err;
   }
 };
 
-// ✅ Delete an entreprise
-export const deleteEntreprise = async (id) => {
+// ✅ Supprimer un employé
+export const deleteEmploye = async (id) => {
+  try {
     const res = await api.delete(`${BASE_URL}/${id}`);
     return res.data;
+  } catch (err) {
+    throw err;
+  }
 };

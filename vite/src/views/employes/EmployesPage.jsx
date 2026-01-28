@@ -7,36 +7,52 @@ import {
   CardContent,
   TextField,
   Grid,
-  Button,
   Stack,
+  IconButton,
   Snackbar,
   Alert,
-  IconButton
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button
 } from "@mui/material";
+
 import { DataGrid } from "@mui/x-data-grid";
 import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
-import CloseIcon from "@mui/icons-material/Close";
-import {
-  getAllEntreprises,
-  deleteEntreprise,
-  updateEntreprise
-} from "../../api/entrepriseApi";
+import CancelIcon from "@mui/icons-material/Cancel";
+import { getAllEmployes, deleteEmploye, updateEmploye } from "../../api/employeApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
-const EntreprisesPage = () => {
+const EmployesPage = () => {
   const theme = useTheme();
   const { token } = useAuth();
 
-  const [entreprises, setEntreprises] = useState([]);
+  const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Editing
+  // Row editing
   const [editRowId, setEditRowId] = useState(null);
-  const [editNom, setEditNom] = useState("");
+  const [editRowData, setEditRowData] = useState({});
+
+  // Delete dialog
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedEmployeId, setSelectedEmployeId] = useState(null);
+
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedEmployeId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setSelectedEmployeId(null);
+  };
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({
@@ -54,266 +70,194 @@ const EntreprisesPage = () => {
   };
 
   useEffect(() => {
-    fetchEntreprises();
+    fetchEmployes();
   }, []);
 
-  const fetchEntreprises = async () => {
+  const fetchEmployes = async () => {
     try {
       setLoading(true);
-      const data = await getAllEntreprises(token);
-      setEntreprises(data);
-    } catch (err) {
-      console.error("Error loading entreprises:", err);
-      showSnackbar("Erreur lors du chargement des entreprises.", "error");
+      const data = await getAllEmployes(token);
+      setEmployes(data);
+    } catch {
+      showSnackbar("Erreur lors du chargement des employés.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // UPDATE
   const handleSave = async (id) => {
     try {
-      await updateEntreprise(id, { nomEntreprise: editNom });
-
-      setEntreprises((prev) =>
-        prev.map((e) =>
-          e.idEntreprise === id ? { ...e, nomEntreprise: editNom } : e
-        )
+      await updateEmploye(id, editRowData);
+      setEmployes((prev) =>
+        prev.map((e) => (e.idEmploye === id ? { ...editRowData } : e))
       );
-
       setEditRowId(null);
-      showSnackbar("Entreprise mise à jour avec succès !", "success");
+      setEditRowData({});
+      showSnackbar("Employé mis à jour avec succès !");
     } catch (err) {
-      console.error("Erreur lors de la mise à jour:", err);
-      if (err.response && err.response.data) {
-        showSnackbar(
-          err.response.data.message || "Erreur lors de la mise à jour.",
-          "error"
-        );
-      } else {
-        showSnackbar("Une erreur est survenue, veuillez réessayer.", "error");
-      }
+      const message = err.response?.data?.message || "Erreur lors de la mise à jour.";
+      showSnackbar(message, "error");
     }
   };
 
-  // DELETE
-  const handleDelete = async (id) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer cette entreprise ?"))
-      return;
-
+  // REAL DELETE (called after confirmation)
+  const confirmDelete = async () => {
     try {
-      await deleteEntreprise(id);
-      setEntreprises((prev) =>
-        prev.filter((e) => e.idEntreprise !== id)
-      );
-      showSnackbar("Entreprise supprimée avec succès !", "success");
+      await deleteEmploye(selectedEmployeId);
+      setEmployes((prev) => prev.filter((e) => e.idEmploye !== selectedEmployeId));
+      showSnackbar("Employé supprimé avec succès !");
     } catch (err) {
-      if (err.response && err.response.data) {
-        showSnackbar(
-          err.response.data.message ||
-            "Impossible de supprimer cette entreprise.",
-          "error"
-        );
-      } else {
-        showSnackbar("Une erreur est survenue, veuillez réessayer.", "error");
-      }
+      const message =
+        err.response?.data?.message || "Impossible de supprimer cet employé.";
+      showSnackbar(message, "error");
+    } finally {
+      handleCloseDeleteDialog();
     }
   };
 
-    const columns = [
+  const columns = [
+    { field: "nom", headerName: "Nom", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
+    { field: "prenom", headerName: "Prénom", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
+    { field: "email", headerName: "Email", flex: 1, minWidth: 200, headerAlign: "center", align: "center" },
+    { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
     {
-        field: "idEntreprise",
-        headerName: "ID",
-        width: 100,
-        align: "center",
-        headerAlign: "center"
-    },
-    {
-        field: "nomEntreprise",
-        headerName: "Nom",
-        flex: 1,
-        align: "center",
-        headerAlign: "center",
-        renderCell: (params) => {
-        if (editRowId === params.row.idEntreprise) {
-            return (
-            <Box
-                sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                width: "100%"
-                }}
-            >
-                <TextField
-                value={editNom}
-                onChange={(e) => setEditNom(e.target.value)}
-                size="small"
-                sx={{
-                    width: 200 // 👈 fixed small width instead of full column
-                }}
-                />
-            </Box>
-            );
-        }
-        return (
-            <Box
-            sx={{
-                width: "100%",
-                textAlign: "center",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center"
-            }}
-            >
-            {params.value}
-            </Box>
-        );
-        }
-    },
-    {
-        field: "actions",
-        headerName: "Actions",
-        width: 140,
-        align: "center",
-        headerAlign: "center",
-        sortable: false,
-        renderCell: (params) => {
-        if (editRowId === params.row.idEntreprise) {
-            return (
-            <Box
-                sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                width: "100%"
-                }}
-            >
-                <IconButton
-                color="success"
-                onClick={() => handleSave(params.row.idEntreprise)}
-                >
+      field: "actions",
+      headerName: "Actions",
+      width: 150,
+      align: "center",
+      headerAlign: "center",
+      sortable: false,
+      renderCell: (params) => {
+        if (editRowId === params.row.idEmploye) {
+          return (
+            <Stack direction="row" spacing={1}>
+              <IconButton color="success" size="small" onClick={() => handleSave(params.row.idEmploye)}>
                 <SaveIcon />
-                </IconButton>
-                <IconButton
+              </IconButton>
+              <IconButton
                 color="secondary"
-                onClick={() => setEditRowId(null)}
-                >
-                <CloseIcon />
-                </IconButton>
-            </Box>
-            );
+                size="small"
+                onClick={() => {
+                  setEditRowId(null);
+                  setEditRowData({});
+                }}
+              >
+                <CancelIcon />
+              </IconButton>
+            </Stack>
+          );
         }
 
         return (
-            <Box
-            sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                width: "100%"
-            }}
-            >
+          <Stack direction="row" spacing={1}>
             <IconButton
-                color="primary"
-                onClick={() => {
-                setEditRowId(params.row.idEntreprise);
-                setEditNom(params.row.nomEntreprise);
-                }}
+              color="primary"
+              size="small"
+              onClick={() => {
+                setEditRowId(params.row.idEmploye);
+                setEditRowData(params.row);
+              }}
             >
-                <EditIcon />
+              <EditIcon />
             </IconButton>
             <IconButton
-                color="error"
-                onClick={() => handleDelete(params.row.idEntreprise)}
+              color="error"
+              size="small"
+              onClick={() => handleOpenDeleteDialog(params.row.idEmploye)}
             >
-                <DeleteIcon />
+              <DeleteIcon />
             </IconButton>
-            </Box>
+          </Stack>
         );
-        }
+      }
     }
-    ];
+  ];
 
+  const editableColumns = columns.map((col) => {
+    if (col.field === "actions") return col;
+    return {
+      ...col,
+      renderCell: (params) =>
+        editRowId === params.row.idEmploye ? (
+          <TextField
+            value={editRowData[params.field] ?? ""}
+            onChange={(e) =>
+              setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))
+            }
+            size="small"
+            sx={{ width: 150 }}
+          />
+        ) : (
+          params.value
+        )
+    };
+  });
 
-  const filteredRows = entreprises.filter((e) =>
-    e.nomEntreprise?.toLowerCase().includes(search.toLowerCase())
+  const filteredRows = employes.filter(
+    (e) =>
+      e.nom?.toLowerCase().includes(search.toLowerCase()) ||
+      e.prenom?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <Box p={3}>
       <Typography variant="h4" fontWeight="bold" mb={2}>
-        Liste des Entreprises
+        Liste des Employés
       </Typography>
 
-      <Card
-        sx={{
-          background: theme.palette.background.paper,
-          borderRadius: "16px",
-          boxShadow: theme.shadows[4]
-        }}
-      >
+      <Card>
         <CardContent>
-          {/* Filter */}
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Rechercher par nom"
+                label="Rechercher par nom ou prénom"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
           </Grid>
 
-          {/* Table */}
-          <Box sx={{ width: "100%", overflowX: "auto" }}>
-            <Box sx={{ minWidth: 500, height: "50vh" }}>
-                <DataGrid
-                rows={filteredRows}
-                columns={columns}
-                getRowId={(row) => row.idEntreprise}
-                loading={loading}
-                pageSizeOptions={[10, 20, 50]}
-                initialState={{
-                    pagination: { paginationModel: { pageSize: 10, page: 0 } }
-                }}
-                sx={{
-                    border: "none",
-                    "& .MuiDataGrid-cell": {
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                    },
-                    "& .MuiDataGrid-columnHeaders": {
-                        backgroundColor: theme.palette.background.default,
-                        fontWeight: "bold"
-                    },
-                    "& .MuiDataGrid-row:hover": {
-                        backgroundColor: theme.palette.action.hover
-                    }
-                }}
-                />
-            </Box>
+          <Box sx={{ height: "70vh" }}>
+            <DataGrid
+              rows={filteredRows}
+              columns={editableColumns}
+              getRowId={(row) => row.idEmploye}
+              loading={loading}
+              pageSizeOptions={[10, 20, 50]}
+            />
           </Box>
         </CardContent>
       </Card>
 
-      {/* Snackbar Notifications */}
+      {/* DELETE CONFIRMATION DIALOG */}
+      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
+        <DialogTitle>Confirmation de suppression</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer cet employé ?
+            <br />
+            Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="inherit">
+            Annuler
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+        <Alert severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>
@@ -321,4 +265,4 @@ const EntreprisesPage = () => {
   );
 };
 
-export default EntreprisesPage;
+export default EmployesPage;

@@ -10,7 +10,13 @@ import {
   Stack,
   IconButton,
   Snackbar,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useTheme } from "@mui/material/styles";
@@ -33,6 +39,21 @@ const FormationsPage = () => {
   const [editRowId, setEditRowId] = useState(null);
   const [editRowData, setEditRowData] = useState({});
 
+  // Delete dialog state
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedFormationId, setSelectedFormationId] = useState(null);
+
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedFormationId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setSelectedFormationId(null);
+  };
+
+  // Snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -56,8 +77,7 @@ const FormationsPage = () => {
       setLoading(true);
       const data = await getAllFormations(token);
       setFormations(data);
-    } catch (err) {
-      console.error("Error loading formations:", err);
+    } catch {
       showSnackbar("Erreur lors du chargement des formations.", "error");
     } finally {
       setLoading(false);
@@ -74,23 +94,23 @@ const FormationsPage = () => {
       setEditRowData({});
       showSnackbar("Formation mise à jour avec succès !");
     } catch (err) {
-      console.error("Erreur lors de la mise à jour:", err);
       const message = err.response?.data?.message || "Erreur lors de la mise à jour.";
       showSnackbar(message, "error");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer cette formation ?")) return;
-
+  // Confirm delete after dialog
+  const confirmDelete = async () => {
     try {
-      await deleteFormation(id);
-      setFormations((prev) => prev.filter((f) => f.id !== id));
+      await deleteFormation(selectedFormationId);
+      setFormations((prev) => prev.filter((f) => f.id !== selectedFormationId));
       showSnackbar("Formation supprimée avec succès !");
     } catch (err) {
-      console.error("Erreur lors de la suppression:", err);
-      const message = err.response?.data?.message || "Impossible de supprimer cette formation.";
+      const message =
+        err.response?.data?.message || "Impossible de supprimer cette formation.";
       showSnackbar(message, "error");
+    } finally {
+      handleCloseDeleteDialog();
     }
   };
 
@@ -103,8 +123,6 @@ const FormationsPage = () => {
     { field: "annee", headerName: "Année", width: 100, headerAlign: "center", align: "center" },
     { field: "dureeHeures", headerName: "Durée (h)", width: 120, headerAlign: "center", align: "center" },
     { field: "dureeJours", headerName: "Durée (j)", width: 120, headerAlign: "center", align: "center" },
-
-    // Actions
     {
       field: "actions",
       headerName: "Actions",
@@ -115,36 +133,23 @@ const FormationsPage = () => {
       renderCell: (params) => {
         if (editRowId === params.row.id) {
           return (
-            <Stack direction="row" spacing={1} justifyContent="center">
+            <Stack direction="row" spacing={1}>
               <IconButton color="success" size="small" onClick={() => handleSave(params.row.id)}>
                 <SaveIcon />
               </IconButton>
-              <IconButton color="secondary" size="small" onClick={() => {
-                setEditRowId(null);
-                setEditRowData({});
-              }}>
+              <IconButton color="secondary" size="small" onClick={() => { setEditRowId(null); setEditRowData({}); }}>
                 <CancelIcon />
               </IconButton>
             </Stack>
           );
         }
+
         return (
-          <Stack direction="row" spacing={1} justifyContent="center">
-            <IconButton
-              color="primary"
-              size="small"
-              onClick={() => {
-                setEditRowId(params.row.id);
-                setEditRowData(params.row); // copy all row data
-              }}
-            >
+          <Stack direction="row" spacing={1}>
+            <IconButton color="primary" size="small" onClick={() => { setEditRowId(params.row.id); setEditRowData(params.row); }}>
               <EditIcon />
             </IconButton>
-            <IconButton
-              color="error"
-              size="small"
-              onClick={() => handleDelete(params.row.id)}
-            >
+            <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.id)}>
               <DeleteIcon />
             </IconButton>
           </Stack>
@@ -153,18 +158,15 @@ const FormationsPage = () => {
     }
   ];
 
-  // Make all columns editable in edit mode
   const editableColumns = columns.map((col) => {
-    if (col.field === "actions") return col; // actions stay the same
+    if (col.field === "actions") return col;
     return {
       ...col,
       renderCell: (params) =>
         editRowId === params.row.id ? (
           <TextField
             value={editRowData[params.field] ?? ""}
-            onChange={(e) =>
-              setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))
-            }
+            onChange={(e) => setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))}
             size="small"
             sx={{ width: 120 }}
           />
@@ -184,9 +186,8 @@ const FormationsPage = () => {
         Catalogue des Formations
       </Typography>
 
-      <Card sx={{ background: theme.palette.background.paper, borderRadius: "16px", boxShadow: theme.shadows[4] }}>
+      <Card>
         <CardContent>
-          {/* Filters */}
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} md={4}>
               <TextField
@@ -198,45 +199,42 @@ const FormationsPage = () => {
             </Grid>
           </Grid>
 
-          {/* Table responsive */}
-          <Box sx={{ width: "100%", overflowX: "auto" }}>
-            <Box sx={{ minWidth: 900, height: "70vh" }}>
-              <DataGrid
-                rows={filteredRows}
-                columns={editableColumns}
-                getRowId={(row) => row.id}
-                loading={loading}
-                pageSizeOptions={[10, 20, 50]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-                sx={{
-                  border: "none",
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: theme.palette.background.default,
-                    fontWeight: "bold"
-                  },
-                  "& .MuiDataGrid-row:hover": {
-                    backgroundColor: theme.palette.action.hover
-                  },
-                  "& .MuiDataGrid-cell": {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }
-                }}
-              />
-            </Box>
+          <Box sx={{ height: "70vh" }}>
+            <DataGrid
+              rows={filteredRows}
+              columns={editableColumns}
+              getRowId={(row) => row.id}
+              loading={loading}
+              pageSizeOptions={[10, 20, 50]}
+            />
           </Box>
         </CardContent>
       </Card>
 
-      {/* Snackbar notifications */}
+      {/* DELETE CONFIRMATION DIALOG */}
+      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
+        <DialogTitle>Confirmation de suppression</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer cette formation ?
+            <br />
+            Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="inherit">Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">Supprimer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: "100%" }}>
+        <Alert severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>

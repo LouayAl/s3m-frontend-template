@@ -5,9 +5,10 @@ import ProtectedRoute from './ProtectedRoute';
 // project imports
 import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
-import SaisiePage from '../views/saisie/SaisiePage';
+import SessionPage from '../views/session/SessionPage';
 import FormationsPage from '../views/formations/FormationsPage';
 import EntreprisesPage from '../views/entreprises/EntreprisesPage';
+import EmployesPage from '../views/employes/EmployesPage';
 
 // dashboard routing
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
@@ -56,10 +57,10 @@ const MainRoutes = {
       element: <SamplePage />
     },
     {
-    path: 'saisie',          // ✅ new route
+    path: 'session',          // ✅ new route
     element: (
       <ProtectedRoute>
-        <SaisiePage />
+        <SessionPage />
       </ProtectedRoute>
     )
     },
@@ -76,6 +77,14 @@ const MainRoutes = {
     element: (
       <ProtectedRoute>
         <EntreprisesPage />
+      </ProtectedRoute>
+    )
+    },
+    {
+    path: 'employes',          // ✅ new route
+    element: (
+      <ProtectedRoute>
+        <EmployesPage />
       </ProtectedRoute>
     )
     }

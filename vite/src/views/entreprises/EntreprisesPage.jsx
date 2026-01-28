@@ -11,7 +11,12 @@ import {
   Stack,
   Snackbar,
   Alert,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useTheme } from "@mui/material/styles";
@@ -37,6 +42,20 @@ const EntreprisesPage = () => {
   // Editing
   const [editRowId, setEditRowId] = useState(null);
   const [editNom, setEditNom] = useState("");
+
+  // Delete dialog
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedEntrepriseId, setSelectedEntrepriseId] = useState(null); 
+
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedEntrepriseId(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setSelectedEntrepriseId(null);
+  };
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({
@@ -95,6 +114,22 @@ const EntreprisesPage = () => {
       }
     }
   };
+
+  // REAL DELETE (called after confirmation)
+  const confirmDelete = async () => {
+    try {
+      await deleteEntreprise(selectedEntrepriseId);
+      setEntreprises((prev) => prev.filter((e) => e.idEntreprise !== selectedEntrepriseId));
+      showSnackbar("Entreprise supprimée avec succès !");
+    } catch (err) {
+      const message =
+        err.response?.data?.message || "Impossible de supprimer cette entreprise.";
+      showSnackbar(message, "error");
+    } finally {
+      handleCloseDeleteDialog();
+    }
+  };
+
 
   // DELETE
   const handleDelete = async (id) => {
@@ -227,7 +262,8 @@ const EntreprisesPage = () => {
             </IconButton>
             <IconButton
                 color="error"
-                onClick={() => handleDelete(params.row.idEntreprise)}
+                size="small"
+                onClick={() => handleOpenDeleteDialog(params.row.idEntreprise)}
             >
                 <DeleteIcon />
             </IconButton>
@@ -300,6 +336,27 @@ const EntreprisesPage = () => {
           </Box>
         </CardContent>
       </Card>
+
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
+        <DialogTitle>Confirmation de suppression</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer cette entreprise ?
+            <br />
+            Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="inherit">
+            Annuler
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar Notifications */}
       <Snackbar

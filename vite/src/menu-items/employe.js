@@ -1,21 +1,21 @@
-// frontend-template/vite/src/menu-items/entreprise.js
+// frontend-template/vite/src/menu-items/employe.js
 // assets
-import { IconBuildingStore } from "@tabler/icons-react"; // building icon for entreprise
+import { IconUsers } from "@tabler/icons-react";
 
-const entreprise = {
-  id: "entreprise",
-  title: "Entreprises",
+const employe = {
+  id: "employe",
+  title: "Employés",
   type: "group",
   children: [
     {
-      id: "entreprises",
-      title: "Entreprises",
+      id: "employes",
+      title: "Employés",
       type: "item",
-      url: "/entreprises",
-      icon: IconBuildingStore,
+      url: "/employes",
+      icon: IconUsers,
       breadcrumbs: false
     }
   ]
 };
 
-export default entreprise;
+export default employe;

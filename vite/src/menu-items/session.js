@@ -1,25 +1,25 @@
-// frontend-template/vite/src/menu-items/saisie.js
+// frontend-template/vite/src/menu-items/session.js
 // assets
 import { IconEdit } from '@tabler/icons-react'; // or any icon you like
 
 const icons = { IconEdit };
 
-// ==============================|| SAISIE MENU ITEMS ||============================= //
+// ==============================|| SESSION MENU ITEMS ||============================= //
 
-const saisie = {
-  id: 'saisie',
-  title: 'Saisie',
+const session = {
+  id: 'session',
+  title: 'Session',
   type: 'group',
   children: [
     {
       id: 'create-session',
       title: 'Session de Formation',
       type: 'item',
-      url: '/saisie',
+      url: '/session',
       icon: icons.IconEdit,
       breadcrumbs: false
     }
   ]
 };
 
-export default saisie;
+export default session;
