@@ -16,15 +16,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Button
+  Button,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
-import CancelIcon from "@mui/icons-material/Cancel";
-import { getAllFormations, deleteFormation, updateFormation } from "../../api/formationApi";
+import FormationsModal from "./FormationsModal";
+import { getAllFormations, deleteFormation } from "../../api/formationApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
 const FormationsPage = () => {
@@ -35,39 +34,20 @@ const FormationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Row editing state
-  const [editRowId, setEditRowId] = useState(null);
-  const [editRowData, setEditRowData] = useState({});
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingFormation, setEditingFormation] = useState(null);
 
   // Delete dialog state
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedFormationId, setSelectedFormationId] = useState(null);
 
-  const handleOpenDeleteDialog = (id) => {
-    setSelectedFormationId(id);
-    setOpenDeleteDialog(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setOpenDeleteDialog(false);
-    setSelectedFormationId(null);
-  };
-
   // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success"
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const showSnackbar = (message, severity = "success") => setSnackbar({ open: true, message, severity });
+  const handleCloseSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
+  // Fetch formations
   useEffect(() => {
     fetchFormations();
   }, []);
@@ -84,101 +64,81 @@ const FormationsPage = () => {
     }
   };
 
-  const handleSave = async (id) => {
-    try {
-      await updateFormation(id, editRowData);
-      setFormations((prev) =>
-        prev.map((f) => (f.id === id ? { ...editRowData } : f))
-      );
-      setEditRowId(null);
-      setEditRowData({});
-      showSnackbar("Formation mise à jour avec succès !");
-    } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de la mise à jour.";
-      showSnackbar(message, "error");
-    }
+  // Open create/edit modal
+  const handleModalOpen = (formation = null) => {
+    setEditingFormation(formation);
+    setModalOpen(true);
+  };
+  const handleModalClose = () => {
+    setEditingFormation(null);
+    setModalOpen(false);
   };
 
-  // Confirm delete after dialog
+  const handleSave = (savedFormation) => {
+    if (editingFormation) {
+      // Update
+      setFormations((prev) => prev.map((f) => (f.id === savedFormation.id ? savedFormation : f)));
+    } else {
+      // Create
+      setFormations((prev) => [...prev, savedFormation]);
+    }
+    handleModalClose();
+  };
+
+  // Delete
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedFormationId(id);
+    setOpenDeleteDialog(true);
+  };
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setSelectedFormationId(null);
+  };
   const confirmDelete = async () => {
     try {
       await deleteFormation(selectedFormationId);
       setFormations((prev) => prev.filter((f) => f.id !== selectedFormationId));
       showSnackbar("Formation supprimée avec succès !");
     } catch (err) {
-      const message =
-        err.response?.data?.message || "Impossible de supprimer cette formation.";
+      const message = err.response?.data?.message || "Impossible de supprimer cette formation.";
       showSnackbar(message, "error");
     } finally {
       handleCloseDeleteDialog();
     }
   };
 
+  // Columns
   const columns = [
-    { field: "module", headerName: "Module", flex: 1, minWidth: 160, headerAlign: "center", align: "center" },
-    { field: "familleFormation", headerName: "Famille", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "typeFormation", headerName: "Type", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "sousFamille", headerName: "Sous-famille", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "referenceFormation", headerName: "Référence", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "annee", headerName: "Année", width: 100, headerAlign: "center", align: "center" },
-    { field: "dureeHeures", headerName: "Durée (h)", width: 120, headerAlign: "center", align: "center" },
-    { field: "dureeJours", headerName: "Durée (j)", width: 120, headerAlign: "center", align: "center" },
+    { field: "module", headerName: "Module", flex: 1, minWidth: 160 },
+    { field: "familleFormation", headerName: "Famille", flex: 1, minWidth: 120 },
+    { field: "typeFormation", headerName: "Type", flex: 1, minWidth: 120 },
+    { field: "sousFamille", headerName: "Sous-famille", flex: 1, minWidth: 120 },
+    { field: "interneExterne", headerName: "Interne/Externe", flex: 1, minWidth: 140 },
+    { field: "referenceFormation", headerName: "Référence", flex: 1, minWidth: 120 },
+    { field: "annee", headerName: "Année", width: 100 },
+    { field: "dureeHeures", headerName: "Durée (h)", width: 120 },
+    { field: "dureeJours", headerName: "Durée (j)", width: 120 },
+    { field: "prixHeureMad", headerName: "Prix / h (MAD)", width: 140 },
+    { field: "prixJourMad", headerName: "Prix / j (MAD)", width: 140 },
     {
       field: "actions",
       headerName: "Actions",
       width: 150,
-      align: "center",
-      headerAlign: "center",
       sortable: false,
-      renderCell: (params) => {
-        if (editRowId === params.row.id) {
-          return (
-            <Stack direction="row" spacing={1}>
-              <IconButton color="success" size="small" onClick={() => handleSave(params.row.id)}>
-                <SaveIcon />
-              </IconButton>
-              <IconButton color="secondary" size="small" onClick={() => { setEditRowId(null); setEditRowData({}); }}>
-                <CancelIcon />
-              </IconButton>
-            </Stack>
-          );
-        }
-
-        return (
-          <Stack direction="row" spacing={1}>
-            <IconButton color="primary" size="small" onClick={() => { setEditRowId(params.row.id); setEditRowData(params.row); }}>
-              <EditIcon />
-            </IconButton>
-            <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.id)}>
-              <DeleteIcon />
-            </IconButton>
-          </Stack>
-        );
-      }
-    }
+      renderCell: (params) => (
+        <Stack direction="row" spacing={1}>
+          <IconButton color="primary" size="small" onClick={() => handleModalOpen(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.id)}>
+            <DeleteIcon />
+          </IconButton>
+        </Stack>
+      ),
+    },
   ];
 
-  const editableColumns = columns.map((col) => {
-    if (col.field === "actions") return col;
-    return {
-      ...col,
-      renderCell: (params) =>
-        editRowId === params.row.id ? (
-          <TextField
-            value={editRowData[params.field] ?? ""}
-            onChange={(e) => setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))}
-            size="small"
-            sx={{ width: 120 }}
-          />
-        ) : (
-          params.value
-        )
-    };
-  });
-
-  const filteredRows = formations.filter((f) =>
-    f.module?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredRows = formations.filter((f) => f.module?.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <Box p={3}>
@@ -188,8 +148,8 @@ const FormationsPage = () => {
 
       <Card>
         <CardContent>
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={2} mb={2} alignItems="center">
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Rechercher par module"
@@ -197,12 +157,17 @@ const FormationsPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
+            <Grid item xs={12} md={6} textAlign="right">
+              <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
+                Créer Formation
+              </Button>
+            </Grid>
           </Grid>
 
           <Box sx={{ height: "70vh" }}>
             <DataGrid
               rows={filteredRows}
-              columns={editableColumns}
+              columns={columns}
               getRowId={(row) => row.id}
               loading={loading}
               pageSizeOptions={[10, 20, 50]}
@@ -211,19 +176,30 @@ const FormationsPage = () => {
         </CardContent>
       </Card>
 
+      {/* CREATE/EDIT MODAL */}
+      <FormationsModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSave={handleSave}
+        showSnackbar={showSnackbar}
+        initialData={editingFormation}
+      />
+
       {/* DELETE CONFIRMATION DIALOG */}
       <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Êtes-vous sûr de vouloir supprimer cette formation ?
-            <br />
-            Cette action est irréversible.
+            Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} color="inherit">Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">Supprimer</Button>
+          <Button onClick={handleCloseDeleteDialog} color="inherit">
+            Annuler
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Supprimer
+          </Button>
         </DialogActions>
       </Dialog>
 

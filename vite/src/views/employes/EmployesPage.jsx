@@ -16,34 +16,91 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Button
+  Button,
 } from "@mui/material";
-
 import { DataGrid } from "@mui/x-data-grid";
-import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
-import CancelIcon from "@mui/icons-material/Cancel";
-import { getAllEmployes, deleteEmploye, updateEmploye } from "../../api/employeApi";
-import { useAuth } from "../../contexts/auth/AuthContext";
+import EmployeModal from "./EmployesModal";
+import {
+  getAllEmployes,
+  updateEmploye,
+  deleteEmploye,
+} from "../../api/employeApi";
 
 const EmployesPage = () => {
-  const theme = useTheme();
-  const { token } = useAuth();
-
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Row editing
-  const [editRowId, setEditRowId] = useState(null);
-  const [editRowData, setEditRowData] = useState({});
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEmploye, setEditingEmploye] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // prevent double save
 
   // Delete dialog
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedEmployeId, setSelectedEmployeId] = useState(null);
 
+  // Snackbar
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showSnackbar = (message, severity = "success") =>
+    setSnackbar({ open: true, message, severity });
+
+  const handleCloseSnackbar = () =>
+    setSnackbar((prev) => ({ ...prev, open: false }));
+
+  // Fetch employees
+  useEffect(() => {
+    fetchEmployes();
+  }, []);
+
+  const fetchEmployes = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllEmployes();
+      setEmployes(data);
+    } catch (err) {
+      showSnackbar("Erreur lors du chargement des employés", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Open modal
+  const handleModalOpen = (employe = null) => {
+    setEditingEmploye(employe);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingEmploye(null);
+  };
+
+  // Called by modal after successful save
+  const handleSaveFromModal = (savedEmploye) => {
+    if (!savedEmploye) return;
+    setEmployes((prev) => {
+      const index = prev.findIndex((e) => e.idEmploye === savedEmploye.idEmploye);
+      if (index >= 0) {
+        // update
+        const updated = [...prev];
+        updated[index] = savedEmploye;
+        return updated;
+      }
+      // create
+      return [...prev, savedEmploye];
+    });
+    handleModalClose();
+  };
+
+  // Delete
   const handleOpenDeleteDialog = (id) => {
     setSelectedEmployeId(id);
     setOpenDeleteDialog(true);
@@ -54,144 +111,65 @@ const EmployesPage = () => {
     setSelectedEmployeId(null);
   };
 
-  // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success"
-  });
-
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  useEffect(() => {
-    fetchEmployes();
-  }, []);
-
-  const fetchEmployes = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllEmployes(token);
-      setEmployes(data);
-    } catch {
-      showSnackbar("Erreur lors du chargement des employés.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async (id) => {
-    try {
-      await updateEmploye(id, editRowData);
-      setEmployes((prev) =>
-        prev.map((e) => (e.idEmploye === id ? { ...editRowData } : e))
-      );
-      setEditRowId(null);
-      setEditRowData({});
-      showSnackbar("Employé mis à jour avec succès !");
-    } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de la mise à jour.";
-      showSnackbar(message, "error");
-    }
-  };
-
-  // REAL DELETE (called after confirmation)
-  const confirmDelete = async () => {
+  const handleDelete = async () => {
     try {
       await deleteEmploye(selectedEmployeId);
-      setEmployes((prev) => prev.filter((e) => e.idEmploye !== selectedEmployeId));
+      setEmployes((prev) =>
+        prev.filter((e) => e.idEmploye !== selectedEmployeId)
+      );
       showSnackbar("Employé supprimé avec succès !");
     } catch (err) {
       const message =
-        err.response?.data?.message || "Impossible de supprimer cet employé.";
+        err.response?.data?.message || "Impossible de supprimer l'employé.";
       showSnackbar(message, "error");
     } finally {
       handleCloseDeleteDialog();
     }
   };
 
-  const columns = [
-    { field: "nom", headerName: "Nom", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
-    { field: "prenom", headerName: "Prénom", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
-    { field: "email", headerName: "Email", flex: 1, minWidth: 200, headerAlign: "center", align: "center" },
-    { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 150, headerAlign: "center", align: "center" },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 150,
-      align: "center",
-      headerAlign: "center",
-      sortable: false,
-      renderCell: (params) => {
-        if (editRowId === params.row.idEmploye) {
-          return (
-            <Stack direction="row" spacing={1}>
-              <IconButton color="success" size="small" onClick={() => handleSave(params.row.idEmploye)}>
-                <SaveIcon />
-              </IconButton>
-              <IconButton
-                color="secondary"
-                size="small"
-                onClick={() => {
-                  setEditRowId(null);
-                  setEditRowData({});
-                }}
-              >
-                <CancelIcon />
-              </IconButton>
-            </Stack>
-          );
-        }
+// Columns for DataGrid showing all employe fields
+const columns = [
+  { field: "nom", headerName: "Nom", flex: 1, minWidth: 150 },
+  { field: "prenom", headerName: "Prénom", flex: 1, minWidth: 150 },
+  { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+  { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 150 },
+  { field: "cin", headerName: "CIN", flex: 1, minWidth: 120 },
+  { field: "cnss", headerName: "CNSS", flex: 1, minWidth: 120 },
+  { field: "matricule", headerName: "Matricule", flex: 1, minWidth: 120 },
+  { field: "csp", headerName: "CSP", flex: 1, minWidth: 120 },
+  { field: "fonction", headerName: "Fonction", flex: 1, minWidth: 150 },
+  { field: "typeContrat", headerName: "Type Contrat", flex: 1, minWidth: 120 },
+  { field: "f_h", headerName: "Genre", flex: 0.7, minWidth: 80 },
+  { field: "dateEmbauche", headerName: "Date Embauche", flex: 1, minWidth: 120 },
+  { field: "dateNaissance", headerName: "Date Naissance", flex: 1, minWidth: 120 },
+  { field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 },
+  { field: "departementNom", headerName: "Département", flex: 1, minWidth: 150 },
+  {
+    field: "actions",
+    headerName: "Actions",
+    width: 120,
+    sortable: false,
+    renderCell: (params) => (
+      <Stack direction="row" spacing={1}>
+        <IconButton
+          color="primary"
+          size="small"
+          onClick={() => handleModalOpen(params.row)}
+        >
+          <EditIcon />
+        </IconButton>
+        <IconButton
+          color="error"
+          size="small"
+          onClick={() => handleOpenDeleteDialog(params.row.idEmploye)}
+        >
+          <DeleteIcon />
+        </IconButton>
+      </Stack>
+    ),
+  },
+];
 
-        return (
-          <Stack direction="row" spacing={1}>
-            <IconButton
-              color="primary"
-              size="small"
-              onClick={() => {
-                setEditRowId(params.row.idEmploye);
-                setEditRowData(params.row);
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-            <IconButton
-              color="error"
-              size="small"
-              onClick={() => handleOpenDeleteDialog(params.row.idEmploye)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Stack>
-        );
-      }
-    }
-  ];
-
-  const editableColumns = columns.map((col) => {
-    if (col.field === "actions") return col;
-    return {
-      ...col,
-      renderCell: (params) =>
-        editRowId === params.row.idEmploye ? (
-          <TextField
-            value={editRowData[params.field] ?? ""}
-            onChange={(e) =>
-              setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))
-            }
-            size="small"
-            sx={{ width: 150 }}
-          />
-        ) : (
-          params.value
-        )
-    };
-  });
 
   const filteredRows = employes.filter(
     (e) =>
@@ -207,8 +185,8 @@ const EmployesPage = () => {
 
       <Card>
         <CardContent>
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={2} mb={2} alignItems="center">
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Rechercher par nom ou prénom"
@@ -216,12 +194,21 @@ const EmployesPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
+            <Grid item xs={12} md={6} textAlign="right">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleModalOpen()}
+              >
+                Créer Employé
+              </Button>
+            </Grid>
           </Grid>
 
           <Box sx={{ height: "70vh" }}>
             <DataGrid
               rows={filteredRows}
-              columns={editableColumns}
+              columns={columns}
               getRowId={(row) => row.idEmploye}
               loading={loading}
               pageSizeOptions={[10, 20, 50]}
@@ -230,27 +217,33 @@ const EmployesPage = () => {
         </CardContent>
       </Card>
 
-      {/* DELETE CONFIRMATION DIALOG */}
+      {/* Create/Edit Modal */}
+      <EmployeModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        onSave={handleSaveFromModal} // only one save call
+        showSnackbar={showSnackbar}
+        initialData={editingEmploye}
+      />
+
+      {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Êtes-vous sûr de vouloir supprimer cet employé ?
-            <br />
-            Cette action est irréversible.
+            Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est
+            irréversible.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} color="inherit">
-            Annuler
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>
             Supprimer
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

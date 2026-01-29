@@ -1,60 +1,34 @@
 // frontend-template/vite/src/api/employeApi.js
-import api from "./axios"; // votre instance axios
+import api from "./axios";
 
-const BASE_URL = "/employes"; // relatif à la baseURL définie dans axios.js
+const BASE_URL = "/employes";
 
-// ✅ Récupérer tous les employés
+// ✅ Get all employees
 export const getAllEmployes = async () => {
-  try {
-    const res = await api.get(BASE_URL);
-    return res.data;
-  } catch (err) {
-    console.error("Erreur lors du chargement des employés :", err);
-    throw err;
-  }
+  const res = await api.get(BASE_URL);
+  return res.data;
 };
 
-// ✅ Rechercher des employés par mot-clé (nom ou prénom)
+// ✅ Search employees by keyword
 export const searchEmployes = async (keyword) => {
-  try {
-    const res = await api.get(`${BASE_URL}/search`, {
-      params: { keyword }
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Erreur lors de la recherche des employés :", err);
-    throw err;
-  }
+  const res = await api.get(`${BASE_URL}/search`, { params: { keyword } });
+  return res.data;
 };
 
-// ✅ Créer un nouvel employé
+// ✅ Create employee
 export const createEmploye = async (payload) => {
-  try {
-    const res = await api.post(BASE_URL, payload);
-    return res.data;
-  } catch (err) {
-    console.error("Erreur lors de la création de l'employé :", err);
-    throw err;
-  }
+  const res = await api.post(BASE_URL, payload);
+  return res.data; // must match EmployeResponseDto
 };
 
-// ✅ Mettre à jour un employé
+// ✅ Update employee
 export const updateEmploye = async (id, payload) => {
-  try {
-    const res = await api.put(`${BASE_URL}/${id}`, payload);
-    return res.data;
-  } catch (err) {
-    console.error("Erreur lors de la mise à jour de l'employé :", err);
-    throw err;
-  }
+  const res = await api.put(`${BASE_URL}/${id}`, payload);
+  return res.data;
 };
 
-// ✅ Supprimer un employé
+// ✅ Delete employee
 export const deleteEmploye = async (id) => {
-  try {
-    const res = await api.delete(`${BASE_URL}/${id}`);
-    return res.data;
-  } catch (err) {
-    throw err;
-  }
+  const res = await api.delete(`${BASE_URL}/${id}`);
+  return res.data;
 };

@@ -26,10 +26,12 @@ import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   getAllEntreprises,
+  createEntreprise,
   deleteEntreprise,
   updateEntreprise
 } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
+import EntrepriseModal from "./EntreprisesModal";
 
 const EntreprisesPage = () => {
   const theme = useTheme();
@@ -38,6 +40,9 @@ const EntreprisesPage = () => {
   const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Create Modal
+  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   // Editing
   const [editRowId, setEditRowId] = useState(null);
@@ -156,13 +161,6 @@ const EntreprisesPage = () => {
   };
 
     const columns = [
-    {
-        field: "idEntreprise",
-        headerName: "ID",
-        width: 100,
-        align: "center",
-        headerAlign: "center"
-    },
     {
         field: "nomEntreprise",
         headerName: "Nom",
@@ -293,14 +291,24 @@ const EntreprisesPage = () => {
       >
         <CardContent>
           {/* Filter */}
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={2} mb={2} alignItems="center">
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Rechercher par nom"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+            </Grid>
+            <Grid item xs={12} md={6} textAlign={{ xs: "left", md: "right" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ height: "100%" }}
+              onClick={() => setOpenCreateModal(true)}
+              >
+              Créer une entreprise
+            </Button>
             </Grid>
           </Grid>
 
@@ -357,6 +365,23 @@ const EntreprisesPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* CREATE ENTREPRISE MODAL */}
+      <EntrepriseModal
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        onSave={async (data) => {
+        try {
+        await createEntreprise(data);
+        fetchEntreprises();   // reload table
+        setOpenCreateModal(false);
+        showSnackbar("Entreprise créée avec succès !");
+        } catch (err) {
+        showSnackbar("Erreur lors de la création de l’entreprise", "error");
+        }
+        }}
+      />
+
 
       {/* Snackbar Notifications */}
       <Snackbar
