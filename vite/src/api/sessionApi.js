@@ -7,7 +7,6 @@ const BASE_URL = "/sessions"; // relatif à la baseURL définie dans axios.js
 // SESSIONS
 // ==============================
 
-// ✅ Récupérer toutes les sessions de formation
 export const getAllSessions = async () => {
   try {
     const res = await api.get(BASE_URL);
@@ -18,12 +17,9 @@ export const getAllSessions = async () => {
   }
 };
 
-// ✅ Rechercher des sessions par mot-clé (par exemple, titre, formateur ou module)
 export const searchSessions = async (keyword) => {
   try {
-    const res = await api.get(`${BASE_URL}/search`, {
-      params: { keyword },
-    });
+    const res = await api.get(`${BASE_URL}/search`, { params: { keyword } });
     return res.data;
   } catch (err) {
     console.error("Erreur lors de la recherche des sessions :", err);
@@ -31,7 +27,7 @@ export const searchSessions = async (keyword) => {
   }
 };
 
-// ✅ Créer une nouvelle session de formation
+// ✅ Create a session
 export const createSession = async (payload) => {
   try {
     const res = await api.post(BASE_URL, payload);
@@ -42,7 +38,6 @@ export const createSession = async (payload) => {
   }
 };
 
-// ✅ Mettre à jour une session de formation
 export const updateSession = async (id, payload) => {
   try {
     const res = await api.put(`${BASE_URL}/${id}`, payload);
@@ -53,7 +48,6 @@ export const updateSession = async (id, payload) => {
   }
 };
 
-// ✅ Supprimer une session de formation
 export const deleteSession = async (id) => {
   try {
     const res = await api.delete(`${BASE_URL}/${id}`);
@@ -64,10 +58,10 @@ export const deleteSession = async (id) => {
   }
 };
 
-// ✅ Ajouter des participants à une session
+// ✅ Add participants to a session
 export const addParticipantsToSession = async (sessionId, employeIds) => {
   try {
-    const res = await api.post(`${BASE_URL}/${sessionId}/participants`, { employeIds });
+    const res = await api.post(`${BASE_URL}/${sessionId}/participants`, employeIds);
     return res.data;
   } catch (err) {
     console.error("Erreur lors de l'ajout des participants :", err);
@@ -76,10 +70,9 @@ export const addParticipantsToSession = async (sessionId, employeIds) => {
 };
 
 // ==============================
-// FORMATIONS (pour la modale/dropdown filtrée)
+// FORMATIONS
 // ==============================
 
-// ✅ Récupérer toutes les formations
 export const getAllFormations = async () => {
   try {
     const res = await api.get("/formations");
@@ -90,7 +83,6 @@ export const getAllFormations = async () => {
   }
 };
 
-// ✅ Rechercher des formations avec filtres (type, famille, sousFamille, interneExterne, annee)
 export const searchFormations = async (filters) => {
   try {
     const res = await api.get("/formations/filter", { params: filters });
@@ -102,10 +94,9 @@ export const searchFormations = async (filters) => {
 };
 
 // ==============================
-// EMPLOYÉS (pour sélectionner les participants)
+// EMPLOYÉS
 // ==============================
 
-// ✅ Récupérer tous les employés
 export const getAllEmployees = async () => {
   try {
     const res = await api.get("/employes");
@@ -116,13 +107,40 @@ export const getAllEmployees = async () => {
   }
 };
 
-// Participants assignment
-export const addSessionParticipants = async (sessionId, employeIds) => {
+// ==============================
+// ENTREPRISES & FOURNISSEURS
+// ==============================
+
+export const getAllEntreprises = async () => {
   try {
-    const res = await api.post(`/sessions/${sessionId}/participants`, { employeIds });
+    const res = await api.get("/entreprises");
     return res.data;
   } catch (err) {
-    console.error("Erreur lors de l'ajout des participants :", err);
+    console.error("Erreur lors du chargement des entreprises :", err);
+    throw err;
+  }
+};
+
+export const getAllFournisseurs = async () => {
+  try {
+    const res = await api.get("/entreprises"); // i don't have a separate endpoint for fournisseurs
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors du chargement des fournisseurs :", err);
+    throw err;
+  }
+};
+
+// ==============================
+// FORMATEURS
+// ==============================
+
+export const getAllFormateurs = async () => {
+  try {
+    const res = await api.get("/formateurs"); // Your backend endpoint for formateurs
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors du chargement des formateurs :", err);
     throw err;
   }
 };

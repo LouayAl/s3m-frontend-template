@@ -27,19 +27,15 @@ import AddIcon from "@mui/icons-material/Add";
 
 import {
   getAllSessions,
-  deleteSession,
-  updateSession,
   createSession,
-  addSessionParticipants
+  updateSession,
+  deleteSession
 } from "../../api/sessionApi";
 
-import FormationModal from "./FormationModal";
-import ParticipantsModal from "./ParticipantsModal";
 import SessionModal from "./SessionModal";
 
 const SessionPage = () => {
   const theme = useTheme();
-
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -55,29 +51,6 @@ const SessionPage = () => {
   // Create session modal
   const [openCreateModal, setOpenCreateModal] = useState(false);
 
-  // Formation & participants modals
-  const [openFormationModal, setOpenFormationModal] = useState(false);
-  const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
-
-  // Temp data for new session
-  const [newSessionData, setNewSessionData] = useState({
-    referenceSession: "",
-    formation: "",
-    idFormation: null,
-    entreprise: "",
-    idEntreprise: null,
-    fournisseur: "",
-    idFournisseur: null,
-    formateurNomComplet: "",
-    idFormateur: null,
-    dateDebut: null,
-    dateFin: null,
-    dHeures: null,
-    dJours: null,
-    statut: "PLANIFIEE",
-    participants: []
-  });
-
   // Snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -90,7 +63,7 @@ const SessionPage = () => {
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   const handleOpenDeleteDialog = (id) => {
@@ -123,10 +96,8 @@ const SessionPage = () => {
   const handleSave = async (id) => {
     try {
       await updateSession(id, editRowData);
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.idSession === id ? { ...editRowData, idSession: id } : s
-        )
+      setSessions(prev =>
+        prev.map(s => s.idSession === id ? { ...editRowData, idSession: id } : s)
       );
       setEditRowId(null);
       setEditRowData({});
@@ -141,51 +112,12 @@ const SessionPage = () => {
   const confirmDelete = async () => {
     try {
       await deleteSession(selectedSessionId);
-      setSessions((prev) => prev.filter((s) => s.idSession !== selectedSessionId));
+      setSessions(prev => prev.filter(s => s.idSession !== selectedSessionId));
       showSnackbar("Session supprimée avec succès !");
     } catch {
       showSnackbar("Impossible de supprimer cette session.", "error");
     } finally {
       handleCloseDeleteDialog();
-    }
-  };
-
-  // ---------------- Create Session ----------------
-  const handleCreateSession = async () => {
-    try {
-      // 1️⃣ Create session
-      const createdSession = await createSession(newSessionData);
-
-      // 2️⃣ Assign participants if any
-      if (newSessionData.participants.length > 0) {
-        const participantIds = newSessionData.participants.map(p => p.id);
-        await addSessionParticipants(createdSession.idSession, participantIds);
-      }
-
-      // 3️⃣ Refresh table
-      fetchSessions();
-      showSnackbar("Session créée avec succès !");
-      setOpenCreateModal(false);
-      setNewSessionData({
-        referenceSession: "",
-        formation: "",
-        idFormation: null,
-        entreprise: "",
-        idEntreprise: null,
-        fournisseur: "",
-        idFournisseur: null,
-        formateurNomComplet: "",
-        idFormateur: null,
-        dateDebut: null,
-        dateFin: null,
-        dureeHeures: null,
-        dureeJours: null,
-        statut: "PLANIFIEE",
-        participants: []
-      });
-    } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de la création de la session.";
-      showSnackbar(message, "error");
     }
   };
 
@@ -236,25 +168,23 @@ const SessionPage = () => {
     }
   ];
 
-  const editableColumns = columns.map((col) => {
+  const editableColumns = columns.map(col => {
     if (col.field === "actions") return col;
     return {
       ...col,
-      renderCell: (params) =>
+      renderCell: params =>
         editRowId === params.row.idSession ? (
           <TextField
             value={editRowData[params.field] ?? ""}
-            onChange={(e) => setEditRowData((prev) => ({ ...prev, [params.field]: e.target.value }))}
+            onChange={e => setEditRowData(prev => ({ ...prev, [params.field]: e.target.value }))}
             size="small"
             sx={{ width: 120 }}
           />
-        ) : (
-          params.value
-        )
+        ) : params.value
     };
   });
 
-  const filteredRows = sessions.filter((s) =>
+  const filteredRows = sessions.filter(s =>
     s.formation?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -272,7 +202,7 @@ const SessionPage = () => {
                 fullWidth
                 label="Rechercher par formation"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
             </Grid>
             <Grid item xs={12} md={2}>
@@ -290,7 +220,7 @@ const SessionPage = () => {
             <DataGrid
               rows={filteredRows}
               columns={editableColumns}
-              getRowId={(row) => row.idSession}
+              getRowId={row => row.idSession}
               loading={loading}
               pageSizeOptions={[10, 20, 50]}
             />
@@ -314,22 +244,9 @@ const SessionPage = () => {
       <SessionModal
         open={openCreateModal}
         onClose={() => setOpenCreateModal(false)}
-        onSave={async (sessionData) => {
-          try {
-            const createdSession = await createSession(sessionData);
-
-            if (sessionData.participants.length > 0) {
-              const participantIds = sessionData.participants.map(p => p.id);
-              await addSessionParticipants(createdSession.idSession, participantIds);
-            }
-
-            fetchSessions();
-            showSnackbar("Session créée avec succès !");
-            setOpenCreateModal(false);
-          } catch (err) {
-            const message = err.response?.data?.message || "Erreur lors de la création de la session.";
-            showSnackbar(message, "error");
-          }
+        showSnackbar={showSnackbar}
+        onSessionCreated={(createdSession) => {
+          setSessions(prev => [...prev, createdSession]);
         }}
       />
 
