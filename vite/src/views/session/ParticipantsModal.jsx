@@ -29,6 +29,7 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
     try {
       setLoading(true);
       const data = await getAllEmployes();
+      console.log("Employees fetched:", data);
       setEmployees(data);
     } catch (err) {
       console.error("Erreur lors du chargement des employés :", err);
@@ -38,9 +39,9 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
   };
 
   const handleConfirm = () => {
-    const selectedEmployees = employees.filter((emp) =>
-      selectedIds.includes(emp.idEmploye)
-    );
+    console.log("Selected IDs before confirm:", selectedIds);
+    const selectedEmployees = employees.filter(emp => selectedIds.includes(emp.idEmploye));
+    console.log("Selected employees:", selectedEmployees);
     onSelectParticipants(selectedEmployees);
     onClose();
   };
@@ -88,7 +89,14 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
               pageSizeOptions={[10, 20, 50]}
               checkboxSelection
               selectionModel={selectedIds}
-              onRowSelectionModelChange={(ids) => setSelectedIds(Array.isArray(ids) ? ids : [ids])}
+              onRowSelectionModelChange={(selectionModel) => {
+                // Depending on MUI version, selectionModel may be an object with { type, ids }
+                const idsArray = Array.isArray(selectionModel)
+                  ? selectionModel
+                  : Array.from(selectionModel.ids || []); 
+                console.log("Row selection changed:", selectionModel, "→ selected IDs:", idsArray);
+                setSelectedIds(idsArray);
+              }}
             />
           </Box>
         )}
