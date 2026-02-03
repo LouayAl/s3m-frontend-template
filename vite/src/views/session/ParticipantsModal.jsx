@@ -17,17 +17,22 @@ const ParticipantsModal = ({
   open,
   onClose,
   onSelectParticipants,
-  preSelectedParticipants = []
+  preSelectedParticipants = [],
+  employeesList = null, // Optional custom employee list
 }) => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // Fetch employees when modal opens
+  // Fetch employees when modal opens if no custom list
   useEffect(() => {
-    if (open) fetchEmployees();
-  }, [open]);
+    if (open && !employeesList) fetchEmployees();
+    else if (employeesList) {
+      setEmployees(employeesList);
+      setLoading(false);
+    }
+  }, [open, employeesList]);
 
   const fetchEmployees = async () => {
     try {
@@ -44,25 +49,23 @@ const ParticipantsModal = ({
 
   // Preselect participants after employees are loaded
   useEffect(() => {
-    if (!loading && employees.length > 0 && preSelectedParticipants.length > 0) {
+    const source = employeesList || employees;
+    if (!loading && source.length > 0 && preSelectedParticipants.length > 0) {
       const validIds = preSelectedParticipants
         .map(p => Number(p.idEmploye))
-        .filter(id => employees.some(emp => Number(emp.idEmploye) === id));
+        .filter(id => source.some(emp => Number(emp.idEmploye) === id));
 
       console.log("Prefilled selected IDs after employees loaded:", validIds);
 
-      // Wait for DataGrid to render rows before setting selection
-      setTimeout(() => {
-        setSelectedIds(validIds);
-      }, 0);
+      setTimeout(() => setSelectedIds(validIds), 0);
     }
-  }, [loading, employees, preSelectedParticipants]);
+  }, [loading, employees, preSelectedParticipants, employeesList]);
 
   const handleConfirm = () => {
     console.log("Selected IDs on confirm:", selectedIds);
 
-    // Selected employees from checkboxes
-    const selectedEmployees = employees.filter(emp =>
+    const source = employeesList || employees;
+    const selectedEmployees = source.filter(emp =>
       selectedIds.includes(Number(emp.idEmploye))
     );
 
@@ -77,11 +80,11 @@ const ParticipantsModal = ({
     console.log("All selected participants to send:", allSelected);
     onSelectParticipants(allSelected);
 
-    // Keep selected IDs in sync for UI
+    // Keep selected IDs in sync
     setSelectedIds(allSelected.map(p => Number(p.idEmploye)));
   };
 
-  const filteredRows = employees.filter(emp => {
+  const filteredRows = (employeesList || employees).filter(emp => {
     const keyword = search.toLowerCase();
     return (
       emp.nom?.toLowerCase().includes(keyword) ||
@@ -125,16 +128,9 @@ const ParticipantsModal = ({
               checkboxSelection
               selectionModel={selectedIds}
               onRowSelectionModelChange={(newSelection) => {
-                console.log("Row selection changed:", newSelection);
-
-                // Normalize for MUI v6
                 let normalized = [];
-                if (Array.isArray(newSelection)) {
-                  normalized = newSelection.map(Number);
-                } else if (newSelection?.ids instanceof Set) {
-                  normalized = Array.from(newSelection.ids).map(Number);
-                }
-                console.log("=> normalized:", normalized);
+                if (Array.isArray(newSelection)) normalized = newSelection.map(Number);
+                else if (newSelection?.ids instanceof Set) normalized = Array.from(newSelection.ids).map(Number);
                 setSelectedIds(normalized);
               }}
             />
@@ -144,11 +140,7 @@ const ParticipantsModal = ({
 
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleConfirm}
-        >
+        <Button variant="contained" color="primary" onClick={handleConfirm}>
           Confirmer la sélection
         </Button>
       </DialogActions>

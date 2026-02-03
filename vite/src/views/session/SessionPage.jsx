@@ -20,6 +20,7 @@ import { getAllEntreprises } from "../../api/entrepriseApi";
 
 import SessionModal from "./SessionModal";
 import ParticipantsModal from "./ParticipantsModal";
+import SessionParticipantsPanel from "./SessionParticipantsPanel";
 
 const SessionPage = () => {
   const [sessions, setSessions] = useState([]);
@@ -35,6 +36,9 @@ const SessionPage = () => {
 
   const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
   const [editingParticipantsSession, setEditingParticipantsSession] = useState(null);
+
+  const [openParticipantsPanel, setOpenParticipantsPanel] = useState(false);
+
 
   // Dropdown lists
   const [formations, setFormations] = useState([]);
@@ -124,17 +128,17 @@ const SessionPage = () => {
       headerAlign: "center",
       align: "center",
       renderCell: (params) => (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => {
-            setEditingParticipantsSession(params.row);
-            setOpenParticipantsModal(true);
-          }}
-        >
-          {params.row.participants?.length || 0}
-        </Button>
-      )
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={() => {
+          setEditingParticipantsSession(params.row);
+          setOpenParticipantsPanel(true); // open panel instead of modal
+        }}
+      >
+        {params.row.participants?.length || 0}
+      </Button>
+    )
     },
     {
       field: "actions",
@@ -265,6 +269,26 @@ const SessionPage = () => {
           }}
         />
       )}
+
+      {/* PARTICIPANTS PANEL DIALOG */}
+      <Dialog
+        open={openParticipantsPanel}
+        onClose={() => setOpenParticipantsPanel(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogContent>
+          {editingParticipantsSession && (
+            <SessionParticipantsPanel
+              session={editingParticipantsSession}
+              onClose={() => setOpenParticipantsPanel(false)}
+              onUpdated={fetchSessions} // refresh the session list after add/remove
+              showSnackbar={showSnackbar} // pass snackbar to show messages
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
 
 
       {/* SNACKBAR */}

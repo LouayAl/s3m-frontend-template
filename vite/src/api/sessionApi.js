@@ -72,6 +72,16 @@ export const addParticipantsToSession = async (sessionId, employeIds) => {
   }
 };
 
+// Delete ONE participant from a session
+export const removeParticipantFromSession = async (sessionId, employeId) => {
+  try {
+    await api.delete(`${BASE_URL}/${sessionId}/participants/${employeId}`);
+  } catch (err) {
+    console.error("Erreur lors de la suppression du participant :", err);
+    throw err;
+  }
+};
+
 // Delete participants from a session
 export const removeParticipantsFromSession = async (sessionId, employeIds) => {
   try {
@@ -85,6 +95,8 @@ export const removeParticipantsFromSession = async (sessionId, employeIds) => {
   }
 };
 
+// ⚠️ DEPRECATED — do not use from UI
+// Kept for internal / admin operations only
 // Update participants in a session (replace all)
 export const updateParticipants = async (sessionId, employeIds) => {
   try {
