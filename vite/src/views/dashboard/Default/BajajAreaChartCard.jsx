@@ -52,12 +52,12 @@ export default function BajajAreaChartCard() {
           <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Grid>
               <Typography variant="subtitle1" sx={{ color: 'secondary.dark' }}>
-                Bajaj Finery
+                Exemple
               </Typography>
             </Grid>
             <Grid>
               <Typography variant="h4" sx={{ color: 'grey.800' }}>
-                $1839.00
+                1839.00
               </Typography>
             </Grid>
           </Grid>

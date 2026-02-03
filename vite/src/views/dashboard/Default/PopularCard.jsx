@@ -80,7 +80,7 @@ export default function PopularCard({ isLoading }) {
                   </Typography>
                   <Stack direction="row" sx={{ alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ color: 'inherit' }}>
-                      $1839.00
+                      1839.00
                     </Typography>
                     <Avatar
                       variant="rounded"
@@ -107,7 +107,7 @@ export default function PopularCard({ isLoading }) {
                   </Typography>
                   <Stack direction="row" sx={{ alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ color: 'inherit' }}>
-                      $100.00
+                      100.00
                     </Typography>
                     <Avatar
                       variant="rounded"
@@ -134,7 +134,7 @@ export default function PopularCard({ isLoading }) {
                   </Typography>
                   <Stack direction="row" sx={{ alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ color: 'inherit' }}>
-                      $200.00
+                      200.00
                     </Typography>
                     <Avatar
                       variant="rounded"
@@ -161,7 +161,7 @@ export default function PopularCard({ isLoading }) {
                   </Typography>
                   <Stack direction="row" sx={{ alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ color: 'inherit' }}>
-                      $189.00
+                      189.00
                     </Typography>
                     <Avatar
                       variant="rounded"
@@ -188,7 +188,7 @@ export default function PopularCard({ isLoading }) {
                   </Typography>
                   <Stack direction="row" sx={{ alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ color: 'inherit' }}>
-                      $189.00
+                      189.00
                     </Typography>
                     <Avatar
                       variant="rounded"

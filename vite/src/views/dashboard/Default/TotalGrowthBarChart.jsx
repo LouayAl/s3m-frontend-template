@@ -76,7 +76,7 @@ export default function TotalGrowthBarChart({ isLoading }) {
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack sx={{ gap: 1 }}>
                 <Typography variant="subtitle2">Total Growth</Typography>
-                <Typography variant="h3">$2,324.00</Typography>
+                <Typography variant="h3">2,324.00</Typography>
               </Stack>
               <TextField id="standard-select-currency" select value={value} onChange={(e) => setValue(e.target.value)}>
                 {status.map((option) => (

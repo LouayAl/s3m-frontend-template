@@ -1,83 +1,69 @@
 // frontend-template/vite/src/views/sessions/SessionPage.jsx
 import { useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  Grid,
-  Stack,
-  IconButton,
-  Snackbar,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button
+  Box, Typography, Card, CardContent,
+  TextField, Grid, Button, IconButton,
+  Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
-import CancelIcon from "@mui/icons-material/Cancel";
-import AddIcon from "@mui/icons-material/Add";
 
 import {
   getAllSessions,
-  createSession,
-  updateSession,
-  deleteSession
+  deleteSession,
+  addParticipantsToSession
 } from "../../api/sessionApi";
 
+import { getAllFormateurs, getAllFormations, removeParticipantsFromSession } from "../../api/sessionApi";
+import { getAllEntreprises } from "../../api/entrepriseApi";
+
 import SessionModal from "./SessionModal";
+import ParticipantsModal from "./ParticipantsModal";
 
 const SessionPage = () => {
-  const theme = useTheme();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Row editing state
-  const [editRowId, setEditRowId] = useState(null);
-  const [editRowData, setEditRowData] = useState({});
+  // Modal states
+  const [openSessionModal, setOpenSessionModal] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
 
-  // Delete dialog
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
 
-  // Create session modal
-  const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
+  const [editingParticipantsSession, setEditingParticipantsSession] = useState(null);
+
+  // Dropdown lists
+  const [formations, setFormations] = useState([]);
+  const [formateurs, setFormateurs] = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
 
   // Snackbar
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success"
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const showSnackbar = (message, severity = "success") => setSnackbar({ open: true, message, severity });
+  const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
-
-  const handleOpenDeleteDialog = (id) => {
-    setSelectedSessionId(id);
-    setOpenDeleteDialog(true);
-  };
-
-  const handleCloseDeleteDialog = () => {
-    setSelectedSessionId(null);
-    setOpenDeleteDialog(false);
-  };
-
+  // ---------------- Fetch Sessions and Lists ----------------
   useEffect(() => {
     fetchSessions();
+    const fetchLists = async () => {
+      try {
+        const [f, fr, e] = await Promise.all([
+          getAllFormations(),
+          getAllFormateurs(),
+          getAllEntreprises()
+        ]);
+        setFormations(f);
+        setFormateurs(fr);
+        setEntreprises(e);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchLists();
   }, []);
 
   const fetchSessions = async () => {
@@ -92,24 +78,19 @@ const SessionPage = () => {
     }
   };
 
-  // ---------------- Inline Editing ----------------
-  const handleSave = async (id) => {
-    try {
-      await updateSession(id, editRowData);
-      setSessions(prev =>
-        prev.map(s => s.idSession === id ? { ...editRowData, idSession: id } : s)
-      );
-      setEditRowId(null);
-      setEditRowData({});
-      showSnackbar("Session mise à jour avec succès !");
-    } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de la mise à jour.";
-      showSnackbar(message, "error");
-    }
+  const handleEdit = (row) => {
+    setEditingSession({
+      ...row,
+      idFormation: row.idFormation,
+      idEntreprise: row.idEntreprise,
+      idFournisseur: row.idFournisseur,
+      idFormateur: row.idFormateur,
+      statut: row.statut,
+    });
+    setOpenSessionModal(true);
   };
 
-  // ---------------- Delete ----------------
-  const confirmDelete = async () => {
+  const handleDelete = async () => {
     try {
       await deleteSession(selectedSessionId);
       setSessions(prev => prev.filter(s => s.idSession !== selectedSessionId));
@@ -117,11 +98,14 @@ const SessionPage = () => {
     } catch {
       showSnackbar("Impossible de supprimer cette session.", "error");
     } finally {
-      handleCloseDeleteDialog();
+      setOpenDeleteDialog(false);
     }
   };
 
-  // ---------------- DataGrid Columns ----------------
+  const filteredRows = sessions.filter(s =>
+    s.formation?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const columns = [
     { field: "referenceSession", headerName: "Réf. session", flex: 1, minWidth: 140, headerAlign: "center", align: "center" },
     { field: "formation", headerName: "Formation", flex: 1, minWidth: 160, headerAlign: "center", align: "center" },
@@ -130,63 +114,47 @@ const SessionPage = () => {
     { field: "formateurNomComplet", headerName: "Formateur", flex: 1, minWidth: 140, headerAlign: "center", align: "center" },
     { field: "dateDebut", headerName: "Début", width: 120, headerAlign: "center", align: "center" },
     { field: "dateFin", headerName: "Fin", width: 120, headerAlign: "center", align: "center" },
-    { field: "dHeures", headerName: "Durée (h)", width: 100, headerAlign: "center", align: "center" },
+    { field: "dHeures", headerName: "Durée (h)", width: 110, headerAlign: "center", align: "center" },
     { field: "dJours", headerName: "Durée (j)", width: 100, headerAlign: "center", align: "center" },
     { field: "statut", headerName: "Statut", width: 120, headerAlign: "center", align: "center" },
     {
+      field: "participantsCount",
+      headerName: "Participants",
+      width: 130,
+      headerAlign: "center",
+      align: "center",
+      renderCell: (params) => (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => {
+            setEditingParticipantsSession(params.row);
+            setOpenParticipantsModal(true);
+          }}
+        >
+          {params.row.participants?.length || 0}
+        </Button>
+      )
+    },
+    {
       field: "actions",
       headerName: "Actions",
-      width: 180,
-      align: "center",
+      width: 120,
       headerAlign: "center",
+      align: "center",
       sortable: false,
-      renderCell: (params) => {
-        if (editRowId === params.row.idSession) {
-          return (
-            <Stack direction="row" spacing={1}>
-              <IconButton color="success" size="small" onClick={() => handleSave(params.row.idSession)}>
-                <SaveIcon />
-              </IconButton>
-              <IconButton color="secondary" size="small" onClick={() => { setEditRowId(null); setEditRowData({}); }}>
-                <CancelIcon />
-              </IconButton>
-            </Stack>
-          );
-        }
-
-        return (
-          <Stack direction="row" spacing={1}>
-            <IconButton color="primary" size="small" onClick={() => { setEditRowId(params.row.idSession); setEditRowData(params.row); }}>
-              <EditIcon />
-            </IconButton>
-            <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.idSession)}>
-              <DeleteIcon />
-            </IconButton>
-          </Stack>
-        );
-      }
+      renderCell: (params) => (
+        <>
+          <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
+            <EditIcon />
+          </IconButton>
+          <IconButton color="error" size="small" onClick={() => setSelectedSessionId(params.row.idSession) || setOpenDeleteDialog(true)}>
+            <DeleteIcon />
+          </IconButton>
+        </>
+      )
     }
   ];
-
-  const editableColumns = columns.map(col => {
-    if (col.field === "actions") return col;
-    return {
-      ...col,
-      renderCell: params =>
-        editRowId === params.row.idSession ? (
-          <TextField
-            value={editRowData[params.field] ?? ""}
-            onChange={e => setEditRowData(prev => ({ ...prev, [params.field]: e.target.value }))}
-            size="small"
-            sx={{ width: 120 }}
-          />
-        ) : params.value
-    };
-  });
-
-  const filteredRows = sessions.filter(s =>
-    s.formation?.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <Box p={3}>
@@ -196,7 +164,7 @@ const SessionPage = () => {
 
       <Card>
         <CardContent>
-          <Grid container spacing={2} mb={2}>
+          <Grid container spacing={2} mb={2} alignItems="center">
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -205,11 +173,13 @@ const SessionPage = () => {
                 onChange={e => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid item xs={12} md={6} textAlign="right">
               <Button
                 variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenCreateModal(true)}
+                onClick={() => {
+                  setEditingSession(null); 
+                  setOpenSessionModal(true);
+                }}
               >
                 Créer session
               </Button>
@@ -219,7 +189,7 @@ const SessionPage = () => {
           <Box sx={{ height: "70vh" }}>
             <DataGrid
               rows={filteredRows}
-              columns={editableColumns}
+              columns={columns}
               getRowId={row => row.idSession}
               loading={loading}
               pageSizeOptions={[10, 20, 50]}
@@ -228,27 +198,74 @@ const SessionPage = () => {
         </CardContent>
       </Card>
 
-      {/* DELETE CONFIRMATION DIALOG */}
-      <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
+      {/* DELETE DIALOG */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
-        <DialogContent>
-          Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.
-        </DialogContent>
+        <DialogContent>Êtes-vous sûr de vouloir supprimer cette session ?</DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">Supprimer</Button>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Annuler</Button>
+          <Button color="error" variant="contained" onClick={handleDelete}>Supprimer</Button>
         </DialogActions>
       </Dialog>
 
-      {/* CREATE SESSION MODAL */}
+      {/* SESSION MODAL */}
       <SessionModal
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        showSnackbar={showSnackbar}
-        onSessionCreated={(createdSession) => {
-          setSessions(prev => [...prev, createdSession]);
+        open={openSessionModal}
+        onClose={() => setOpenSessionModal(false)}
+        onSessionCreated={fetchSessions}
+        onCompleted={() => {
+          setOpenSessionModal(false);   // ✅ CLOSE SESSION MODAL
+          setEditingSession(null);      // (optional but clean)
         }}
+        initialData={editingSession}
+        showSnackbar={showSnackbar}
       />
+
+      {/* PARTICIPANTS MODAL */}
+      {editingParticipantsSession && (
+        <ParticipantsModal
+          open={openParticipantsModal}
+          onClose={() => setOpenParticipantsModal(false)}
+          preSelectedParticipants={editingParticipantsSession.participants || []} 
+          onSelectParticipants={async (selected) => {
+            try {
+              const oldIds = (editingParticipantsSession.participants || []).map(p => Number(p.idEmploye));
+              const newIds = selected.map(p => Number(p.idEmploye));
+
+              // Participants to add
+              const toAdd = newIds.filter(id => !oldIds.includes(id));
+              // Participants to remove
+              const toRemove = oldIds.filter(id => !newIds.includes(id));
+
+              console.log("Old participant IDs:", oldIds);
+              console.log("New participant IDs:", newIds);
+              console.log("To add:", toAdd);
+              console.log("To remove:", toRemove);
+
+              // Call API to add participants
+              if (toAdd.length > 0) {
+                await addParticipantsToSession(editingParticipantsSession.idSession, toAdd);
+                console.log(`${toAdd.length} participants added`);
+              }
+
+              // Call API to remove participants (assuming you have this endpoint)
+              if (toRemove.length > 0) {
+                await removeParticipantsFromSession(editingParticipantsSession.idSession, toRemove);
+                console.log(`${toRemove.length} participants removed`);
+              }
+
+              showSnackbar(`${selected.length} participants mis à jour avec succès !`);
+              fetchSessions(); // refresh session list and participant counts
+            } catch (err) {
+              console.error("Erreur lors de la mise à jour des participants:", err);
+              showSnackbar("Erreur lors de la mise à jour des participants.", "error");
+            } finally {
+              setOpenParticipantsModal(false);
+            }
+          }}
+        />
+      )}
+
 
       {/* SNACKBAR */}
       <Snackbar
@@ -257,9 +274,7 @@ const SessionPage = () => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
+        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );

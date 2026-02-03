@@ -124,7 +124,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                   <Box>
                     <Stack direction="row" sx={{ alignItems: 'center' }}>
                       <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                        {timeValue ? '$108' : '$961'}
+                        {timeValue ? '108' : '961'}
                       </Typography>
                       <Avatar sx={{ ...theme.typography.smallAvatar, bgcolor: 'primary.200', color: 'primary.dark' }}>
                         <ArrowDownwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />

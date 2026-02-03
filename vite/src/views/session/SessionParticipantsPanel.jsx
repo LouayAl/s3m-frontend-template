@@ -1,0 +1,1 @@
+// frontend-template/vite/src/views/session/SessionParticipantsPanel.jsx

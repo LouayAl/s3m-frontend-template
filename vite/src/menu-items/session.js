@@ -8,7 +8,7 @@ const icons = { IconEdit };
 
 const session = {
   id: 'session',
-  title: 'Session',
+  title: 'Sessions',
   type: 'group',
   children: [
     {

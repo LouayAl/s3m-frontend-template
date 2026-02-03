@@ -17,6 +17,7 @@
     "apexcharts": "5.3.6",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.19",
     "framer-motion": "12.23.25",
     "jwt-decode": "^3.1.2",
     "lodash-es": "^4.17.23",

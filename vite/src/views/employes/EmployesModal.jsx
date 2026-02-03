@@ -10,12 +10,13 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-import { createEmploye } from "../../api/employeApi";
+import { createEmploye, updateEmploye } from "../../api/employeApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { getDepartementsByEntreprise } from "../../api/departementApi";
 
 const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
   const [formData, setFormData] = useState({
+    idEmploye: null, // Add ID for updates
     nom: "",
     prenom: "",
     email: "",
@@ -47,6 +48,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
   useEffect(() => {
     if (initialData) {
       setFormData({
+        idEmploye: initialData.idEmploye || null,
         nom: initialData.nom || "",
         prenom: initialData.prenom || "",
         email: initialData.email || "",
@@ -66,6 +68,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
     } else {
       setFormData((prev) => ({
         ...prev,
+        idEmploye: null,
         entreprise: null,
         departement: null,
       }));
@@ -89,7 +92,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
       setFormData((prev) => ({
         ...prev,
         entreprise: { idEntreprise: Number(value) },
-        departement: null,
+        departement: null, // reset departement when entreprise changes
       }));
     } else if (field === "departement") {
       setFormData((prev) => ({
@@ -116,15 +119,23 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
 
       console.log("Payload envoyé au backend:", payload);
 
-      const created = await createEmploye(payload);
+      let saved;
+      if (formData.idEmploye) {
+        // Update existing employee
+        saved = await updateEmploye(formData.idEmploye, payload);
+        showSnackbar("Employé mis à jour !");
+      } else {
+        // Create new employee
+        saved = await createEmploye(payload);
+        showSnackbar("Employé créé avec succès !");
+      }
 
-      console.log("Employé créé:", created);
-
-      onSave(created);
-      showSnackbar(initialData ? "Employé mis à jour !" : "Employé créé avec succès !");
+      console.log("Employé sauvegardé:", saved);
+      onSave(saved);
 
       // Reset form only AFTER success
       setFormData({
+        idEmploye: null,
         nom: "",
         prenom: "",
         email: "",
@@ -144,7 +155,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
 
       onClose();
     } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de la création de l'employé.";
+      const message = err.response?.data?.message || "Erreur lors de la sauvegarde de l'employé.";
       showSnackbar(message, "error");
       console.error("Employe modal error:", err);
     }
@@ -152,7 +163,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{initialData ? "Modifier un employé" : "Créer un employé"}</DialogTitle>
+      <DialogTitle>{formData.idEmploye ? "Modifier un employé" : "Créer un employé"}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={1}>
           <TextField label="Nom" fullWidth value={formData.nom} onChange={(e) => handleChange("nom", e.target.value)} />
@@ -169,11 +180,31 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
             <MenuItem value="H">Homme</MenuItem>
             <MenuItem value="F">Femme</MenuItem>
           </TextField>
-          <TextField label="Date d'embauche" type="date" fullWidth InputLabelProps={{ shrink: true }} value={formData.dateEmbauche} onChange={(e) => handleChange("dateEmbauche", e.target.value)} />
-          <TextField label="Date de naissance" type="date" fullWidth InputLabelProps={{ shrink: true }} value={formData.dateNaissance} onChange={(e) => handleChange("dateNaissance", e.target.value)} />
+          <TextField
+            label="Date d'embauche"
+            type="date"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={formData.dateEmbauche}
+            onChange={(e) => handleChange("dateEmbauche", e.target.value)}
+          />
+          <TextField
+            label="Date de naissance"
+            type="date"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={formData.dateNaissance}
+            onChange={(e) => handleChange("dateNaissance", e.target.value)}
+          />
 
           {/* Entreprise */}
-          <TextField select label="Entreprise" fullWidth value={formData.entreprise?.idEntreprise || ""} onChange={(e) => handleChange("entreprise", e.target.value)}>
+          <TextField
+            select
+            label="Entreprise"
+            fullWidth
+            value={formData.entreprise?.idEntreprise || ""}
+            onChange={(e) => handleChange("entreprise", e.target.value)}
+          >
             {entreprises.map((ent) => (
               <MenuItem key={ent.idEntreprise} value={ent.idEntreprise}>
                 {ent.nomEntreprise}
@@ -182,7 +213,13 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
           </TextField>
 
           {/* Département */}
-          <TextField select label="Département" fullWidth value={formData.departement?.id || ""} onChange={(e) => handleChange("departement", e.target.value || null)}>
+          <TextField
+            select
+            label="Département"
+            fullWidth
+            value={formData.departement?.id || ""}
+            onChange={(e) => handleChange("departement", e.target.value || null)}
+          >
             <MenuItem value={null}>Aucun</MenuItem>
             {departements.map((dep) => (
               <MenuItem key={dep.id} value={dep.id}>
@@ -195,7 +232,7 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
         <Button variant="contained" color="primary" onClick={handleSave}>
-          {initialData ? "Mettre à jour" : "Créer"}
+          {formData.idEmploye ? "Mettre à jour" : "Créer"}
         </Button>
       </DialogActions>
     </Dialog>

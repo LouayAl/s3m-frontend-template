@@ -11,7 +11,7 @@ import employe from './employe';
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard, pages, utilities, other, session, formation, entreprise, employe]
+  items: [dashboard, session, formation, entreprise, employe]
 };
 
 export default menuItems;

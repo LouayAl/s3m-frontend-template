@@ -1,4 +1,3 @@
-// frontend-template/vite/src/views/sessions/ParticipantsModal.jsx
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -14,7 +13,12 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import { getAllEmployes } from "../../api/employeApi";
 
-const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
+const ParticipantsModal = ({
+  open,
+  onClose,
+  onSelectParticipants,
+  preSelectedParticipants = []
+}) => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -29,7 +33,7 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
     try {
       setLoading(true);
       const data = await getAllEmployes();
-      console.log("Employees fetched:", data);
+      console.log("Employees fetched:", data.length, data);
       setEmployees(data);
     } catch (err) {
       console.error("Erreur lors du chargement des employés :", err);
@@ -38,15 +42,46 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
     }
   };
 
+  // Preselect participants after employees are loaded
+  useEffect(() => {
+    if (!loading && employees.length > 0 && preSelectedParticipants.length > 0) {
+      const validIds = preSelectedParticipants
+        .map(p => Number(p.idEmploye))
+        .filter(id => employees.some(emp => Number(emp.idEmploye) === id));
+
+      console.log("Prefilled selected IDs after employees loaded:", validIds);
+
+      // Wait for DataGrid to render rows before setting selection
+      setTimeout(() => {
+        setSelectedIds(validIds);
+      }, 0);
+    }
+  }, [loading, employees, preSelectedParticipants]);
+
   const handleConfirm = () => {
-    console.log("Selected IDs before confirm:", selectedIds);
-    const selectedEmployees = employees.filter(emp => selectedIds.includes(emp.idEmploye));
-    console.log("Selected employees:", selectedEmployees);
-    onSelectParticipants(selectedEmployees);
-    onClose();
+    console.log("Selected IDs on confirm:", selectedIds);
+
+    // Selected employees from checkboxes
+    const selectedEmployees = employees.filter(emp =>
+      selectedIds.includes(Number(emp.idEmploye))
+    );
+
+    // Merge with preSelectedParticipants, deduplicate
+    const allSelected = selectedEmployees.reduce((acc, curr) => {
+      if (!acc.find(p => Number(p.idEmploye) === Number(curr.idEmploye))) {
+        acc.push(curr);
+      }
+      return acc;
+    }, []);
+
+    console.log("All selected participants to send:", allSelected);
+    onSelectParticipants(allSelected);
+
+    // Keep selected IDs in sync for UI
+    setSelectedIds(allSelected.map(p => Number(p.idEmploye)));
   };
 
-  const filteredRows = employees.filter((emp) => {
+  const filteredRows = employees.filter(emp => {
     const keyword = search.toLowerCase();
     return (
       emp.nom?.toLowerCase().includes(keyword) ||
@@ -85,17 +120,22 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
             <DataGrid
               rows={filteredRows}
               columns={columns}
-              getRowId={(row) => row.idEmploye}
+              getRowId={(row) => Number(row.idEmploye)}
               pageSizeOptions={[10, 20, 50]}
               checkboxSelection
               selectionModel={selectedIds}
-              onRowSelectionModelChange={(selectionModel) => {
-                // Depending on MUI version, selectionModel may be an object with { type, ids }
-                const idsArray = Array.isArray(selectionModel)
-                  ? selectionModel
-                  : Array.from(selectionModel.ids || []); 
-                console.log("Row selection changed:", selectionModel, "→ selected IDs:", idsArray);
-                setSelectedIds(idsArray);
+              onRowSelectionModelChange={(newSelection) => {
+                console.log("Row selection changed:", newSelection);
+
+                // Normalize for MUI v6
+                let normalized = [];
+                if (Array.isArray(newSelection)) {
+                  normalized = newSelection.map(Number);
+                } else if (newSelection?.ids instanceof Set) {
+                  normalized = Array.from(newSelection.ids).map(Number);
+                }
+                console.log("=> normalized:", normalized);
+                setSelectedIds(normalized);
               }}
             />
           </Box>
@@ -104,7 +144,11 @@ const ParticipantsModal = ({ open, onClose, onSelectParticipants }) => {
 
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
-        <Button variant="contained" color="primary" onClick={handleConfirm}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleConfirm}
+        >
           Confirmer la sélection
         </Button>
       </DialogActions>
