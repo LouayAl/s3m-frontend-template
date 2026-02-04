@@ -119,7 +119,7 @@ const ParticipantsModal = ({
             <CircularProgress />
           </Stack>
         ) : (
-          <Box sx={{ height: 400 }}>
+          <Box sx={{ height: "70vh" }}>
             <DataGrid
               rows={filteredRows}
               columns={columns}
