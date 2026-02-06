@@ -1,4 +1,3 @@
-// frontend-template/vite/src/views/dashboard/Default/DepartementBarChart.jsx
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
@@ -21,32 +20,44 @@ export default function DepartmentBarChart({ isLoading, data, title, type }) {
   const [chartOptions, setChartOptions] = useState({});
   const [series, setSeries] = useState([]);
 
+  // Fixed color palette
+  const palette = [
+    '#1976d2', // blue
+    '#0d47a1', // dark blue
+    '#f57c00', // orange
+    '#43a047', // green
+    '#0288d1', // light blue
+    '#7b1fa2', // purple
+    '#fbc02d'  // yellow
+  ];
+
   useEffect(() => {
     if (!data || data.length === 0) {
       setSeries([]);
+      setChartOptions({});
       return;
     }
 
     let categories = [];
     let values = [];
 
-    // Participants by department
     if (type === 'participants') {
-      categories = data.map((d) => d.departement);
-      values = data.map((d) => d.nbParicipants);
+      categories = data.map((d) => d.departement || 'Unknown');
+      values = data.map((d) => d.nbParticipants || 0);
     }
 
-    // Hours by department
     if (type === 'hours') {
-      categories = data.map((d) => d.departement);
-      values = data.map((d) => d.totalHeures);
+      categories = data.map((d) => d.departement || 'Unknown');
+      values = data.map((d) => d.totalHeures || 0);
     }
 
-    // Hours by famille formation
     if (type === 'famille') {
-      categories = data.map((d) => d.familleFormation);
-      values = data.map((d) => d.totalHeures);
+      categories = data.map((d) => d.familleFormation || 'Réglementaire');
+      values = data.map((d) => d.totalHeures || 0);
     }
+
+    // Map colors to categories
+    const colors = categories.map((_, idx) => palette[idx % palette.length]);
 
     setSeries([
       {
@@ -56,9 +67,17 @@ export default function DepartmentBarChart({ isLoading, data, title, type }) {
     ]);
 
     setChartOptions({
-      chart: {
-        type: 'bar',
-        fontFamily
+      chart: { type: 'bar', fontFamily },
+      plotOptions: {
+        bar: {
+          distributed: true, // each bar a different color
+          dataLabels: { position: 'top' }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        style: { colors: ['#000000'] }, // black numbers
+        formatter: (val) => val
       },
       xaxis: {
         categories,
@@ -67,7 +86,7 @@ export default function DepartmentBarChart({ isLoading, data, title, type }) {
       yaxis: {
         labels: { style: { colors: theme.palette.text.primary } }
       },
-      colors: [theme.palette.primary.main],
+      colors,
       tooltip: { theme: 'light' },
       grid: { borderColor: theme.palette.divider }
     });
@@ -82,7 +101,13 @@ export default function DepartmentBarChart({ isLoading, data, title, type }) {
           <Stack spacing={gridSpacing}>
             <Typography variant="h6">{title}</Typography>
             <Box>
-              <Chart options={chartOptions} series={series} type="bar" height={350} />
+              {series.length > 0 ? (
+                <Chart options={chartOptions} series={series} type="bar" height={350} />
+              ) : (
+                <Typography variant="body2" color="textSecondary">
+                  No data available
+                </Typography>
+              )}
             </Box>
           </Stack>
         </MainCard>

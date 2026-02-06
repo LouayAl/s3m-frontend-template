@@ -31,11 +31,13 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
+    console.log('user  ',user)
+    console.log('token  ',token)
 
     const fetchKpis = async () => {
       try {
         const data = await getClientKpis(user.entrepriseId, token);
-
+        console.log('API response for KPIs:', data);
         setKpis(data);
       } catch (err) {
         console.error('Failed to fetch KPIs:', err);
@@ -46,10 +48,10 @@ export default function Dashboard() {
     };
 
     fetchKpis();
-  }, [token, user]);
+  }, [token, user?.entrepriseId]);
 
-  if (isLoading) return <div>Loading dashboard...</div>;
-  if (!kpis) return <div>No KPI data available.</div>;
+    if (!kpis) return <div>No KPI data available.</div>;
+
 
   const {
     participantsByDepartment,
