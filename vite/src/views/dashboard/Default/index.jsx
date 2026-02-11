@@ -31,13 +31,10 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
-    console.log('user  ',user)
-    console.log('token  ',token)
 
     const fetchKpis = async () => {
       try {
         const data = await getClientKpis(user.entrepriseId, token);
-        console.log('API response for KPIs:', data);
         setKpis(data);
       } catch (err) {
         console.error('Failed to fetch KPIs:', err);
@@ -108,7 +105,10 @@ export default function Dashboard() {
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, md: 8 }}>
-            <TotalGrowthBarChart isLoading={isLoading} />
+            <TotalGrowthBarChart 
+            isLoading={isLoading} 
+            entrepriseId={user.entrepriseId} 
+            token={token} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <PopularCard isLoading={isLoading} />

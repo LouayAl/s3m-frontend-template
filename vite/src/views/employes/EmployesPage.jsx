@@ -27,8 +27,10 @@ import {
   updateEmploye,
   deleteEmploye,
 } from "../../api/employeApi";
+import { useAuth } from "../../contexts/auth/AuthContext";
 
 const EmployesPage = () => {
+  const { user } = useAuth();
   const [employes, setEmployes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -144,31 +146,39 @@ const columns = [
   { field: "dateNaissance", headerName: "Date Naissance", flex: 1, minWidth: 120 },
   { field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 },
   { field: "departementNom", headerName: "Département", flex: 1, minWidth: 150 },
-  {
-    field: "actions",
-    headerName: "Actions",
-    width: 120,
-    sortable: false,
-    renderCell: (params) => (
-      <Stack direction="row" spacing={1}>
-        <IconButton
-          color="primary"
-          size="small"
-          onClick={() => handleModalOpen(params.row)}
-        >
-          <EditIcon />
-        </IconButton>
-        <IconButton
-          color="error"
-          size="small"
-          onClick={() => handleOpenDeleteDialog(params.row.idEmploye)}
-        >
-          <DeleteIcon />
-        </IconButton>
-      </Stack>
-    ),
-  },
+  
 ];
+
+const actionsColumn = {
+  field: "actions",
+  headerName: "Actions",
+  width: 120,
+  sortable: false,
+  renderCell: (params) => (
+    <Stack direction="row" spacing={1}>
+      <IconButton
+        color="primary"
+        size="small"
+        onClick={() => handleModalOpen(params.row)}
+      >
+        <EditIcon />
+      </IconButton>
+
+      <IconButton
+        color="error"
+        size="small"
+        onClick={() => handleOpenDeleteDialog(params.row.idEmploye)}
+      >
+        <DeleteIcon />
+      </IconButton>
+    </Stack>
+  ),
+};
+const isAdmin = user?.role === "ADMIN";
+
+const columnsWithActions = isAdmin
+  ? [...columns, actionsColumn]
+  : columns;
 
 
   const filteredRows = employes.filter(
@@ -195,6 +205,7 @@ const columns = [
               />
             </Grid>
             <Grid item xs={12} md={6} textAlign="right">
+            {user?.role === 'ADMIN' && (
               <Button
                 variant="contained"
                 color="primary"
@@ -202,13 +213,14 @@ const columns = [
               >
                 Créer Employé
               </Button>
+            )}
             </Grid>
           </Grid>
 
           <Box sx={{ height: "70vh" }}>
             <DataGrid
               rows={filteredRows}
-              columns={columns}
+              columns={columnsWithActions}
               getRowId={(row) => row.idEmploye}
               loading={loading}
               pageSizeOptions={[10, 20, 50]}

@@ -38,7 +38,6 @@ const ParticipantsModal = ({
     try {
       setLoading(true);
       const data = await getAllEmployes();
-      console.log("Employees fetched:", data.length, data);
       setEmployees(data);
     } catch (err) {
       console.error("Erreur lors du chargement des employés :", err);
@@ -55,14 +54,12 @@ const ParticipantsModal = ({
         .map(p => Number(p.idEmploye))
         .filter(id => source.some(emp => Number(emp.idEmploye) === id));
 
-      console.log("Prefilled selected IDs after employees loaded:", validIds);
 
       setTimeout(() => setSelectedIds(validIds), 0);
     }
   }, [loading, employees, preSelectedParticipants, employeesList]);
 
   const handleConfirm = () => {
-    console.log("Selected IDs on confirm:", selectedIds);
 
     const source = employeesList || employees;
     const selectedEmployees = source.filter(emp =>
@@ -77,7 +74,6 @@ const ParticipantsModal = ({
       return acc;
     }, []);
 
-    console.log("All selected participants to send:", allSelected);
     onSelectParticipants(allSelected);
 
     // Keep selected IDs in sync

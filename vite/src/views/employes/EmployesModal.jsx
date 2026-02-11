@@ -117,7 +117,6 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
         departement: formData.departement?.id ? { id: Number(formData.departement.id) } : null,
       };
 
-      console.log("Payload envoyé au backend:", payload);
 
       let saved;
       if (formData.idEmploye) {
@@ -130,7 +129,6 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
         showSnackbar("Employé créé avec succès !");
       }
 
-      console.log("Employé sauvegardé:", saved);
       onSave(saved);
 
       // Reset form only AFTER success

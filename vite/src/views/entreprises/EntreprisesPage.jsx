@@ -35,7 +35,7 @@ import EntrepriseModal from "./EntreprisesModal";
 
 const EntreprisesPage = () => {
   const theme = useTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -160,116 +160,127 @@ const EntreprisesPage = () => {
     }
   };
 
+    // ✅ Base column (always visible)
     const columns = [
-    {
+      {
         field: "nomEntreprise",
         headerName: "Nom",
         flex: 1,
         align: "center",
         headerAlign: "center",
         renderCell: (params) => {
-        if (editRowId === params.row.idEntreprise) {
+          if (editRowId === params.row.idEntreprise) {
             return (
-            <Box
+              <Box
                 sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                width: "100%"
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  width: "100%",
                 }}
-            >
+              >
                 <TextField
-                value={editNom}
-                onChange={(e) => setEditNom(e.target.value)}
-                size="small"
-                sx={{
-                    width: 200 // 👈 fixed small width instead of full column
-                }}
+                  value={editNom}
+                  onChange={(e) => setEditNom(e.target.value)}
+                  size="small"
+                  sx={{ width: 200 }}
                 />
-            </Box>
+              </Box>
             );
-        }
-        return (
+          }
+
+          return (
             <Box
-            sx={{
+              sx={{
                 width: "100%",
                 textAlign: "center",
                 display: "flex",
                 justifyContent: "center",
-                alignItems: "center"
-            }}
+                alignItems: "center",
+              }}
             >
-            {params.value}
+              {params.value}
             </Box>
-        );
-        }
-    },
-    {
-        field: "actions",
-        headerName: "Actions",
-        width: 140,
-        align: "center",
-        headerAlign: "center",
-        sortable: false,
-        renderCell: (params) => {
+          );
+        },
+      },
+    ];
+
+    // ✅ Actions column (ADMIN only)
+    const actionsColumn = {
+      field: "actions",
+      headerName: "Actions",
+      width: 140,
+      align: "center",
+      headerAlign: "center",
+      sortable: false,
+      renderCell: (params) => {
         if (editRowId === params.row.idEntreprise) {
-            return (
+          return (
             <Box
-                sx={{
+              sx={{
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
                 gap: 1,
-                width: "100%"
-                }}
+                width: "100%",
+              }}
             >
-                <IconButton
+              <IconButton
                 color="success"
                 onClick={() => handleSave(params.row.idEntreprise)}
-                >
+              >
                 <SaveIcon />
-                </IconButton>
-                <IconButton
+              </IconButton>
+
+              <IconButton
                 color="secondary"
                 onClick={() => setEditRowId(null)}
-                >
+              >
                 <CloseIcon />
-                </IconButton>
+              </IconButton>
             </Box>
-            );
+          );
         }
 
         return (
-            <Box
+          <Box
             sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                width: "100%"
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 1,
+              width: "100%",
             }}
-            >
+          >
             <IconButton
-                color="primary"
-                onClick={() => {
+              color="primary"
+              onClick={() => {
                 setEditRowId(params.row.idEntreprise);
                 setEditNom(params.row.nomEntreprise);
-                }}
+              }}
             >
-                <EditIcon />
+              <EditIcon />
             </IconButton>
+
             <IconButton
-                color="error"
-                size="small"
-                onClick={() => handleOpenDeleteDialog(params.row.idEntreprise)}
+              color="error"
+              size="small"
+              onClick={() => handleOpenDeleteDialog(params.row.idEntreprise)}
             >
-                <DeleteIcon />
+              <DeleteIcon />
             </IconButton>
-            </Box>
+          </Box>
         );
-        }
-    }
-    ];
+      },
+    };
+
+
+    const isAdmin = user?.role === "ADMIN";
+
+    const columnsWithActions = isAdmin
+      ? [...columns, actionsColumn]
+      : columns;
 
 
   const filteredRows = entreprises.filter((e) =>
@@ -301,14 +312,16 @@ const EntreprisesPage = () => {
               />
             </Grid>
             <Grid item xs={12} md={6} textAlign={{ xs: "left", md: "right" }}>
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{ height: "100%" }}
-              onClick={() => setOpenCreateModal(true)}
-              >
-              Créer une entreprise
-            </Button>
+            {user?.role === 'ADMIN' && (
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ height: "100%" }}
+                onClick={() => setOpenCreateModal(true)}
+                >
+                Créer une entreprise
+              </Button>
+            )}
             </Grid>
           </Grid>
 
@@ -317,7 +330,7 @@ const EntreprisesPage = () => {
             <Box sx={{ minWidth: 500, height: "50vh" }}>
                 <DataGrid
                 rows={filteredRows}
-                columns={columns}
+                columns={columnsWithActions}
                 getRowId={(row) => row.idEntreprise}
                 loading={loading}
                 pageSizeOptions={[10, 20, 50]}

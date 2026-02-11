@@ -241,10 +241,7 @@ const SessionPage = () => {
               // Participants to remove
               const toRemove = oldIds.filter(id => !newIds.includes(id));
 
-              console.log("Old participant IDs:", oldIds);
-              console.log("New participant IDs:", newIds);
-              console.log("To add:", toAdd);
-              console.log("To remove:", toRemove);
+              
 
               // Call API to add participants
               if (toAdd.length > 0) {
