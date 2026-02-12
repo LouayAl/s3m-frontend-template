@@ -12,7 +12,7 @@ const router = createBrowserRouter(
   [
     {
       path: '/',
-      loader: rootRedirectLoader // 👈 runs BEFORE any UI renders
+      loader: rootRedirectLoader, // 👈 runs BEFORE any UI renders
     },
     MainRoutes,
     AuthenticationRoutes

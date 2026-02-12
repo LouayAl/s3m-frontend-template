@@ -3,18 +3,19 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from 'contexts/auth/AuthContext';
 
 export default function ProtectedRoute({ children }) {
-  const { token, loading } = useAuth();
+  const { user, loading } = useAuth();
 
-  // While loading, do not render anything
-  if (loading)
+  // While checking login status, show a loading indicator
+  if (loading) {
     return (
-        <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen">
         Loading...
-        </div>
+      </div>
     );
+  }
 
   // If not logged in, redirect to /login
-  if (!token) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
 
   // Logged in, render children
   return children;

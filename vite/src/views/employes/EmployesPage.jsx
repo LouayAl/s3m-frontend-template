@@ -196,7 +196,7 @@ const columnsWithActions = isAdmin
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 label="Rechercher par nom ou prénom"
@@ -204,7 +204,7 @@ const columnsWithActions = isAdmin
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={6} textAlign="right">
+            <Grid size={{xs:12, md:6, textAlign:"right"}}>
             {user?.role === 'ADMIN' && (
               <Button
                 variant="contained"
@@ -223,7 +223,7 @@ const columnsWithActions = isAdmin
               columns={columnsWithActions}
               getRowId={(row) => row.idEmploye}
               loading={loading}
-              pageSizeOptions={[10, 20, 50]}
+              pageSizeOptions={[10, 20, 50, 100]}
             />
           </Box>
         </CardContent>

@@ -169,7 +169,7 @@ const SessionPage = () => {
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+            <Grid size={{xs:12, md:4}}>
               <TextField
                 fullWidth
                 label="Rechercher par formation"
@@ -177,7 +177,7 @@ const SessionPage = () => {
                 onChange={e => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={6} textAlign="right">
+            <Grid size={{xs:12, md:6, textAlign:"right"}}>
               <Button
                 variant="contained"
                 onClick={() => {
@@ -196,7 +196,7 @@ const SessionPage = () => {
               columns={columns}
               getRowId={row => row.idSession}
               loading={loading}
-              pageSizeOptions={[10, 20, 50]}
+              pageSizeOptions={[10, 20, 50, 100]}
             />
           </Box>
         </CardContent>

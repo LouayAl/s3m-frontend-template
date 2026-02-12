@@ -27,18 +27,14 @@ const MainRoutes = {
   path: '/',
   element: <MainLayout />,
   children: [
+    // Dashboard route simplified
     {
       path: 'dashboard',
-      children: [
-        {
-          path: 'default',
-          element: (
-            <ProtectedRoute>
-              <DashboardDefault />
-            </ProtectedRoute>
-          )
-        }
-      ]
+      element: (
+        <ProtectedRoute>
+          <DashboardDefault />
+        </ProtectedRoute>
+      )
     },
     {
       path: 'typography',
@@ -57,36 +53,36 @@ const MainRoutes = {
       element: <SamplePage />
     },
     {
-    path: 'session',          // ✅ new route
-    element: (
-      <ProtectedRoute>
-        <SessionPage />
-      </ProtectedRoute>
-    )
+      path: 'sessions',
+      element: (
+        <ProtectedRoute>
+          <SessionPage />
+        </ProtectedRoute>
+      )
     },
     {
-    path: 'formations',     
-    element: (
-      <ProtectedRoute>
-        <FormationsPage />
-      </ProtectedRoute>
-    )
+      path: 'formations',
+      element: (
+        <ProtectedRoute>
+          <FormationsPage />
+        </ProtectedRoute>
+      )
     },
     {
-    path: 'entreprises',          // ✅ new route
-    element: (
-      <ProtectedRoute>
-        <EntreprisesPage />
-      </ProtectedRoute>
-    )
+      path: 'entreprises',
+      element: (
+        <ProtectedRoute>
+          <EntreprisesPage />
+        </ProtectedRoute>
+      )
     },
     {
-    path: 'employes',          // ✅ new route
-    element: (
-      <ProtectedRoute>
-        <EmployesPage />
-      </ProtectedRoute>
-    )
+      path: 'employes',
+      element: (
+        <ProtectedRoute>
+          <EmployesPage />
+        </ProtectedRoute>
+      )
     }
   ]
 };

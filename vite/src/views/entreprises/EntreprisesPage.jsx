@@ -35,7 +35,7 @@ import EntrepriseModal from "./EntreprisesModal";
 
 const EntreprisesPage = () => {
   const theme = useTheme();
-  const { token, user } = useAuth();
+  const { user } = useAuth();
 
   const [entreprises, setEntreprises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +84,7 @@ const EntreprisesPage = () => {
   const fetchEntreprises = async () => {
     try {
       setLoading(true);
-      const data = await getAllEntreprises(token);
+      const data = await getAllEntreprises();
       setEntreprises(data);
     } catch (err) {
       console.error("Error loading entreprises:", err);
@@ -303,7 +303,7 @@ const EntreprisesPage = () => {
         <CardContent>
           {/* Filter */}
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 label="Rechercher par nom"
@@ -311,7 +311,7 @@ const EntreprisesPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={6} textAlign={{ xs: "left", md: "right" }}>
+            <Grid size={{xs:12, md:6, textAlign:"right"}}>
             {user?.role === 'ADMIN' && (
               <Button
                 variant="contained"

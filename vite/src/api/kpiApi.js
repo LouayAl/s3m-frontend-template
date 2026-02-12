@@ -1,14 +1,11 @@
 // frontend-template/vite/src/api/kpiApi.js
-import axios from "./axios"; // your axios instance
+import api from "./axios"; // your axios instance
 
-export const getClientKpis = async (entrepriseId, token) => {
+export const getClientKpis = async (entrepriseId) => {
   if (!entrepriseId) throw new Error("Entreprise ID is required");
-  if (!token) throw new Error("Token is required");
 
   try {
-    const response = await axios.get(`/clients/${entrepriseId}/kpis`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await api.get(`/clients/${entrepriseId}/kpis`);
     return response.data;
   } catch (error) {
     console.error("Failed to fetch KPIs:", error);
@@ -16,38 +13,20 @@ export const getClientKpis = async (entrepriseId, token) => {
   }
 };
 
-/**
- * Fetch only the total growth KPI data
- * period: 'daily', 'monthly', 'yearly'
- * month: 'YYYY-MM' string, required if period='daily'
- * Returns: { categories: [...], series: [...], topFormationsByMonth: {...} }
- */
-export const getClientTotalGrowth = async (
-  entrepriseId,
-  token,
-  period = "monthly",
-  month = ""
-) => {
+export const getClientTotalGrowth = async (entrepriseId, period = "monthly", month = "") => {
   if (!entrepriseId) throw new Error("Entreprise ID is required");
-  if (!token) throw new Error("Token is required");
 
-  // Validate month for daily
   if (period === "daily" && !month) {
     throw new Error("Month is required for daily period");
   }
 
   try {
-    const response = await axios.get(
-      `/clients/${entrepriseId}/kpis/total-growth`,
-      {
-        params: { period, month },
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const response = await api.get(`/clients/${entrepriseId}/kpis/total-growth`, {
+      params: { period, month },
+    });
 
     const data = response.data;
 
-    // Normalize daily/monthly/yearly data to avoid undefined/null
     if (data?.series) {
       data.series = data.series.map((s) => ({
         name: s.name || "Unknown",
@@ -57,13 +36,8 @@ export const getClientTotalGrowth = async (
       }));
     }
 
-    if (!Array.isArray(data.categories)) {
-      data.categories = [];
-    }
-
-    if (!data.topFormationsByMonth) {
-      data.topFormationsByMonth = {};
-    }
+    if (!Array.isArray(data.categories)) data.categories = [];
+    if (!data.topFormationsByMonth) data.topFormationsByMonth = {};
 
     return data;
   } catch (error) {

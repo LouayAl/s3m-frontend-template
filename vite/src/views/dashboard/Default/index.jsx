@@ -22,7 +22,7 @@ import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientKpis } from 'api/kpiApi';
 
 export default function Dashboard() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const [isLoading, setLoading] = useState(true);
   const [kpis, setKpis] = useState(null);
 
@@ -34,7 +34,7 @@ export default function Dashboard() {
 
     const fetchKpis = async () => {
       try {
-        const data = await getClientKpis(user.entrepriseId, token);
+        const data = await getClientKpis(user.entrepriseId);
         setKpis(data);
       } catch (err) {
         console.error('Failed to fetch KPIs:', err);
@@ -45,7 +45,7 @@ export default function Dashboard() {
     };
 
     fetchKpis();
-  }, [token, user?.entrepriseId]);
+  }, [ user?.entrepriseId]);
 
     if (!kpis) return <div>No KPI data available.</div>;
 
@@ -107,8 +107,7 @@ export default function Dashboard() {
           <Grid size={{ xs: 12, md: 8 }}>
             <TotalGrowthBarChart 
             isLoading={isLoading} 
-            entrepriseId={user.entrepriseId} 
-            token={token} />
+            entrepriseId={user.entrepriseId}/>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <PopularCard isLoading={isLoading} />

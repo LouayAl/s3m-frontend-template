@@ -6,6 +6,7 @@ export async function login({ email, password }) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, password }),
+    credentials: "include", // ✅ important: include cookies
   });
 
   if (!response.ok) {
@@ -13,5 +14,5 @@ export async function login({ email, password }) {
     throw new Error(errorData.message || "Login failed");
   }
 
-  return response.json(); // { token, email, role }
+  return response.json(); // { token, email, role, prenom, nom, entrepriseId }
 }

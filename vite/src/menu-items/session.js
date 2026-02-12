@@ -15,7 +15,7 @@ const session = {
       id: 'create-session',
       title: 'Session de Formation',
       type: 'item',
-      url: '/session',
+      url: '/sessions',
       icon: icons.IconEdit,
       breadcrumbs: false
     }

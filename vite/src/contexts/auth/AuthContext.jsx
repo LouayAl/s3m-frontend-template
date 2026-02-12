@@ -1,6 +1,6 @@
 // frontend-template/vite/src/contexts/auth/AuthContext.jsx
+
 import { createContext, useContext, useState, useEffect } from "react";
-import jwt_decode from "jwt-decode"; // ✅ proper import for Vite
 
 const AuthContext = createContext();
 
@@ -9,68 +9,96 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load token from localStorage on first render
-  useEffect(() => {
-    const t = localStorage.getItem("token");
+  // ✅ Fetch current user from backend via cookie
+  async function fetchCurrentUser() {
 
-    if (t && t !== "undefined" && t !== "null") {
-      const decoded = decodeToken(t);
-      if (decoded) {
-        setToken(t);
-        setUser(decoded);
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/me", {
+        credentials: "include", // include cookies
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
       } else {
-        localStorage.removeItem("token");
+        console.warn("⚠️ fetchCurrentUser failed with status:", res.status);
+        setUser(null);
       }
+    } catch (err) {
+      console.error("❌ fetchCurrentUser error:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false); // ✅ only after checking token
-  }, []);
-
-  // Login: save token and decode user
-  function login(newToken) {
-    if (!newToken) return;
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
-    setUser(decodeToken(newToken));
   }
 
-  // Logout: clear token and user
-  function logout() {
-    localStorage.removeItem("token");
-    setToken(null);
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
+// Login: call backend, cookie is set automatically
+async function login(email, password) {
+
+  try {
+    // Case A: login with credentials
+    if (email && password) {
+      const res = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+        credentials: "include", // cookie will be set by backend
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("❌ login failed:", errorData);
+        throw new Error(errorData.message || "Login failed");
+      }
+
+    }
+
+    // Case B: fetch current user from /me (cookie)
+    const resUser = await fetch("http://localhost:8080/api/auth/me", {
+      credentials: "include", // include JWT cookie
+    });
+
+    if (resUser.ok) {
+      const userData = await resUser.json();
+      setUser(userData);
+    } else {
+      console.warn("⚠️ /me returned status", resUser.status);
+      setUser(null);
+    }
+  } catch (err) {
+    console.error("❌ login error:", err);
     setUser(null);
+    throw err;
+  }
+}
+
+
+  // Logout: call backend to clear cookie
+  async function logout() {
+
+    try {
+      await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      console.log("✅ logout request sent");
+    } catch (err) {
+      console.error("❌ Logout failed:", err);
+    } finally {
+      setUser(null);
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-// Decode JWT safely and include prenom + nom
-function decodeToken(token) {
-  if (!token || typeof token !== "string") return null;
-
-  try {
-      const decoded = jwt_decode(token);
-
-
-    if (!decoded.sub) return null;
-
-    return {
-      email: decoded.sub,
-      role: decoded.role,
-      entrepriseId: decoded.entrepriseId,
-      prenom: decoded.prenom,
-      nom: decoded.nom
-    };
-  } catch (err) {
-    console.error("Failed to decode token:", err);
-    return null;
-  }
 }

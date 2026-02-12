@@ -1,8 +1,7 @@
 // frontend-template/vite/src/views/pages/auth-forms/AuthLogin.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from 'contexts/auth/AuthContext';
-import { login as loginApi } from 'api/authApi';
 
 // material-ui
 import Button from '@mui/material/Button';
@@ -33,8 +32,15 @@ export default function AuthLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const { login } = useAuth();
+  const { user, login, loading } = useAuth(); // get loading too
   const navigate = useNavigate();
+
+  // ✅ redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleClickShowPassword = () => setShowPassword(!showPassword);
   const handleMouseDownPassword = (event) => event.preventDefault();
@@ -44,11 +50,14 @@ export default function AuthLogin() {
     setError('');
 
     try {
-      const data = await loginApi({ email, password });
-      login(data.token); // save token in AuthContext
-      navigate('/'); // redirect to homepage
+
+      const userData = await login(email, password);
+
+      // Redirect to dashboard
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email or password');
+      console.error("❌ Login error:", err);
     }
   };
 
@@ -123,10 +132,13 @@ export default function AuthLogin() {
 
       <Box>
         <AnimateButton>
-          <Button color="secondary" fullWidth size="large" type="submit" variant="contained"
-            sx={{
-              color: '#ffffffff', // force white text
-            }}
+          <Button
+            color="secondary"
+            fullWidth
+            size="large"
+            type="submit"
+            variant="contained"
+            sx={{ color: '#ffffffff' }} // force white text
           >
             Se connecter
           </Button>

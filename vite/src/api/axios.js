@@ -3,33 +3,23 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:8080/api",
+  withCredentials: true, // ✅ include cookies for session management
 });
 
-// ✅ Attach JWT token automatically
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+// Remove the token from localStorage, cookies handle auth automatically
+// No need for request interceptor anymore
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
-// ✅ Auto logout if token is invalid/expired
+// Optional: auto logout if server responds with 401/403
 api.interceptors.response.use(
   (response) => response,
 
   (error) => {
     if (error.response?.status === 401) {
-      console.warn("JWT expired or invalid → logging out");
-
-      // remove token
-      localStorage.removeItem("token");
+      console.warn("Unauthorized → redirecting to login");
 
       // redirect user to login
       window.location.href = "/login";
-    }else if (error.response?.status === 403) {
+    } else if (error.response?.status === 403) {
       console.warn("Access denied");
     }
 
