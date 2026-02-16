@@ -28,7 +28,8 @@ import {
   getAllEntreprises,
   createEntreprise,
   deleteEntreprise,
-  updateEntreprise
+  updateEntreprise,
+  importEntreprises
 } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 import EntrepriseModal from "./EntreprisesModal";
@@ -119,6 +120,29 @@ const EntreprisesPage = () => {
       }
     }
   };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      await importEntreprises(file);
+
+      showSnackbar("Import Excel réussi !", "success");
+      fetchEntreprises(); // refresh list
+
+    } catch (err) {
+      console.error(err);
+
+      // ✅ Handle 409 Conflict specifically
+      if (err.response?.status === 409) {
+        showSnackbar(err.response.data.message, "error");
+      } else {
+        showSnackbar("Erreur import Excel.", "error");
+      }
+    }
+  };
+
 
   // REAL DELETE (called after confirmation)
   const confirmDelete = async () => {
@@ -303,6 +327,7 @@ const EntreprisesPage = () => {
         <CardContent>
           {/* Filter */}
           <Grid container spacing={2} mb={2} alignItems="center">
+            {/* Search */}
             <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
@@ -311,20 +336,41 @@ const EntreprisesPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid size={{xs:12, md:6, textAlign:"right"}}>
-            {user?.role === 'ADMIN' && (
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ height: "100%" }}
-                onClick={() => setOpenCreateModal(true)}
+
+            {/* Buttons */}
+            <Grid size={{xs:12, md:6}} >
+              {user?.role === 'ADMIN' && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{ height: "100%", mr: 2 }} // ✅ mr adds margin-right for spacing
+                  onClick={() => setOpenCreateModal(true)}
                 >
-                Créer une entreprise
-              </Button>
-            )}
+                  Créer une entreprise
+                </Button>
+              )}
+
+              {user?.role === 'ADMIN' && (
+                <Button
+                  variant="contained"
+                  component="label"
+                  sx={{
+                    height: "100%",
+                    backgroundColor: "#4CAF50", // ✅ green color compatible with import
+                    "&:hover": { backgroundColor: "#43A047" }, // optional hover
+                  }}
+                >
+                  Importer Excel
+                  <input
+                    type="file"
+                    hidden
+                    accept=".xlsx,.xls"
+                    onChange={handleImportExcel}
+                  />
+                </Button>
+              )}
             </Grid>
           </Grid>
-
           {/* Table */}
           <Box sx={{ width: "100%", overflowX: "auto" }}>
             <Box sx={{ minWidth: 500, height: "50vh" }}>
@@ -333,7 +379,7 @@ const EntreprisesPage = () => {
                 columns={columnsWithActions}
                 getRowId={(row) => row.idEntreprise}
                 loading={loading}
-                pageSizeOptions={[10, 20, 50]}
+                pageSizeOptions={[10, 20, 50, 100]}
                 initialState={{
                     pagination: { paginationModel: { pageSize: 10, page: 0 } }
                 }}

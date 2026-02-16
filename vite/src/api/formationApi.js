@@ -71,3 +71,13 @@ export const deleteFormation = async (id) => {
     throw err;
   }
 };
+
+
+export const importFormations = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  await api.post("/formations/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

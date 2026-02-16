@@ -20,6 +20,8 @@ import RemboursementPieChart from './RemboursementPieChart';
 import { gridSpacing } from 'store/constant';
 import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientKpis } from 'api/kpiApi';
+import DashboardSkeleton from "./DashboardSkeleton";
+import EmptyDashboardState from "./EmptyDashboardState";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -27,27 +29,33 @@ export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
 
   useEffect(() => {
-    if (!user?.entrepriseId) {
+  if (!user?.entrepriseId) return;
+
+  const fetchKpis = async () => {
+    try {
+      const data = await getClientKpis(user.entrepriseId);
+      setKpis(data);
+    } catch {
+      setKpis(null);
+    } finally {
       setLoading(false);
-      return;
+    }
+  };
+
+  fetchKpis();
+
+  const interval = setInterval(fetchKpis, 30000); // every 30 sec
+
+  return () => clearInterval(interval);
+}, [user?.entrepriseId]);
+
+    if (isLoading) {
+      return <DashboardSkeleton />;
     }
 
-    const fetchKpis = async () => {
-      try {
-        const data = await getClientKpis(user.entrepriseId);
-        setKpis(data);
-      } catch (err) {
-        console.error('Failed to fetch KPIs:', err);
-        setKpis(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchKpis();
-  }, [ user?.entrepriseId]);
-
-    if (!kpis) return <div>No KPI data available.</div>;
+    if (!kpis) {
+      return <EmptyDashboardState />;
+    }
 
 
   const {

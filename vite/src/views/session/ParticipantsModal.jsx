@@ -120,7 +120,7 @@ const ParticipantsModal = ({
               rows={filteredRows}
               columns={columns}
               getRowId={(row) => Number(row.idEmploye)}
-              pageSizeOptions={[10, 20, 50]}
+              pageSizeOptions={[10, 20, 50, 100]}
               checkboxSelection
               selectionModel={selectedIds}
               onRowSelectionModelChange={(newSelection) => {

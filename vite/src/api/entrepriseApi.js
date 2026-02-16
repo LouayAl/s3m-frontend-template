@@ -67,3 +67,18 @@ export const deleteEntreprise = async (id) => {
     const res = await api.delete(`${BASE_URL}/${id}`);
     return res.data;
 };
+
+export const importEntreprises = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await api.post(`${BASE_URL}/import`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data;
+};
+
+

@@ -23,7 +23,7 @@ import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FormationsModal from "./FormationsModal";
-import { getAllFormations, deleteFormation } from "../../api/formationApi";
+import { getAllFormations, deleteFormation, importFormations } from "../../api/formationApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
 const FormationsPage = () => {
@@ -84,6 +84,41 @@ const FormationsPage = () => {
     }
     handleModalClose();
   };
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      // ✅ Call API
+      const res = await importFormations(file);
+
+      // ✅ Show backend message if exists
+      showSnackbar(
+        res?.data || "Import Excel terminé avec succès !",
+        "success"
+      );
+
+      // ✅ Refresh formations list
+      await fetchFormations();
+
+    } catch (err) {
+      console.error(err);
+
+      // ✅ Show proper backend error message
+      showSnackbar(
+        err.response?.data?.message ||
+          err.response?.data ||
+          "Erreur import Excel",
+        "error"
+      );
+    }
+
+    // ✅ VERY IMPORTANT: reset input so same file works again
+    e.target.value = "";
+  };
+
+
 
   // Delete
   const handleOpenDeleteDialog = (id) => {
@@ -149,6 +184,7 @@ const FormationsPage = () => {
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
+            {/* Search field */}
             <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
@@ -157,9 +193,32 @@ const FormationsPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid size={{xs:12, md:6, textAlign:"right"}}>
-              <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
+
+            {/* Buttons */}
+            <Grid size={{xs:12, md:6}} >
+              {/* Create Formation button */}
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ height: "100%" }}
+                onClick={() => handleModalOpen()}
+              >
                 Créer Formation
+              </Button>
+
+              {/* Import Excel button */}
+              <Button
+                variant="contained"
+                component="label"
+                sx={{ ml: 2, backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" }, }} // add margin-left & color
+              >
+                Importer Excel
+                <input
+                  type="file"
+                  hidden
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                />
               </Button>
             </Grid>
           </Grid>
