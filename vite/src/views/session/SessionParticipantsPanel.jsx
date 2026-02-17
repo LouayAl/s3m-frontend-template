@@ -238,18 +238,20 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     {
       field: "prenom",
       headerName: "Prénom",
+      width: 200,
       flex: 1,
     },
     {
       field: "matricule",
       headerName: "Matricule",
+      width: 200,
       flex: 1,
       hide: isMobile, // 👈 hide matricule column on mobile
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 100,
+      width: 120,
       sortable: false,
       renderCell: (params) => (
         <IconButton
@@ -321,7 +323,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
 
       {/* DATAGRID RESPONSIVE HEIGHT */}
       <Box sx={{ height: "70vh", width: "100%", overflowX: "auto" }}>
-        <Box sx={{ minWidth: 500, height: isMobile ? 320 : 420 }}>
+        <Box sx={{ minWidth: 500, height: isMobile ? 320 : 800 }}>
             <DataGrid
             rows={filteredParticipants}
             columns={columns}

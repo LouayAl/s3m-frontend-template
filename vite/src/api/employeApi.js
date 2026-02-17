@@ -32,3 +32,14 @@ export const deleteEmploye = async (id) => {
   const res = await api.delete(`${BASE_URL}/${id}`);
   return res.data;
 };
+
+export const importEmployes = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await api.post("/employes/import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return res.data; // backend message
+};

@@ -26,6 +26,7 @@ import {
   getAllEmployes,
   updateEmploye,
   deleteEmploye,
+  importEmployes
 } from "../../api/employeApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
@@ -102,6 +103,30 @@ const EmployesPage = () => {
     handleModalClose();
   };
 
+  const handleImportExcel = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const message = await importEmployes(file);
+
+      showSnackbar(message, "success");
+
+      fetchEmployes(); // refresh list
+
+    } catch (err) {
+      console.error(err);
+
+      showSnackbar(
+        err.response?.data?.message || "Erreur import Excel.",
+        "error"
+      );
+    } finally {
+      e.target.value = null; // ✅ reset input
+    }
+  };
+
+
   // Delete
   const handleOpenDeleteDialog = (id) => {
     setSelectedEmployeId(id);
@@ -131,21 +156,22 @@ const EmployesPage = () => {
 
 // Columns for DataGrid showing all employe fields
 const columns = [
+  { field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 },
+  { field: "departementNom", headerName: "Département", flex: 1, minWidth: 150 },
   { field: "nom", headerName: "Nom", flex: 1, minWidth: 150 },
   { field: "prenom", headerName: "Prénom", flex: 1, minWidth: 150 },
-  { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
-  { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 150 },
+  { field: "csp", headerName: "CSP", flex: 1, minWidth: 120 },
+  { field: "f_h", headerName: "Genre", flex: 0.7, minWidth: 80 },
   { field: "cin", headerName: "CIN", flex: 1, minWidth: 120 },
   { field: "cnss", headerName: "CNSS", flex: 1, minWidth: 120 },
   { field: "matricule", headerName: "Matricule", flex: 1, minWidth: 120 },
-  { field: "csp", headerName: "CSP", flex: 1, minWidth: 120 },
+  { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+  { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 150 },
   { field: "fonction", headerName: "Fonction", flex: 1, minWidth: 150 },
   { field: "typeContrat", headerName: "Type Contrat", flex: 1, minWidth: 120 },
-  { field: "f_h", headerName: "Genre", flex: 0.7, minWidth: 80 },
   { field: "dateEmbauche", headerName: "Date Embauche", flex: 1, minWidth: 120 },
   { field: "dateNaissance", headerName: "Date Naissance", flex: 1, minWidth: 120 },
-  { field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 },
-  { field: "departementNom", headerName: "Département", flex: 1, minWidth: 150 },
+  
   
 ];
 
@@ -214,6 +240,20 @@ const columnsWithActions = isAdmin
                 Créer Employé
               </Button>
             )}
+            {/* Import Excel button */}
+              <Button
+                variant="contained"
+                component="label"
+                sx={{ ml: 2, backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" }, }} // add margin-left & color
+              >
+                Importer Excel
+                <input
+                  type="file"
+                  hidden
+                  accept=".xlsx,.xls"
+                  onChange={handleImportExcel}
+                />
+              </Button>
             </Grid>
           </Grid>
 
