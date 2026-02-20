@@ -118,16 +118,7 @@ export default function AuthLogin() {
             label="Rester connecté"
           />
         </Grid>
-        <Grid>
-          <Typography
-            variant="subtitle1"
-            component={Link}
-            to="#!"
-            sx={{ textDecoration: 'none', color: 'secondary.main', cursor: 'pointer' }}
-          >
-            Mot de passe oublié ?
-          </Typography>
-        </Grid>
+        
       </Grid>
 
       <Box>

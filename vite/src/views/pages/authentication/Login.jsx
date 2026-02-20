@@ -44,11 +44,7 @@ export default function Login() {
                   <AuthLogin />
                 </Box>
                 <Divider sx={{ width: 1 }} />
-                <Stack sx={{ alignItems: 'center' }}>
-                  <Typography component={Link} to="/register" variant="subtitle1" sx={{ textDecoration: 'none' }}>
-                    Vous n&apos;avez pas de compte ?
-                  </Typography>
-                </Stack>
+                
               </Stack>
             </AuthCardWrapper>
           </Box>
