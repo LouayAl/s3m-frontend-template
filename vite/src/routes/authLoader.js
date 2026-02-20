@@ -1,20 +1,20 @@
-// frontend-template/vite/src/routes/authLoader.js
-import { redirect } from 'react-router-dom';
+import { redirect } from "react-router-dom";
 
 export async function rootRedirectLoader() {
+  const base = import.meta.env.BASE_URL; // "/formation/"
+  const apiUrl = import.meta.env.VITE_API_URL;
+
   try {
-    const res = await fetch('http://localhost:8080/api/auth/me', {
-      credentials: 'include'
+    const res = await fetch(`${apiUrl}/auth/me`, {
+      credentials: "include"
     });
 
     if (res.ok) {
-      // User is logged in, redirect to dashboard
-      return redirect('/dashboard');
+      return redirect(`${base}dashboard`);
     }
   } catch (err) {
-    console.error('Error fetching current user in loader', err);
+    console.error("Error fetching current user in loader", err);
   }
 
-  // Not logged in
-  return redirect('/login');
+  return redirect(`${base}login`);
 }

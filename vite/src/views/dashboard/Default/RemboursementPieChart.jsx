@@ -1,7 +1,7 @@
-// frontend-template/vite/src/views/dashboard/Default/RemboursementPieChart.jsx
 import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -14,6 +14,9 @@ import useConfig from 'hooks/useConfig';
 
 export default function RemboursementPieChart({ isLoading = false, data = [] }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // mobile screen detection
+  const chartHeight = isMobile ? 350 : 415; // dynamic height
+
   const {
     state: { fontFamily }
   } = useConfig();
@@ -30,6 +33,7 @@ export default function RemboursementPieChart({ isLoading = false, data = [] }) 
     chart: { fontFamily },
     tooltip: { theme: 'light' }
   });
+
   const [series, setSeries] = useState([]);
 
   useEffect(() => {
@@ -50,10 +54,12 @@ export default function RemboursementPieChart({ isLoading = false, data = [] }) 
   ) : (
     <MainCard>
       <Stack spacing={gridSpacing}>
-        <Typography variant="h6">Répartition nb heures par dispositif de remboursement prévu</Typography>
+        <Typography variant="h6">
+          Répartition nb heures par dispositif de remboursement prévu
+        </Typography>
         <Box>
           {series.length > 0 ? (
-            <Chart options={chartOptions} series={series} type="pie" height={400} />
+            <Chart options={chartOptions} series={series} type="pie" height={chartHeight} />
           ) : (
             <Typography variant="body2" color="textSecondary">
               No data available

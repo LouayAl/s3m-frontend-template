@@ -67,7 +67,7 @@ export default function GenderPieChart({ isLoading = false, data = [] }) {
         </Typography>
         <Box>
           {series.length > 0 ? (
-            <Chart options={chartOptions} series={series} type="pie" height={400} />
+            <Chart options={chartOptions} series={series} type="pie" height={350} />
           ) : (
             <Typography variant="body2" color="textSecondary">
               No data available

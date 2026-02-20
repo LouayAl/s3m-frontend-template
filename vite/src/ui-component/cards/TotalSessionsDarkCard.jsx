@@ -1,50 +1,19 @@
-// frontend-template/vite/src/ui-component/cards/TotalSessionsCardDark.jsx
 import PropTypes from 'prop-types';
+import React from 'react';
+
 // material-ui
-import { styled, useTheme } from '@mui/material/styles';
-import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
+import { useTheme } from '@mui/material/styles';
 import Avatar from '@mui/material/Avatar';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import ListItemText from '@mui/material/ListItemText';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
-import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard'; // Skeleton stays the same
+import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard'; // Skeleton
 
 // assets
-import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
-
-// styles
-const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.primary.dark,
-  color: theme.vars.palette.primary.light,
-  overflow: 'hidden',
-  position: 'relative',
-  '&:after': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: `linear-gradient(210.04deg, ${theme.vars.palette.primary[200]} -50.94%, rgba(144, 202, 249, 0) 83.49%)`,
-    borderRadius: '50%',
-    top: -30,
-    right: -180
-  },
-  '&:before': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: `linear-gradient(140.9deg, ${theme.vars.palette.primary[200]} -14.02%, rgba(144, 202, 249, 0) 77.58%)`,
-    borderRadius: '50%',
-    top: -160,
-    right: -130
-  }
-}));
+import EventNoteIcon from '@mui/icons-material/EventNoteOutlined';
 
 export default function TotalSessionsCardDark({ isLoading, totalSessions }) {
   const theme = useTheme();
@@ -54,44 +23,76 @@ export default function TotalSessionsCardDark({ isLoading, totalSessions }) {
       {isLoading ? (
         <TotalIncomeCard />
       ) : (
-        <CardWrapper border={false} content={false}>
-          <Box sx={{ p: 2 }}>
-            <List sx={{ py: 0 }}>
-              <ListItem alignItems="center" disableGutters sx={{ py: 0 }}>
-                <ListItemAvatar>
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      ...theme.typography.largeAvatar,
-                      borderRadius: 2,
-                      bgcolor: 'primary.800',
-                      color: 'common.white'
-                    }}
-                  >
-                    <EventNoteOutlinedIcon fontSize="inherit" />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  sx={{
-                    py: 0,
-                    mt: 0.45,
-                    mb: 0.45
-                  }}
-                  primary={
-                    <Typography variant="h4" sx={{ color: 'common.white' }}>
-                      {totalSessions ?? 0}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography variant="subtitle2" sx={{ color: 'primary.light', mt: 0.25 }}>
-                      Total des sessions de formation
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            </List>
+        <MainCard
+          border={false}
+          content={false}
+          sx={{
+            bgcolor: 'primary.dark',
+            color: '#fff',
+            overflow: 'hidden',
+            position: 'relative',
+            '&:after': {
+              content: '""',
+              position: 'absolute',
+              width: 210,
+              height: 210,
+              background: theme.vars.palette.primary[200],
+              borderRadius: '50%',
+              top: { xs: -85 },
+              right: { xs: -95 }
+            },
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              width: 210,
+              height: 210,
+              background: theme.vars.palette.primary[200],
+              borderRadius: '50%',
+              top: { xs: -125 },
+              right: { xs: -15 },
+              opacity: 0.5
+            }
+          }}
+        >
+          <Box sx={{ p: 2.25 }}>
+            <Stack direction="row" sx={{ justifyContent: 'flex-start' }}>
+              <Avatar
+                variant="rounded"
+                sx={{
+                  ...theme.typography.largeAvatar,
+                  borderRadius: 2,
+                  bgcolor: 'primary.800',
+                  mt: 1
+                }}
+              >
+                <EventNoteIcon fontSize="inherit" />
+              </Avatar>
+            </Stack>
+
+            <Stack direction="row" sx={{ alignItems: 'center', mt: 2 }}>
+              <Typography
+                sx={{
+                  fontSize: '2.125rem',
+                  fontWeight: 500,
+                  mr: 1
+                }}
+              >
+                {totalSessions?.toLocaleString() ?? 0}
+              </Typography>
+            </Stack>
+
+            <Typography
+              sx={{
+                mt: 1,
+                fontSize: '1rem',
+                fontWeight: 500,
+                color: 'primary.200'
+              }}
+            >
+              Total des sessions de formation
+            </Typography>
           </Box>
-        </CardWrapper>
+        </MainCard>
       )}
     </>
   );

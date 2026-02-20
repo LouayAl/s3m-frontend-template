@@ -54,7 +54,7 @@ export default function CspPieChart({ isLoading = false, data = [] }) {
         <Typography variant="h6">Répartition des heures de formation par CSP</Typography>
         <Box>
           {series.length > 0 ? (
-            <Chart options={chartOptions} series={series} type="pie" height={400} />
+            <Chart options={chartOptions} series={series} type="pie" height={350} />
           ) : (
             <Typography variant="body2" color="textSecondary">
               No data available

@@ -27,7 +27,13 @@ export default function Header() {
   return (
     <>
       {/* logo & toggler button */}
-      <Box sx={{ width: downMD ? 'auto' : 228, display: 'flex' }}>
+      <Box
+        sx={{
+          width: downMD ? 'auto' : 228,
+          display: 'flex',
+          alignItems: 'center' // ✅ centers icon vertically with logo
+        }}
+      >
         <Box component="span" sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
           <LogoSection />
         </Box>
@@ -47,12 +53,11 @@ export default function Header() {
           }}
           onClick={() => handlerDrawerOpen(!drawerOpen)}
         >
-          <IconMenu2 stroke={1.5} size="20px" />
+          <IconMenu2 stroke={1.5} size="25px" />
         </Avatar>
       </Box>
 
       {/* header search */}
-      <SearchSection />
       <Box sx={{ flexGrow: 1 }} />
       <Box sx={{ flexGrow: 1 }} />
 

@@ -102,7 +102,7 @@ export default function DepartmentBarChart({ isLoading, data, title, type }) {
             <Typography variant="h6">{title}</Typography>
             <Box>
               {series.length > 0 ? (
-                <Chart options={chartOptions} series={series} type="bar" height={350} />
+                <Chart options={chartOptions} series={series} type="bar" height={535} />
               ) : (
                 <Typography variant="body2" color="textSecondary">
                   No data available

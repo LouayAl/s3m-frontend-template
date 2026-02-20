@@ -1,48 +1,19 @@
-// frontend-template/vite/src/ui-component/cards/TotalParticipantsCard.jsx
 import PropTypes from 'prop-types';
+import React from 'react';
 
 // material-ui
-import { styled, useTheme } from '@mui/material/styles';
-import PeopleOutlineOutlinedIcon from '@mui/icons-material/PeopleOutlineOutlined';
+import { useTheme } from '@mui/material/styles';
 import Avatar from '@mui/material/Avatar';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import ListItemText from '@mui/material/ListItemText';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
-import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard'; // Skeleton stays the same
+import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 
-// styles
-const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.vars.palette.primary,
-  color: theme.vars.palette.primary.light,
-  overflow: 'hidden',
-  position: 'relative',
-  '&:after': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: `linear-gradient(210.04deg, ${theme.vars.palette.primary[200]} -50.94%, rgba(30, 126, 204, 0) 83.49%)`,
-    borderRadius: '50%',
-    top: -30,
-    right: -180
-  },
-  '&:before': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: `linear-gradient(140.9deg, ${theme.vars.palette.primary[200]} -14.02%, rgba(48, 152, 236, 0) 77.58%)`,
-    borderRadius: '50%',
-    top: -160,
-    right: -130
-  }
-}));
+// icons
+import PeopleIcon from '@mui/icons-material/PeopleOutlineOutlined';
 
 export default function TotalParticipantsCard({ isLoading, totalParticipants }) {
   const theme = useTheme();
@@ -52,40 +23,78 @@ export default function TotalParticipantsCard({ isLoading, totalParticipants }) 
       {isLoading ? (
         <TotalIncomeCard />
       ) : (
-        <CardWrapper border={false} content={false}>
-          <Box sx={{ p: 2 }}>
-            <List sx={{ py: 0 }}>
-              <ListItem alignItems="center" disableGutters sx={{ py: 0 }}>
-                <ListItemAvatar>
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      ...theme.typography.largeAvatar,
-                      borderRadius: 2,
-                      bgcolor: 'primary.dark', // same as TotalSessionsCardDark
-                      color: 'common.white'
-                    }}
-                  >
-                    <PeopleOutlineOutlinedIcon fontSize="inherit" />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  sx={{ py: 0, mt: 0.45, mb: 0.45 }}
-                  primary={
-                    <Typography variant="h4" sx={{ color: 'primary.dark' }}>
-                      {totalParticipants ?? 0}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography variant="subtitle2" sx={{ color: 'primary.dark', mt: 0.25 }}>
-                      Total des participants
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            </List>
+        <MainCard
+          border={false}
+          content={false}
+          sx={{
+            bgcolor: theme.vars.palette.primary, // keep original card color
+            color: theme.vars.palette.primary.light,
+            overflow: 'hidden',
+            position: 'relative',
+            '&:after': {
+              content: '""',
+              position: 'absolute',
+              width: 210,
+              height: 210,
+              background: theme.vars.palette.primary[800],
+              borderRadius: '50%',
+              top: { xs: -85 },
+              right: { xs: -95 }
+            },
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              width: 210,
+              height: 210,
+              background: theme.vars.palette.primary[200],
+              borderRadius: '50%',
+              top: { xs: -125 },
+              right: { xs: -15 },
+              opacity: 0.5
+            }
+          }}
+        >
+          <Box sx={{ p: 2.25 }}>
+            <Stack direction="row" sx={{ justifyContent: 'flex-start' }}>
+              <Avatar
+                variant="rounded"
+                sx={{
+                  ...theme.typography.largeAvatar,
+                  borderRadius: 2,
+                  bgcolor: 'primary.dark', // original avatar color
+                  color: 'common.white',
+                  mt: 1
+                }}
+              >
+                <PeopleIcon fontSize="inherit" />
+              </Avatar>
+            </Stack>
+
+            <Stack direction="row" sx={{ alignItems: 'center', mt: 2 }}>
+              <Typography
+                sx={{
+                  fontSize: '2.125rem', // match TotalFormationHoursCard
+                  fontWeight: 500,
+                  mr: 1,
+                  color: theme.vars.palette.primary.dark // text color from original
+                }}
+              >
+                {totalParticipants?.toLocaleString() ?? 0}
+              </Typography>
+            </Stack>
+
+            <Typography
+              sx={{
+                mt: 1,
+                fontSize: '1rem', // match TotalFormationHoursCard
+                fontWeight: 500,
+                color: theme.vars.palette.primary.dark // original subtitle color
+              }}
+            >
+              Total des participants
+            </Typography>
           </Box>
-        </CardWrapper>
+        </MainCard>
       )}
     </>
   );

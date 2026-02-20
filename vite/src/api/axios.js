@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true, // ✅ include cookies for session management
 });
 
@@ -18,7 +18,7 @@ api.interceptors.response.use(
       console.warn("Unauthorized → redirecting to login");
 
       // redirect user to login
-      window.location.href = "/login";
+      window.location.href = `${import.meta.env.BASE_URL}login`;
     } else if (error.response?.status === 403) {
       console.warn("Access denied");
     }

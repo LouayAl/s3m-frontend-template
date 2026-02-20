@@ -72,120 +72,109 @@ export default function Dashboard() {
   return (
     <Grid container spacing={gridSpacing}>
 
-      {/* Top Row */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalFormationHoursCard 
-            isLoading={isLoading}
-            totalHours={totalFormationHours}
-            />
-          </Grid>
-
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalOrderLineChartCard 
-            isLoading={isLoading}
-            />
-          </Grid>
-
-          <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
-            <Grid container spacing={gridSpacing}>
-
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TotalSessionsCardDark 
-                isLoading={isLoading} 
-                totalSessions={totalSessions} 
-                />
-              </Grid>
-
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TotalParticipantsCard
-                  isLoading={isLoading}
-                  totalParticipants={population?.totalParticipants || 0}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
+  {/* Top Row */}
+  <Grid size={12}>
+    <Grid container spacing={gridSpacing}>
+      <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+        <TotalFormationHoursCard 
+          isLoading={isLoading}
+          totalHours={totalFormationHours}
+        />
       </Grid>
 
-      {/* Growth + Popular */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <TotalGrowthBarChart 
-            isLoading={isLoading} 
-            entrepriseId={user.entrepriseId}/>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <PopularCard isLoading={isLoading} />
-          </Grid>
-        </Grid>
+      <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+        <TotalSessionsCardDark 
+          isLoading={isLoading} 
+          totalSessions={totalSessions} 
+        />
       </Grid>
 
-      {/* Department charts */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <DepartmentBarChart
-              title="Participants par Département"
-              data={participantsByDepartment || []}
-              isLoading={isLoading}
-              type="participants"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <DepartmentBarChart
-              title="Heures par Département"
-              data={hoursByDepartment || []}
-              isLoading={isLoading}
-              type="hours"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <DepartmentBarChart
-              title="Heures par Famille de Formation"
-              data={hoursByFamilleFormation || []}
-              isLoading={isLoading}
-              type="famille"
-            />
-          </Grid>
-        </Grid>
-      </Grid>
-
-      {/* Pie charts */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FournisseurPieChart
-              data={hoursByFournisseur || []}
-              isLoading={isLoading}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <RemboursementPieChart
-              data={remboursementByType || []}
-              isLoading={isLoading}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <GenderPieChart
-              isLoading={isLoading}
-              data={population?.genderHours || []}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <CspPieChart
-              isLoading={isLoading}
-              data={population?.cspHours || []}
-            />
-          </Grid>
-          
-        </Grid>
+      <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
+        <TotalParticipantsCard
+          isLoading={isLoading}
+          totalParticipants={population?.totalParticipants || 0}
+        />
       </Grid>
     </Grid>
+  </Grid>
+
+  {/* Growth + Participants per Department (two per row) */}
+  <Grid size={12}>
+    <Grid container spacing={gridSpacing}>
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <TotalGrowthBarChart 
+          isLoading={isLoading} 
+          entrepriseId={user.entrepriseId}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <DepartmentBarChart
+          title="Participants par Département"
+          data={participantsByDepartment || []}
+          isLoading={isLoading}
+          type="participants"
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+
+  {/* Department charts (two per row) */}
+  <Grid size={12}>
+    <Grid container spacing={gridSpacing}>
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <DepartmentBarChart
+          title="Heures par Département"
+          data={hoursByDepartment || []}
+          isLoading={isLoading}
+          type="hours"
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <DepartmentBarChart
+          title="Heures par Famille de Formation"
+          data={hoursByFamilleFormation || []}
+          isLoading={isLoading}
+          type="famille"
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+
+  {/* Pie charts (two per row) */}
+  <Grid size={12}>
+    <Grid container spacing={gridSpacing}>
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <FournisseurPieChart
+          data={hoursByFournisseur || []}
+          isLoading={isLoading}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <RemboursementPieChart
+          data={remboursementByType || []}
+          isLoading={isLoading}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <GenderPieChart
+          isLoading={isLoading}
+          data={population?.genderHours || []}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <CspPieChart
+          isLoading={isLoading}
+          data={population?.cspHours || []}
+        />
+      </Grid>
+    </Grid>
+  </Grid>
+</Grid>
+
   );
 }
