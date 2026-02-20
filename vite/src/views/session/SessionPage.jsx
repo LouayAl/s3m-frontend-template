@@ -9,6 +9,9 @@ import { DataGrid } from "@mui/x-data-grid";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 import {
   getAllSessions,
   deleteSession,
@@ -106,6 +109,83 @@ const SessionPage = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (!sessions || sessions.length === 0) {
+      showSnackbar("Aucune session à exporter.", "warning");
+      return;
+    }
+
+    // ========================
+    // 1️⃣ Sessions Sheet
+    // ========================
+    const sessionsData = sessions.map(s => ({
+      "ID Session": s.idSession,
+      "Réf. session": s.referenceSession,
+      "Formation": s.formation,
+      "Entreprise": s.entrepriseNom,
+      "Fournisseur": s.fournisseurNom,
+      "Formateur": s.formateurNomComplet,
+      "Date début": s.dateDebut,
+      "Date fin": s.dateFin,
+      "Durée (h)": s.dHeures,
+      "Durée (j)": s.dJours,
+      "Statut": s.statut,
+      "Nombre participants": s.participants?.length || 0
+    }));
+
+    const sessionsSheet = XLSX.utils.json_to_sheet(sessionsData);
+
+    // ========================
+    // 2️⃣ Participants Sheet
+    // ========================
+    const participantsData = [];
+
+    sessions.forEach(session => {
+      if (session.participants && session.participants.length > 0) {
+        session.participants.forEach(p => {
+          participantsData.push({
+            "ID Session": session.idSession,
+            "Réf. session": session.referenceSession,
+            "Formation": session.formation,
+            "Nom": p.nom,
+            "Prénom": p.prenom,
+            "Email": p.email,
+            "Téléphone": p.telephone,
+            "Entreprise": session.entrepriseNom
+          });
+        });
+      }
+    });
+
+    const participantsSheet = XLSX.utils.json_to_sheet(participantsData);
+
+    // ========================
+    // 3️⃣ Create Workbook
+    // ========================
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sessionsSheet, "Sessions");
+    XLSX.utils.book_append_sheet(workbook, participantsSheet, "Participants");
+
+    // ========================
+    // 4️⃣ Export File
+    // ========================
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array"
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8;"
+    });
+
+    const today = new Date().toISOString().split("T")[0];
+
+    saveAs(blob, `Export_Sessions_IFMIA_${today}.xlsx`);
+  };
+
+
+
+
   const filteredRows = sessions.filter(s =>
     s.formation?.toLowerCase().includes(search.toLowerCase())
   );
@@ -180,12 +260,25 @@ const SessionPage = () => {
             <Grid size={{xs:12, md:6, textAlign:"right"}}>
               <Button
                 variant="contained"
+                sx={{ height: "100%", mr: 2 }}
                 onClick={() => {
                   setEditingSession(null); 
                   setOpenSessionModal(true);
                 }}
               >
                 Créer session
+              </Button>
+              <Button
+                variant="outlined"
+                sx={{
+                    height: "100%",
+                    color: "#ffffff", // ✅ green color compatible with import
+                    backgroundColor: "#4CAF50", // ✅ green color compatible with import
+                    "&:hover": { backgroundColor: "#43A047" }, // optional hover
+                  }}
+                onClick={handleExportExcel}
+              >
+                Export Excel
               </Button>
             </Grid>
           </Grid>
