@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext();
+const API_URL = import.meta.env.VITE_API_URL;
+//console.log("🔍 API_URL in AuthContext:", API_URL);
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -16,7 +18,7 @@ export function AuthProvider({ children }) {
   async function fetchCurrentUser() {
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/me", {
+      const res = await fetch(`${API_URL}/auth/me`, {
         credentials: "include", // include cookies
       });
 
@@ -45,7 +47,7 @@ async function login(email, password) {
   try {
     // Case A: login with credentials
     if (email && password) {
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -61,7 +63,7 @@ async function login(email, password) {
     }
 
     // Case B: fetch current user from /me (cookie)
-    const resUser = await fetch("http://localhost:8080/api/auth/me", {
+    const resUser = await fetch(`${API_URL}/auth/me`, {
       credentials: "include", // include JWT cookie
     });
 
@@ -84,7 +86,7 @@ async function login(email, password) {
   async function logout() {
 
     try {
-      await fetch("http://localhost:8080/api/auth/logout", {
+      await fetch(`${API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
