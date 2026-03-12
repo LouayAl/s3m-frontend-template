@@ -1,134 +1,216 @@
-import { useEffect, useState } from "react";
+// frontend-template/vite/src/views/sessions/ParticipantsModal.jsx
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Box,
-  Stack,
-  CircularProgress
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, Box, Stack, CircularProgress,
+  Chip, Typography, Checkbox, Alert, Tooltip,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import * as XLSX from "xlsx";
 import { getAllEmployes } from "../../api/employeApi";
 
 const ParticipantsModal = ({
-  open,
-  onClose,
-  onSelectParticipants,
-  preSelectedParticipants = [],
-  employeesList = null, // Optional custom employee list
+  open, onClose, onSelectParticipants,
+  preSelectedParticipants = [], employeesList = null,
 }) => {
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
+  const [importWarnings, setImportWarnings] = useState([]); // matricules not found
+  const fileInputRef = useRef(null);
 
-  // Fetch employees when modal opens if no custom list
+  const isSelected    = (id) => selectedIds.includes(id);
+  const selectedCount = selectedIds.length;
+
+  // Fetch
   useEffect(() => {
-    if (open && !employeesList) fetchEmployees();
-    else if (employeesList) {
-      setEmployees(employeesList);
-      setLoading(false);
-    }
-  }, [open, employeesList]);
-
-  const fetchEmployees = async () => {
-    try {
+    if (!open) return;
+    if (employeesList) { setEmployees(employeesList); setLoading(false); }
+    else {
       setLoading(true);
-      const data = await getAllEmployes();
-      setEmployees(data);
-    } catch (err) {
-      console.error("Erreur lors du chargement des employés :", err);
-    } finally {
-      setLoading(false);
+      getAllEmployes()
+        .then(data => setEmployees(data))
+        .catch(err => console.error(err))
+        .finally(() => setLoading(false));
     }
-  };
+  }, [open]);
 
-  // Preselect participants after employees are loaded
+  // Pre-select
   useEffect(() => {
     const source = employeesList || employees;
-    if (!loading && source.length > 0 && preSelectedParticipants.length > 0) {
-      const validIds = preSelectedParticipants
-        .map(p => Number(p.idEmploye))
-        .filter(id => source.some(emp => Number(emp.idEmploye) === id));
+    if (loading || source.length === 0) return;
+    const validIds = (preSelectedParticipants || [])
+      .map(p => Number(p.idEmploye))
+      .filter(id => source.some(e => Number(e.idEmploye) === id));
+    setSelectedIds(validIds);
+  }, [loading, employees]);
 
+  // Reset
+  useEffect(() => {
+    if (!open) { setSearch(""); setSelectedIds([]); setImportWarnings([]); }
+  }, [open]);
 
-      setTimeout(() => setSelectedIds(validIds), 0);
-    }
-  }, [loading, employees, preSelectedParticipants, employeesList]);
+  // Filtered rows (memoized to avoid DataGrid infinite loop)
+  const filteredRows = useMemo(() => {
+    const source = employeesList || employees;
+    if (!search) return source;
+    const kw = search.toLowerCase();
+    return source.filter(emp =>
+      emp.nom?.toLowerCase().includes(kw) ||
+      emp.prenom?.toLowerCase().includes(kw) ||
+      emp.cin?.toLowerCase().includes(kw) ||
+      emp.matricule?.toLowerCase().includes(kw)
+    );
+  }, [search, employees, employeesList]);
+
+  const visibleIds     = useMemo(() => filteredRows.map(r => Number(r.idEmploye)), [filteredRows]);
+  const allVisibleSel  = visibleIds.length > 0 && visibleIds.every(id => selectedIds.includes(id));
+  const someVisibleSel = visibleIds.some(id => selectedIds.includes(id));
+
+  const toggleRow = (id) =>
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const toggleAllVisible = () => {
+    if (allVisibleSel) setSelectedIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    else setSelectedIds(prev => [...new Set([...prev, ...visibleIds])]);
+  };
+
+  // Excel import
+  const handleImportExcel = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ""; // reset so same file can be re-imported
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb   = XLSX.read(evt.target.result, { type: "binary" });
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+        // Collect all cell values that look like matricules (non-empty strings/numbers)
+        const allValues = rows.flat().map(v => String(v ?? "").trim()).filter(Boolean);
+
+        const source = employeesList || employees;
+
+        const matched   = [];
+        const notFound  = [];
+
+        allValues.forEach(val => {
+          const emp = source.find(
+            e => String(e.matricule ?? "").trim().toLowerCase() === val.toLowerCase()
+          );
+          if (emp) matched.push(Number(emp.idEmploye));
+          else     notFound.push(val);
+        });
+
+        if (matched.length > 0) {
+          setSelectedIds(prev => [...new Set([...prev, ...matched])]);
+        }
+
+        setImportWarnings(notFound);
+      } catch (err) {
+        console.error("Erreur lecture Excel:", err);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   const handleConfirm = () => {
-
     const source = employeesList || employees;
-    const selectedEmployees = source.filter(emp =>
-      selectedIds.includes(Number(emp.idEmploye))
-    );
-
-    // Merge with preSelectedParticipants, deduplicate
-    const allSelected = selectedEmployees.reduce((acc, curr) => {
-      if (!acc.find(p => Number(p.idEmploye) === Number(curr.idEmploye))) {
-        acc.push(curr);
-      }
-      return acc;
-    }, []);
-
-    onSelectParticipants(allSelected);
-
-    // Keep selected IDs in sync
-    setSelectedIds(allSelected.map(p => Number(p.idEmploye)));
+    const selected = source.filter(e => selectedIds.includes(Number(e.idEmploye)));
+    onSelectParticipants(selected);
+    setSelectedIds([]);
   };
 
-  const filteredRows = (employeesList || employees).filter(emp => {
-    const keyword = search.toLowerCase();
-    return (
-      emp.nom?.toLowerCase().includes(keyword) ||
-      emp.prenom?.toLowerCase().includes(keyword) ||
-      emp.cin?.toLowerCase().includes(keyword) ||
-      emp.matricule?.toLowerCase().includes(keyword)
-    );
-  });
-
-  const columns = [
-    { field: "nom", headerName: "Nom", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "prenom", headerName: "Prénom", flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
-    { field: "cin", headerName: "CIN", width: 120, headerAlign: "center", align: "center" },
-    { field: "matricule", headerName: "Matricule", width: 120, headerAlign: "center", align: "center" }
-  ];
+  const columns = useMemo(() => [
+    {
+      field: "select", width: 58, sortable: false, disableColumnMenu: true,
+      headerAlign: "center", align: "center",
+      renderHeader: () => (
+        <Checkbox size="small" checked={allVisibleSel}
+          indeterminate={!allVisibleSel && someVisibleSel}
+          onChange={toggleAllVisible} />
+      ),
+      renderCell: (params) => (
+        <Checkbox size="small"
+          checked={isSelected(Number(params.row.idEmploye))}
+          onChange={() => toggleRow(Number(params.row.idEmploye))} />
+      ),
+    },
+    { field: "nom",       headerName: "Nom",       flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
+    { field: "prenom",    headerName: "Prenom",    flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
+    { field: "cin",       headerName: "CIN",       width: 120, headerAlign: "center", align: "center" },
+    { field: "matricule", headerName: "Matricule", width: 130, headerAlign: "center", align: "center" },
+  ], [allVisibleSel, someVisibleSel, selectedIds]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>Choisir des Participants</DialogTitle>
+      <DialogTitle>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+          <span>Choisir des Participants</span>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {selectedCount > 0 && (
+              <Chip label={`${selectedCount} selectionne(s)`} color="primary" size="small" />
+            )}
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              style={{ display: "none" }}
+              onChange={handleImportExcel}
+            />
+            <Tooltip title="Importer des matricules depuis un fichier Excel (.xlsx). Les participants correspondants seront auto-selectionnés.">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+              >
+                Importer Excel
+              </Button>
+            </Tooltip>
+          </Stack>
+        </Stack>
+      </DialogTitle>
+
       <DialogContent>
+        {/* Import warnings */}
+        {importWarnings.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setImportWarnings([])}>
+            Les matricules suivants ne correspondent a aucun employe dans la liste :{" "}
+            <strong>{importWarnings.join(", ")}</strong>
+          </Alert>
+        )}
+
         <Box mb={2}>
           <TextField
             fullWidth
-            label="Rechercher par nom, prénom, CIN ou matricule"
+            label="Rechercher par nom, prenom, CIN ou matricule"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value)}
           />
+          {search && selectedCount > 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+              {selectedCount} participant(s) selectionne(s) au total, meme hors de la recherche.
+            </Typography>
+          )}
         </Box>
 
         {loading ? (
-          <Stack alignItems="center" py={3}>
-            <CircularProgress />
-          </Stack>
+          <Stack alignItems="center" py={3}><CircularProgress /></Stack>
         ) : (
-          <Box sx={{ height: "70vh" }}>
+          <Box sx={{ height: "60vh" }}>
             <DataGrid
               rows={filteredRows}
               columns={columns}
-              getRowId={(row) => Number(row.idEmploye)}
+              getRowId={row => Number(row.idEmploye)}
               pageSizeOptions={[10, 20, 50, 100]}
-              checkboxSelection
-              selectionModel={selectedIds}
-              onRowSelectionModelChange={(newSelection) => {
-                let normalized = [];
-                if (Array.isArray(newSelection)) normalized = newSelection.map(Number);
-                else if (newSelection?.ids instanceof Set) normalized = Array.from(newSelection.ids).map(Number);
-                setSelectedIds(normalized);
-              }}
+              disableRowSelectionOnClick
             />
           </Box>
         )}
@@ -136,8 +218,9 @@ const ParticipantsModal = ({
 
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
-        <Button variant="contained" color="primary" onClick={handleConfirm}>
-          Confirmer la sélection
+        <Button variant="contained" color="primary"
+          onClick={handleConfirm} disabled={selectedCount === 0}>
+          Confirmer ({selectedCount})
         </Button>
       </DialogActions>
     </Dialog>

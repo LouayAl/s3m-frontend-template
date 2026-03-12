@@ -110,7 +110,7 @@ const columns = [
       <DialogContent>
         <Box mb={2}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="Rechercher par module"
@@ -118,7 +118,7 @@ const columns = [
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label="Famille"
@@ -126,7 +126,7 @@ const columns = [
                 onChange={(e) => setFilters((prev) => ({ ...prev, familleFormation: e.target.value }))}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label="Type"
@@ -134,7 +134,7 @@ const columns = [
                 onChange={(e) => setFilters((prev) => ({ ...prev, typeFormation: e.target.value }))}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label="Sous-famille"
@@ -142,7 +142,7 @@ const columns = [
                 onChange={(e) => setFilters((prev) => ({ ...prev, sousFamille: e.target.value }))}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 label="Année"
@@ -163,7 +163,7 @@ const columns = [
               rows={filteredRows}
               columns={columns}
               getRowId={(row) => row.id}
-              pageSizeOptions={[10, 20, 50]}
+              pageSizeOptions={[10, 20, 50, 100]}
               onRowClick={(params) => handleSelect(params.row)}
             />
           </Box>

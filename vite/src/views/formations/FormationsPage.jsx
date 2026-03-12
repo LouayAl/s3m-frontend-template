@@ -1,56 +1,48 @@
 // frontend-template/vite/src/views/formations/FormationsPage.jsx
 import { useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  TextField,
-  Grid,
-  Stack,
-  IconButton,
-  Snackbar,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
+  Box, Typography, Card, CardContent,
+  TextField, Grid, Stack, IconButton,
+  Snackbar, Alert, Dialog, DialogTitle,
+  DialogContent, DialogContentText, DialogActions, Button,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import FormationsModal from "./FormationsModal";
 import { getAllFormations, deleteFormation, importFormations } from "../../api/formationApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
+const importButtonSx = {
+  backgroundColor: "#4CAF50",
+  "&:hover": { backgroundColor: "#43A047" },
+};
+
+const exportButtonSx = {
+  backgroundColor: "#ff5e00",
+  "&:hover": { backgroundColor: "#ff3c00" },
+};
+
 const FormationsPage = () => {
-  const theme = useTheme();
   const { token } = useAuth();
 
   const [formations, setFormations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState("");
 
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen]             = useState(false);
   const [editingFormation, setEditingFormation] = useState(null);
 
-  // Delete dialog state
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog]     = useState(false);
   const [selectedFormationId, setSelectedFormationId] = useState(null);
 
-  // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  const showSnackbar = (message, severity = "success") => setSnackbar({ open: true, message, severity });
-  const handleCloseSnackbar = () => setSnackbar((prev) => ({ ...prev, open: false }));
+  const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
+  const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
-  // Fetch formations
-  useEffect(() => {
-    fetchFormations();
-  }, []);
+  useEffect(() => { fetchFormations(); }, []);
 
   const fetchFormations = async () => {
     try {
@@ -64,23 +56,14 @@ const FormationsPage = () => {
     }
   };
 
-  // Open create/edit modal
-  const handleModalOpen = (formation = null) => {
-    setEditingFormation(formation);
-    setModalOpen(true);
-  };
-  const handleModalClose = () => {
-    setEditingFormation(null);
-    setModalOpen(false);
-  };
+  const handleModalOpen  = (formation = null) => { setEditingFormation(formation); setModalOpen(true); };
+  const handleModalClose = () => { setEditingFormation(null); setModalOpen(false); };
 
   const handleSave = (savedFormation) => {
     if (editingFormation) {
-      // Update
-      setFormations((prev) => prev.map((f) => (f.id === savedFormation.id ? savedFormation : f)));
+      setFormations(prev => prev.map(f => f.id === savedFormation.id ? savedFormation : f));
     } else {
-      // Create
-      setFormations((prev) => [...prev, savedFormation]);
+      setFormations(prev => [savedFormation, ...prev]);
     }
     handleModalClose();
   };
@@ -88,77 +71,72 @@ const FormationsPage = () => {
   const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     try {
-      // ✅ Call API
       const res = await importFormations(file);
-
-      // ✅ Show backend message if exists
-      showSnackbar(
-        res?.data || "Import Excel terminé avec succès !",
-        "success"
-      );
-
-      // ✅ Refresh formations list
+      showSnackbar(res?.data || "Import Excel terminé avec succès !", "success");
       await fetchFormations();
-
     } catch (err) {
-      console.error(err);
-
-      // ✅ Show proper backend error message
-      showSnackbar(
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Erreur import Excel",
-        "error"
-      );
+      showSnackbar(err.response?.data?.message || err.response?.data || "Erreur import Excel", "error");
+    } finally {
+      e.target.value = "";
     }
-
-    // ✅ VERY IMPORTANT: reset input so same file works again
-    e.target.value = "";
   };
 
-
-
-  // Delete
-  const handleOpenDeleteDialog = (id) => {
-    setSelectedFormationId(id);
-    setOpenDeleteDialog(true);
+  const handleExportExcel = () => {
+    if (!formations.length) { showSnackbar("Aucune formation à exporter.", "warning"); return; }
+    const data = formations.map(f => ({
+      "Module":           f.module,
+      "Famille":          f.familleFormation,
+      "Type":             f.typeFormation,
+      "Sous-famille":     f.sousFamille,
+      "Interne/Externe":  f.interneExterne,
+      "Référence":        f.referenceFormation,
+      "Année":            f.annee,
+      "Durée (h)":        f.dureeHeures,
+      "Durée (j)":        f.dureeJours,
+      "Prix / h (MAD)":   f.prixHeureMad,
+      "Prix / j (MAD)":   f.prixJourMad,
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Formations");
+    const today = new Date().toISOString().split("T")[0];
+    saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      `Export_Formations_${today}.xlsx`);
   };
-  const handleCloseDeleteDialog = () => {
-    setOpenDeleteDialog(false);
-    setSelectedFormationId(null);
-  };
+
+  const handleOpenDeleteDialog  = (id) => { setSelectedFormationId(id); setOpenDeleteDialog(true); };
+  const handleCloseDeleteDialog = () => { setOpenDeleteDialog(false); setSelectedFormationId(null); };
+
   const confirmDelete = async () => {
     try {
       await deleteFormation(selectedFormationId);
-      setFormations((prev) => prev.filter((f) => f.id !== selectedFormationId));
+      setFormations(prev => prev.filter(f => f.id !== selectedFormationId));
       showSnackbar("Formation supprimée avec succès !");
     } catch (err) {
-      const message = err.response?.data?.message || "Impossible de supprimer cette formation.";
-      showSnackbar(message, "error");
+      showSnackbar(err.response?.data?.message || "Impossible de supprimer cette formation.", "error");
     } finally {
       handleCloseDeleteDialog();
     }
   };
 
-  // Columns
   const columns = [
-    { field: "module", headerName: "Module", flex: 1, minWidth: 160 },
-    { field: "familleFormation", headerName: "Famille", flex: 1, minWidth: 120 },
-    { field: "typeFormation", headerName: "Type", flex: 1, minWidth: 120 },
-    { field: "sousFamille", headerName: "Sous-famille", flex: 1, minWidth: 120 },
-    { field: "interneExterne", headerName: "Interne/Externe", flex: 1, minWidth: 140 },
-    { field: "referenceFormation", headerName: "Référence", flex: 1, minWidth: 120 },
-    { field: "annee", headerName: "Année", width: 100 },
-    { field: "dureeHeures", headerName: "Durée (h)", width: 120 },
-    { field: "dureeJours", headerName: "Durée (j)", width: 120 },
-    { field: "prixHeureMad", headerName: "Prix / h (MAD)", width: 140 },
-    { field: "prixJourMad", headerName: "Prix / j (MAD)", width: 140 },
+    { field: "module",             headerName: "Module",           flex: 1, minWidth: 160 },
+    { field: "familleFormation",   headerName: "Famille",          flex: 1, minWidth: 120 },
+    { field: "typeFormation",      headerName: "Type",             flex: 1, minWidth: 120 },
+    { field: "sousFamille",        headerName: "Sous-famille",     flex: 1, minWidth: 120 },
+    { field: "interneExterne",     headerName: "Interne/Externe",  flex: 1, minWidth: 140 },
+    { field: "referenceFormation", headerName: "Référence",        flex: 1, minWidth: 120 },
+    { field: "annee",              headerName: "Année",            width: 100 },
+    { field: "dureeHeures",        headerName: "Durée (h)",        width: 120 },
+    { field: "dureeJours",         headerName: "Durée (j)",        width: 120 },
+    { field: "prixHeureMad",       headerName: "Prix / h (MAD)",   width: 140 },
+    { field: "prixJourMad",        headerName: "Prix / j (MAD)",   width: 140 },
     {
       field: "actions",
       headerName: "Actions",
-      width: 150,
+      width: 120,
       sortable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={1}>
@@ -173,52 +151,35 @@ const FormationsPage = () => {
     },
   ];
 
-  const filteredRows = formations.filter((f) => f.module?.toLowerCase().includes(search.toLowerCase()));
+  const filteredRows = formations.filter(f =>
+    f.module?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <Box p={3}>
-      <Typography variant="h4" fontWeight="bold" mb={2}>
-        Catalogue des Formations
-      </Typography>
+      <Typography variant="h4" fontWeight="bold" mb={2}>Catalogue des Formations</Typography>
 
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            {/* Search field */}
-            <Grid size={{xs:12, md:6}}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Rechercher par module"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
             </Grid>
-
-            {/* Buttons */}
-            <Grid size={{xs:12, md:6}} >
-              {/* Create Formation button */}
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ height: "100%" }}
-                onClick={() => handleModalOpen()}
-              >
+            <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
+              <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
                 Créer Formation
               </Button>
-
-              {/* Import Excel button */}
-              <Button
-                variant="contained"
-                component="label"
-                sx={{ ml: 2, backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" }, }} // add margin-left & color
-              >
+              <Button variant="contained" component="label" sx={importButtonSx}>
                 Importer Excel
-                <input
-                  type="file"
-                  hidden
-                  accept=".xlsx,.xls"
-                  onChange={handleImportExcel}
-                />
+                <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+              </Button>
+              <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
+                Export Excel
               </Button>
             </Grid>
           </Grid>
@@ -227,15 +188,15 @@ const FormationsPage = () => {
             <DataGrid
               rows={filteredRows}
               columns={columns}
-              getRowId={(row) => row.id}
+              getRowId={row => row.id}
               loading={loading}
               pageSizeOptions={[10, 20, 50, 100]}
+              initialState={{ pagination: { paginationModel: { pageSize: 20 } } }}
             />
           </Box>
         </CardContent>
       </Card>
 
-      {/* CREATE/EDIT MODAL */}
       <FormationsModal
         open={modalOpen}
         onClose={handleModalClose}
@@ -244,34 +205,19 @@ const FormationsPage = () => {
         initialData={editingFormation}
       />
 
-      {/* DELETE CONFIRMATION DIALOG */}
       <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.
-          </DialogContentText>
+          <DialogContentText>Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} color="inherit">
-            Annuler
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            Supprimer
-          </Button>
+          <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">Supprimer</Button>
         </DialogActions>
       </Dialog>
 
-      {/* SNACKBAR */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>
   );
