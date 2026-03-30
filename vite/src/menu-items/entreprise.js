@@ -4,14 +4,14 @@ import { IconBuildingStore } from "@tabler/icons-react"; // building icon for en
 
 const entreprise = {
   id: "entreprise",
-  title: "Entreprises",
+  title: "Fournisseurs",
   type: "group",
   children: [
     {
       id: "entreprises",
-      title: "Entreprises",
+      title: "Fournisseurs",
       type: "item",
-      url: "/entreprises",
+      url: "/fournisseurs",
       icon: IconBuildingStore,
       breadcrumbs: false
     }

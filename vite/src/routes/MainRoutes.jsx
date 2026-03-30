@@ -69,7 +69,7 @@ const MainRoutes = {
       )
     },
     {
-      path: 'entreprises',
+      path: 'fournisseurs',
       element: (
         <ProtectedRoute>
           <EntreprisesPage />

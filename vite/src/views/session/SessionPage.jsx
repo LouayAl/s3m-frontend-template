@@ -21,10 +21,9 @@ import SessionParticipantsPanel from "./SessionParticipantsPanel";
 import YearFilter from "../dashboard/Default/YearFilter";
 
 const exportButtonSx = {
-  backgroundColor: "#ff5e00",
-  "&:hover": { backgroundColor: "#ff3c00" },
+  backgroundColor: "#4CAF50",
+  "&:hover": { backgroundColor: "#43A047" },
 };
-
 
 const SessionPage = () => {
   const [sessions, setSessions]   = useState([]);
@@ -211,7 +210,7 @@ const SessionPage = () => {
             </Grid>
 
             {/* Buttons */}
-            <Grid size="auto" sx={{ display: "flex", gap: 1 }}>
+            <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
                 Créer session
               </Button>
@@ -220,8 +219,8 @@ const SessionPage = () => {
               </Button>
             </Grid>
 
-            {/* Year filter — pushed to the right */}
-            <Grid size="grow" sx={{ display: "flex", justifyContent: "flex-end" }}>
+            {/* Year filter — right on desktop, full width on mobile */}
+            <Grid size={{ xs: 12, md: "grow" }} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
               <YearFilter
                 availableYears={availableYears}
                 selectedYears={selectedYears}
