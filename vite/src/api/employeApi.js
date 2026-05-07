@@ -52,3 +52,8 @@ export const importEmployes = async (file) => {
   });
   return res.data;
 };
+
+export const getEmEmployes = async () => {
+  const res = await api.get('/em/employes');
+  return res.data;
+};

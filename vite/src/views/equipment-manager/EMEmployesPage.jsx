@@ -10,7 +10,7 @@ import {
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { getAllEmployes } from 'api/employeApi';
+import { getEmEmployes } from '../../api/employeApi';
 
 const exportButtonSx = { backgroundColor: '#4CAF50', '&:hover': { backgroundColor: '#43A047' } };
 
@@ -26,7 +26,7 @@ export default function EMEmployesPage() {
   const fetchEmployes = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getAllEmployes();
+      const data = await getEmEmployes();
       setEmployes(data);
     } catch {
       showSnackbar('Erreur lors du chargement des employés', 'error');

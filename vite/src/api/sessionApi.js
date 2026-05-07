@@ -17,6 +17,16 @@ export const getAllSessions = async () => {
   }
 };
 
+export const getSessionById = async (id) => {
+  try {
+    const res = await api.get(`${BASE_URL}/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors du chargement de la session :", err);
+    throw err;
+  }
+};
+
 export const searchSessions = async (keyword) => {
   try {
     const res = await api.get(`${BASE_URL}/search`, { params: { keyword } });
