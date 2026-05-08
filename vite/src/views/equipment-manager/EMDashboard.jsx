@@ -10,8 +10,33 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import FlashOnOutlinedIcon from '@mui/icons-material/FlashOnOutlined';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
-import { getAllSessions } from 'api/sessionApi';
+import { getEmSessions, getMySessionsAsTrainer } from '../../api/emApi';
+import { useAuth } from '../../contexts/auth/AuthContext';
 import { getAllEmployes } from 'api/employeApi';
+
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
+import startOfWeek from 'date-fns/startOfWeek';
+import getDay from 'date-fns/getDay';
+import fr from 'date-fns/locale/fr';
+
+import { useNavigate } from 'react-router-dom';
+
+const locales = {
+  fr,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
+
 
 // ─── Reusable KPI card ────────────────────────────────────────────────────────
 function KpiCard({ label, value, icon, color = 'primary' }) {
@@ -62,15 +87,28 @@ export default function EMDashboard() {
   const [sessions, setSessions]   = useState([]);
   const [totalEmployes, setTotalEmployes] = useState(0);
   const [loading, setLoading]     = useState(true);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    Promise.all([getAllSessions(), getAllEmployes()])
-      .then(([sess, emps]) => {
+    const loadData = async () => {
+      try {
+        const [emps, sess] = await Promise.all([
+          getAllEmployes(),
+          user?.role === 'TRAINER'
+            ? getMySessionsAsTrainer()
+            : getEmSessions(),
+        ]);
+
         setSessions(sess);
         setTotalEmployes(emps.length);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   const enCours   = sessions.filter(s => s.statut === 'EN_COURS').length;
   const terminees = sessions.filter(s => s.statut === 'TERMINEE').length;
@@ -84,7 +122,22 @@ export default function EMDashboard() {
     .reduce((sum, s) => sum + (s.participants?.length ?? 0), 0);
 
   // Live participants list (from EN_COURS sessions, flattened)
-  const liveSessions = sessions.filter(s => s.statut === 'EN_COURS').slice(0, 5);
+  const plannedSessions = sessions.filter(
+    s => s.statut === 'PLANIFIEE' || s.statut === 'EN_COURS'
+  );
+
+  const calendarEvents = plannedSessions.map((s) => ({
+    title: s.formation,
+    start: new Date(s.dateDebut),
+    end: new Date(
+      new Date(s.dateFin).setDate(
+        new Date(s.dateFin).getDate() + 1
+      )
+    ),
+    sessionId: s.idSession,
+    resource: s,
+  }));
+
 
   if (loading) return <Box sx={{ p: 3 }}><LinearProgress /></Box>;
 
@@ -143,37 +196,73 @@ export default function EMDashboard() {
           </Card>
         </Grid>
 
-        {/* Live sessions */}
+        {/* Planned sessions calendar */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+          <Card
+            sx={{
+              borderRadius: 2,
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: 'divider',
+              height: '100%',
+            }}
+          >
             <CardContent>
-              <Typography variant="subtitle1" fontWeight={600} mb={2}>Sessions en cours</Typography>
-              {liveSessions.length === 0 && (
-                <Typography variant="body2" color="text.secondary">Aucune session en cours.</Typography>
-              )}
-              {liveSessions.map((s, i) => {
-                const count = s.participants?.length ?? 0;
-                return (
-                  <Box key={s.idSession}>
-                    <Box sx={{ py: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                        <Typography variant="body2" fontWeight={500}>{s.formation}</Typography>
-                        <Typography variant="caption" color="text.secondary">{count} participants</Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                        {s.dateDebut} → {s.dateFin}
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(100, (count / 20) * 100)}
-                        sx={{ height: 4, borderRadius: 2 }}
-                        color="primary"
-                      />
-                    </Box>
-                    {i < liveSessions.length - 1 && <Divider />}
-                  </Box>
-                );
-              })}
+              <Typography variant="subtitle1" fontWeight={600} mb={2}>
+                Sessions planifiées
+              </Typography>
+
+              <Box sx={{ height: 450 }}>
+                <Calendar
+                  localizer={localizer}
+                  events={calendarEvents}
+                  startAccessor="start"
+                  endAccessor="end"
+                  views={['month']}
+                  defaultView="month"
+                  popup
+                  selectable
+                  style={{ height: '100%' }}
+                  messages={{
+                    next: 'Suivant',
+                    previous: 'Précédent',
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    day: 'Jour',
+                    agenda: 'Agenda',
+                    date: 'Date',
+                    time: 'Heure',
+                    event: 'Session',
+                    noEventsInRange: 'Aucune session',
+                  }}
+                  onSelectEvent={(event) => {
+                    navigate(`/em/sessions/${event.sessionId}`);
+                  }}
+                  eventPropGetter={(event) => {
+                    const statut = event.resource?.statut;
+
+                    let backgroundColor = '#1976d2';
+
+                    if (statut === 'EN_COURS') {
+                      backgroundColor = '#2e7d32';
+                    } else if (statut === 'PLANIFIEE') {
+                      backgroundColor = '#ed6c02';
+                    }
+
+                    return {
+                      style: {
+                        backgroundColor,
+                        borderRadius: 6,
+                        border: 'none',
+                        color: 'white',
+                        padding: '2px 4px',
+                        fontSize: 12,
+                      },
+                    };
+                  }}
+                />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
