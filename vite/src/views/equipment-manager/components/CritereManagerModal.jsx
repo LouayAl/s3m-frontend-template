@@ -100,6 +100,10 @@ export default function CritereManagerModal({ open, onClose, sessionId, jour, ha
       </DialogTitle>
 
       <DialogContent dividers>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Les criteres enregistres ici seront appliques a tous les jours de cette session.
+        </Alert>
+
         {/* Warning when evaluations already exist */}
         {hasEvaluations && (
           <Alert

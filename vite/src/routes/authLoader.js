@@ -10,7 +10,13 @@ export async function rootRedirectLoader() {
     });
 
     if (res.ok) {
-      return redirect(`${base}dashboard`);
+      const user = await res.json();
+      const dashboardPath =
+        user?.role === "EQUIPMENT_MANAGER" || user?.role === "TRAINER"
+          ? "em/dashboard"
+          : "dashboard";
+
+      return redirect(`${base}${dashboardPath}`);
     }
   } catch (err) {
     console.error("Error fetching current user in loader", err);

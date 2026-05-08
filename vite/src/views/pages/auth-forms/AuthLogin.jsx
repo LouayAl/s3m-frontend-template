@@ -24,7 +24,7 @@
 //   }
 
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'contexts/auth/AuthContext';
 
 import Button from '@mui/material/Button';
@@ -53,15 +53,13 @@ export default function AuthLogin() {
 
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
+  const getDashboardPath = (role) =>
+    role === 'EQUIPMENT_MANAGER' || role === 'TRAINER' ? '/em/dashboard' : '/dashboard';
 
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      if (user.role === 'EQUIPMENT_MANAGER') {
-        navigate('/em/dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      navigate(getDashboardPath(user.role), { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -75,12 +73,7 @@ export default function AuthLogin() {
     try {
       const userData = await login(email, password);
 
-      // Route based on role
-      if (userData?.role === 'EQUIPMENT_MANAGER') {
-        navigate('/em/dashboard', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+      navigate(getDashboardPath(userData?.role), { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email or password');
       console.error('❌ Login error:', err);

@@ -70,9 +70,11 @@ async function login(email, password) {
     if (resUser.ok) {
       const userData = await resUser.json();
       setUser(userData);
+      return userData;
     } else {
       console.warn("⚠️ /me returned status", resUser.status);
       setUser(null);
+      return null;
     }
   } catch (err) {
     console.error("❌ login error:", err);

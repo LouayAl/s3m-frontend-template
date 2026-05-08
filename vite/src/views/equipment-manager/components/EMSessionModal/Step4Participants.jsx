@@ -5,6 +5,8 @@ import {
   CircularProgress, Chip, Alert,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { useNavigate } from 'react-router-dom';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 export default function Step4Participants({
   employes,
@@ -33,6 +35,8 @@ export default function Step4Participants({
   const visibleIds     = filtered.map(e => e.idEmploye);
   const allSelected    = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
   const someSelected   = visibleIds.some(id => selectedIds.has(id));
+
+  const navigate = useNavigate();
 
   const toggleOne = (emp) => {
     if (selectedIds.has(emp.idEmploye)) {
@@ -95,6 +99,18 @@ export default function Step4Participants({
         }}
         sx={{ mb: 1 }}
       />
+      
+    <Box sx={{ display:'flex', justifyContent:'flex-end', mb:1 }}>
+        <Button
+            size="small"
+            variant="outlined"
+            startIcon={<PersonAddIcon />}
+            onClick={() => navigate('/em/employes')}
+            sx={{ fontSize: 12 }}
+        >
+            Créer un nouvel employé
+        </Button>
+    </Box>
 
       {/* Select-all row */}
       {filtered.length > 0 && (

@@ -1,7 +1,3 @@
-// frontend-template/vite/src/views/equipment-manager/EMEmployesPage.jsx
-// Read-only view of employees for the Equipment Manager role.
-// Reuses the same API and DataGrid as the existing EmployesPage
-// but with no create/edit/delete actions.
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent,
@@ -10,17 +6,25 @@ import {
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import AddIcon from '@mui/icons-material/Add';
 import { getEmEmployes } from '../../api/employeApi';
+import EmployeModal from '../employes/EmployesModal';
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 const exportButtonSx = { backgroundColor: '#4CAF50', '&:hover': { backgroundColor: '#43A047' } };
 
 export default function EMEmployesPage() {
-  const [employes, setEmployes] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
+  const { user } = useAuth();
+  const isTrainer = user?.role === 'TRAINER';
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const showSnackbar = (message, severity = 'success') => setSnackbar({ open: true, message, severity });
+  const [employes,       setEmployes]       = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [search,         setSearch]         = useState('');
+  const [modalOpen,      setModalOpen]      = useState(false);
+  const [editingEmploye, setEditingEmploye] = useState(null);
+  const [snackbar,       setSnackbar]       = useState({ open: false, message: '', severity: 'success' });
+
+  const showSnackbar        = (message, severity = 'success') => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
   const fetchEmployes = useCallback(async () => {
@@ -54,15 +58,15 @@ export default function EMEmployesPage() {
   };
 
   const columns = [
-    { field: 'entrepriseNom',  headerName: 'Entreprise',    flex: 1, minWidth: 140 },
-    { field: 'departementNom', headerName: 'Département',   flex: 1, minWidth: 140 },
-    { field: 'nom',            headerName: 'Nom',           flex: 1, minWidth: 130 },
-    { field: 'prenom',         headerName: 'Prénom',        flex: 1, minWidth: 130 },
-    { field: 'matricule',      headerName: 'Matricule',     flex: 1, minWidth: 110 },
-    { field: 'csp',            headerName: 'CSP',           flex: 0.8, minWidth: 80 },
-    { field: 'f_h',            headerName: 'Genre',         flex: 0.6, minWidth: 70 },
-    { field: 'typeContrat',    headerName: 'Type Contrat',  flex: 1, minWidth: 120 },
-    { field: 'fonction',       headerName: 'Fonction',      flex: 1, minWidth: 130 },
+    { field: 'entrepriseNom',  headerName: 'Entreprise',   flex: 1, minWidth: 140 },
+    { field: 'departementNom', headerName: 'Département',  flex: 1, minWidth: 140 },
+    { field: 'nom',            headerName: 'Nom',          flex: 1, minWidth: 130 },
+    { field: 'prenom',         headerName: 'Prénom',       flex: 1, minWidth: 130 },
+    { field: 'matricule',      headerName: 'Matricule',    flex: 1, minWidth: 110 },
+    { field: 'csp',            headerName: 'CSP',          flex: 0.8, minWidth: 80 },
+    { field: 'f_h',            headerName: 'Genre',        flex: 0.6, minWidth: 70 },
+    { field: 'typeContrat',    headerName: 'Type Contrat', flex: 1, minWidth: 120 },
+    { field: 'fonction',       headerName: 'Fonction',     flex: 1, minWidth: 130 },
   ];
 
   const filteredRows = useMemo(() => employes.filter(e =>
@@ -77,11 +81,27 @@ export default function EMEmployesPage() {
       <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField fullWidth label="Rechercher par nom, prénom ou matricule" value={search} onChange={e => setSearch(e.target.value)} />
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Rechercher par nom, prénom ou matricule"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1 }}>
-              <Button variant="contained" sx={exportButtonSx} onClick={handleExport}>Export Excel</Button>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'flex-start', gap: 1, flexWrap: 'wrap' }}>
+              {!isTrainer && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => { setEditingEmploye(null); setModalOpen(true); }}
+                >
+                  Créer un employé
+                </Button>
+              )}
+              <Button variant="contained" sx={exportButtonSx} onClick={handleExport}>
+                Export Excel
+              </Button>
             </Grid>
           </Grid>
           <Box sx={{ height: '70vh', width: '100%' }}>
@@ -101,7 +121,20 @@ export default function EMEmployesPage() {
           </Box>
         </CardContent>
       </Card>
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+
+      <EmployeModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialData={editingEmploye}
+        showSnackbar={showSnackbar}
+        onSave={() => {
+          setModalOpen(false);
+          fetchEmployes();
+        }}
+      />
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>

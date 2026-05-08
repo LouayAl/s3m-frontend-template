@@ -54,9 +54,11 @@ export default function EvaluationPanel({
             )}
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" size="small" color="warning" onClick={onOpenCriteres}>
-              Gérer les critères
-            </Button>
+            {onOpenCriteres && (
+              <Button variant="outlined" size="small" color="warning" onClick={onOpenCriteres}>
+                Gérer les critères
+              </Button>
+            )}
             <Button variant="outlined" size="small" onClick={onOpenHistory}>
               Voir les évaluations existantes
             </Button>

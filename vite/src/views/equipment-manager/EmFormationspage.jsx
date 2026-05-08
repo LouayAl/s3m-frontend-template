@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect }              from 'react';
 import {
   Box, Typography, Grid, Card, CardContent, Chip,
   Divider, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Table, TableBody, TableCell, TableHead, TableRow,
-  LinearProgress, Stack, Avatar, CircularProgress,
-} from '@mui/material';
-import SchoolOutlinedIcon        from '@mui/icons-material/SchoolOutlined';
-import GroupOutlinedIcon         from '@mui/icons-material/GroupOutlined';
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
-import { useNavigate }           from 'react-router-dom';
-import { getEmSessions } from '../../api/emApi';
+  LinearProgress, Stack, Avatar, CircularProgress, Snackbar, Alert,
+}                                           from '@mui/material';
+import SchoolOutlinedIcon                   from '@mui/icons-material/SchoolOutlined';
+import GroupOutlinedIcon                    from '@mui/icons-material/GroupOutlined';
+import CalendarTodayOutlinedIcon            from '@mui/icons-material/CalendarTodayOutlined';
+import { useNavigate }                      from 'react-router-dom';
+import { getEmSessions, getEmFormations }   from '../../api/emApi';
+import AddIcon                              from '@mui/icons-material/Add';
+import FormationsModal                      from '../formations/FormationsModal';
+import { useAuth }                          from '../../contexts/auth/AuthContext';
+
 
 const STATUS_CONFIG = {
   EN_COURS:  { label: 'En cours',  color: 'success' },
@@ -43,32 +47,90 @@ export default function EMFormationsPage() {
   const [formations,         setFormations]         = useState([]);
   const [loading,            setLoading]            = useState(true);
   const [selectedFormation,  setSelectedFormation]  = useState(null);
+  const [openModal,          setOpenModal]          = useState(false);
+  const { user } = useAuth();
+  const isTrainer = user?.role === 'TRAINER';
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  const toCardFormation = (formation) => ({
+    id: formation.id,
+    nom: formation.module,
+    sessions: formation.sessions ?? [],
+  });
+
+  const fetchFormations = async () => {
+    try {
+      setLoading(true);
+      const [catalogue, sessions] = await Promise.all([
+        getEmFormations(),
+        getEmSessions(),
+      ]);
+
+      const map = {};
+
+      catalogue.forEach(formation => {
+        map[formation.id] = toCardFormation(formation);
+      });
+
+      sessions.forEach(s => {
+        const fId = s.formationId;
+        if (!map[fId]) {
+          map[fId] = {
+            id:       fId,
+            nom:      s.formation,
+            sessions: [],
+          };
+        }
+        map[fId].sessions.push(s);
+      });
+
+      setFormations(Object.values(map));
+    } catch (err) {
+      console.error(err);
+      showSnackbar('Erreur lors du chargement des formations.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    getEmSessions()
-      .then(sessions => {
-        // Group sessions by formationId
-        const map = {};
-        sessions.forEach(s => {
-          const fId = s.formationId;
-          if (!map[fId]) {
-            map[fId] = {
-              id:       fId,
-              nom:      s.formation,
-              sessions: [],
-            };
-          }
-          map[fId].sessions.push(s);
-        });
-        setFormations(Object.values(map));
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchFormations();
   }, []);
 
   const handleSessionClick = (sessionId) => {
     setSelectedFormation(null);
     navigate(`/em/sessions/${sessionId}`);
+  };
+
+  const handleSaveFormation = (savedFormation) => {
+    setFormations(prev => {
+      const exists = prev.some(f => f.id === savedFormation.id);
+      const nextFormation = toCardFormation(savedFormation);
+
+      if (exists) {
+        return prev.map(f => (
+          f.id === savedFormation.id
+            ? { ...nextFormation, sessions: f.sessions ?? [] }
+            : f
+        ));
+      }
+
+      return [nextFormation, ...prev];
+    });
+    setOpenModal(false);
   };
 
   if (loading) {
@@ -85,6 +147,17 @@ export default function EMFormationsPage() {
       <Typography variant="body2" color="text.secondary" mb={3}>
         Cliquez sur une formation pour voir ses sessions. Cliquez sur une session pour accéder au suivi journalier.
       </Typography>
+
+      {!isTrainer && (
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenModal(true)}
+          sx={{ mb: 3 }}
+        >
+          Créer une formation
+        </Button>
+      )}
 
       <Grid container spacing={3}>
         {formations.map((f) => {
@@ -108,9 +181,15 @@ export default function EMFormationsPage() {
 
                   {/* Session dots */}
                   <Stack direction="row" spacing={1} mb={1.5} flexWrap="wrap">
-                    {f.sessions.map((s, i) => (
-                      <SessionDot key={s.idSession} statut={s.statut} label={`S${i + 1}`} />
-                    ))}
+                    {f.sessions.length > 0 ? (
+                      f.sessions.map((s, i) => (
+                        <SessionDot key={s.idSession} statut={s.statut} label={`S${i + 1}`} />
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        Aucune session planifiée
+                      </Typography>
+                    )}
                   </Stack>
 
                   {/* Status legend */}
@@ -167,6 +246,14 @@ export default function EMFormationsPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
+                  {selectedFormation.sessions.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                        Aucune session n'est encore rattachée à cette formation.
+                      </TableCell>
+                    </TableRow>
+                  )}
+
                   {selectedFormation.sessions.map((s) => {
                     const duree        = Number(s.dJours);
                     const today        = new Date();
@@ -216,6 +303,25 @@ export default function EMFormationsPage() {
           </>
         )}
       </Dialog>
+
+      <FormationsModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        onSave={handleSaveFormation}
+        showSnackbar={showSnackbar}
+        initialData={null}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" onClose={handleCloseSnackbar}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

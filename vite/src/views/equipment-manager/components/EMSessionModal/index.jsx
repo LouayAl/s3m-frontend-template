@@ -1,3 +1,4 @@
+// frontend-template/vite/src/views/equipment-manager/components/EMSessionModal/index.jsx
 import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -7,7 +8,7 @@ import {
 } from '@mui/material';
 import KeyboardArrowLeftIcon  from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import CheckIcon     from '@mui/icons-material/Check';
+import CheckIcon      from '@mui/icons-material/Check';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,27 +17,31 @@ import Step2Calendar     from './Step2Calendar';
 import Step3Details      from './Step3Details';
 import Step4Participants from './Step4Participants';
 
-import { getAllFormations, getAllFormateurs, createSession, updateParticipants, updateSession} from '../../../../api/sessionApi';
-import { getAllEntreprises }  from '../../../../api/entrepriseApi';
-import { getEmEmployes }      from '../../../../api/employeApi';
+import { useAuth } from '../../../../contexts/auth/AuthContext';
+import { getEmFormations }                                    from '../../../../api/emApi';       // ← scoped
+import { getAllFormateurs, createSession, updateParticipants, updateSession } from '../../../../api/sessionApi';
+import { getEmEmployes }                                      from '../../../../api/employeApi';  // ← scoped
 
 const STEPS = ['Formation', 'Jours', 'Détails', 'Participants'];
 
-export default function EMSessionModal({ open, onClose, onCreated, showSnackbar, initialData  }) {
+export default function EMSessionModal({ open, onClose, onCreated, showSnackbar, initialData }) {
   const theme    = useTheme();
   const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isEdit = Boolean(initialData);
+  const isEdit   = Boolean(initialData);
 
-  // ─── Data ──────────────────────────────────────────────────────────────────
+  // Auth — entreprise pre-filled from here, never from a dropdown
+  const { user } = useAuth();
+  const entrepriseId = user?.entrepriseId ?? null;
+
+  // ─── Reference data ───────────────────────────────────────────────────────
   const [formations,  setFormations]  = useState([]);
   const [formateurs,  setFormateurs]  = useState([]);
-  const [entreprises, setEntreprises] = useState([]);
   const [employes,    setEmployes]    = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [loadingEmps, setLoadingEmps] = useState(false);
 
-  // ─── Form state ────────────────────────────────────────────────────────────
+  // ─── Form state ───────────────────────────────────────────────────────────
   const [step,                 setStep]                 = useState(0);
   const [selectedFormation,    setSelectedFormation]    = useState(null);
   const [selectedDays,         setSelectedDays]         = useState([]);
@@ -44,98 +49,88 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
   const [createdSession,       setCreatedSession]       = useState(null);
   const [formData,             setFormData]             = useState({
     referenceSession: '',
-    idEntreprise:     null,
-    idFournisseur:    null,
-    idFormateur:      null,
+    idFormateur:      null,   // entreprise/fournisseur removed — taken from auth
     dHeures:          '',
   });
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState('');
 
-  // ─── Load reference data on open ───────────────────────────────────────────
-    useEffect(() => {
+  // ─── Load data on open ────────────────────────────────────────────────────
+  useEffect(() => {
     if (!open) {
-        setStep(0);
-        setSelectedFormation(null);
-        setSelectedDays([]);
-        setSelectedParticipants([]);
-        setCreatedSession(null);
-        setFormData({ referenceSession:'', idEntreprise:null, idFournisseur:null, idFormateur:null, dHeures:'' });
-        setError('');
-        return;
+      // Full reset on close
+      setStep(0);
+      setSelectedFormation(null);
+      setSelectedDays([]);
+      setSelectedParticipants([]);
+      setCreatedSession(null);
+      setFormData({ referenceSession:'', idFormateur:null, dHeures:'' });
+      setError('');
+      return;
     }
 
-    // Load reference data
     setLoadingData(true);
     Promise.all([
-        getAllFormations(),
-        getAllFormateurs(),
-        getAllEntreprises(),
+      getEmFormations(),   // GET /api/em/formations — scoped to user's entreprise
+      getAllFormateurs(),
     ])
-        .then(([f, fo, e]) => {
+      .then(([f, fo]) => {
         setFormations(f);
         setFormateurs(fo);
-        setEntreprises(e);
 
-        // Pre-fill if editing
         if (initialData) {
-            setFormData({
+          setFormData({
             referenceSession: initialData.referenceSession ?? '',
-            idEntreprise:     initialData.idEntreprise     ?? null,
-            idFournisseur:    initialData.idFournisseur    ?? null,
             idFormateur:      initialData.idFormateur      ?? null,
             dHeures:          initialData.dHeures          ?? '',
-            });
-
-            // Pre-select formation from loaded list
-            const formation = f.find(x => x.id === initialData.formationId);
-            if (formation) setSelectedFormation(formation);
-
-            // Pre-fill dates as selected days range
-            if (initialData.dateDebut && initialData.dateFin) {
-            const days = [];
+          });
+          // Pre-select formation
+          const formation = f.find(x => x.id === initialData.formationId);
+          if (formation) setSelectedFormation(formation);
+          // Pre-fill days from date range
+          if (initialData.dateDebut && initialData.dateFin) {
+            const days  = [];
             const start = new Date(initialData.dateDebut);
             const end   = new Date(initialData.dateFin);
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                days.push(new Date(d));
+              days.push(new Date(d));
             }
             setSelectedDays(days);
-            }
-
-            // Skip to details step directly in edit mode
-            setStep(2);
+          }
+          setStep(2); // skip to details in edit mode
         }
-        })
-        .catch(() => setError('Erreur lors du chargement des données.'))
-        .finally(() => setLoadingData(false));
+      })
+      .catch(() => setError('Erreur lors du chargement des données.'))
+      .finally(() => setLoadingData(false));
 
+    // Load employees (scoped to user's entreprise via /api/em/employes)
     setLoadingEmps(true);
     getEmEmployes()
-        .then(setEmployes)
-        .catch(() => setEmployes([]))
-        .finally(() => setLoadingEmps(false));
-    }, [open]);
+      .then(setEmployes)
+      .catch(() => setEmployes([]))
+      .finally(() => setLoadingEmps(false));
+  }, [open]);
 
-  // ─── Auto-generate reference ───────────────────────────────────────────────
-    useEffect(() => {
-        if (!selectedFormation) return;
-        const code = (selectedFormation.module ?? '').substring(0, 3).toUpperCase();
-        const rand = Math.floor(Math.random() * 9000 + 1000);
-        setFormData(prev => ({ ...prev, referenceSession: `${code}-${rand}` }));
-    }, [selectedFormation]);
+  // ─── Auto-generate reference ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!selectedFormation || isEdit) return;
+    const code = (selectedFormation.module ?? '').substring(0, 3).toUpperCase();
+    const rand  = Math.floor(Math.random() * 9000 + 1000);
+    setFormData(prev => ({ ...prev, referenceSession: `${code}-${rand}` }));
+  }, [selectedFormation]);
 
   const handleChange = (field, value) =>
     setFormData(prev => ({ ...prev, [field]: value }));
 
-  // ─── Step validation ───────────────────────────────────────────────────────
+  // ─── Step validation ──────────────────────────────────────────────────────
   const canGoNext = [
-    !!selectedFormation,
-    selectedDays.length > 0,
-    !!formData.idEntreprise && !!formData.dHeures,
-    true, // participants optional
+    !!selectedFormation,          // step 0 — must pick a formation
+    selectedDays.length > 0,      // step 1 — must pick at least 1 day
+    !!formData.dHeures,           // step 2 — must enter hours (entreprise pre-filled)
+    true,                         // step 3 — participants optional
   ][step];
 
-  // ─── Create session (step 3 → 4) ──────────────────────────────────────────
+  // ─── Create session ───────────────────────────────────────────────────────
   const handleCreateSession = async () => {
     setSaving(true);
     setError('');
@@ -146,9 +141,9 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
 
       const created = await createSession({
         idFormation:      selectedFormation.id,
-        idEntreprise:     formData.idEntreprise,
-        idFournisseur:    formData.idFournisseur ?? null,
-        idFormateur:      formData.idFormateur   ?? null,
+        idEntreprise:     entrepriseId,   // ← from auth, never from a dropdown
+        idFournisseur:    entrepriseId,   // ← same: EM company is always fournisseur
+        idFormateur:      formData.idFormateur ?? null,
         dateDebut,
         dateFin,
         dJours:           selectedDays.length,
@@ -158,7 +153,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
 
       setCreatedSession(created);
       onCreated?.();
-      setStep(3); // move to participants step
+      setStep(3);
     } catch (err) {
       setError(err.response?.data?.message ?? 'Erreur lors de la création.');
     } finally {
@@ -166,39 +161,38 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     }
   };
 
-  // ─── update session () ──────────────────────────────────────────
-
+  // ─── Update session ───────────────────────────────────────────────────────
   const handleUpdateSession = async () => {
     setSaving(true);
     setError('');
     try {
-        const sortedDays = [...selectedDays].sort((a, b) => a - b);
-        const dateDebut  = sortedDays[0].toISOString().split('T')[0];
-        const dateFin    = sortedDays[sortedDays.length - 1].toISOString().split('T')[0];
+      const sortedDays = [...selectedDays].sort((a, b) => a - b);
+      const dateDebut  = sortedDays[0].toISOString().split('T')[0];
+      const dateFin    = sortedDays[sortedDays.length - 1].toISOString().split('T')[0];
 
-        await updateSession(initialData.idSession, {
+      await updateSession(initialData.idSession, {
         idFormation:   selectedFormation?.id ?? initialData.formationId,
-        idEntreprise:  formData.idEntreprise,
-        idFournisseur: formData.idFournisseur ?? null,
-        idFormateur:   formData.idFormateur   ?? null,
+        idEntreprise:  entrepriseId,
+        idFournisseur: entrepriseId,
+        idFormateur:   formData.idFormateur ?? null,
         dateDebut,
         dateFin,
         dJours:        selectedDays.length,
         dHeures:       Number(formData.dHeures),
         statut:        initialData.statut,
-        });
+      });
 
-        showSnackbar?.('Session mise à jour avec succès !');
-        onCreated?.();
-        onClose();
+      showSnackbar?.('Session mise à jour avec succès !');
+      onCreated?.();
+      onClose();
     } catch (err) {
-        setError(err.response?.data?.message ?? 'Erreur lors de la mise à jour.');
+      setError(err.response?.data?.message ?? 'Erreur lors de la mise à jour.');
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
   };
 
-  // ─── Save participants then close ──────────────────────────────────────────
+  // ─── Save participants then close ─────────────────────────────────────────
   const handleSaveParticipants = async () => {
     if (!createdSession) { onClose(); return; }
     setSaving(true);
@@ -215,21 +209,18 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       onCreated?.();
       onClose();
     } catch {
-      setError('Erreur lors de l\'ajout des participants.');
+      setError("Erreur lors de l'ajout des participants.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ─── Navigate to session progress page ────────────────────────────────────
   const handleGoToCriteres = async () => {
     await handleSaveParticipants();
-    if (createdSession) {
-      navigate(`/em/sessions/${createdSession.idSession}`);
-    }
+    if (createdSession) navigate(`/em/sessions/${createdSession.idSession}`);
   };
 
-  // ─── Step content ──────────────────────────────────────────────────────────
+  // ─── Step content ─────────────────────────────────────────────────────────
   const stepContent = [
     <Step1Formation
       formations={formations}
@@ -245,9 +236,9 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       formData={formData}
       onChange={handleChange}
       formateurs={formateurs}
-      entreprises={entreprises}
       selectedFormation={selectedFormation}
       selectedDays={selectedDays}
+      // NO entreprises prop — Step3Details reads from auth context directly
     />,
     <Step4Participants
       employes={employes}
@@ -259,14 +250,11 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
 
   return (
     <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
+      open={open} onClose={onClose}
+      maxWidth="sm" fullWidth
       fullScreen={isMobile}
       PaperProps={{ sx: { borderRadius: isMobile ? 0 : 3 } }}
     >
-      {/* Header */}
       <DialogTitle sx={{ bgcolor:'primary.main', color:'#fff', pb:1.5 }}>
         <Typography component="span" display="block" fontWeight={800} fontSize="1rem">
           {isEdit ? 'Modifier la session' : 'Créer une session'}
@@ -276,7 +264,6 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
         </Typography>
       </DialogTitle>
 
-      {/* Desktop stepper */}
       {!isMobile && (
         <Box sx={{ px:3, pt:2 }}>
           <Stepper activeStep={step} alternativeLabel>
@@ -289,11 +276,8 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
         </Box>
       )}
 
-      {/* Mobile dots */}
       {isMobile && (
-        <MobileStepper
-          variant="dots" steps={4} position="static"
-          activeStep={step}
+        <MobileStepper variant="dots" steps={4} position="static" activeStep={step}
           sx={{ bgcolor:'background.default', px:2 }}
           nextButton={<Box />} backButton={<Box />}
         />
@@ -301,86 +285,55 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
 
       <DialogContent dividers sx={{ px:{ xs:2, sm:3 }, py:2 }}>
         {error && <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>}
-
-        {/* Step 4 success banner */}
         {step === 3 && createdSession && (
           <Alert severity="success" sx={{ mb:2 }}>
             Session <strong>{createdSession.referenceSession}</strong> créée !
             Ajoutez des participants ci-dessous puis enregistrez.
           </Alert>
         )}
-
         {stepContent[step]}
       </DialogContent>
 
       <DialogActions sx={{ px:{ xs:2, sm:3 }, py:2, flexWrap:'wrap', gap:1 }}>
-        {/* Left button */}
-        {step === 0 && (
-          <Button onClick={onClose}>Annuler</Button>
-        )}
+        {step === 0 && <Button onClick={onClose}>Annuler</Button>}
         {step > 0 && step < 3 && (
-          <Button
-            onClick={() => setStep(p => p - 1)}
-            disabled={saving}
-            startIcon={<KeyboardArrowLeftIcon />}
-          >
+          <Button onClick={() => setStep(p => p - 1)} disabled={saving}
+            startIcon={<KeyboardArrowLeftIcon />}>
             Retour
           </Button>
         )}
 
         <Box sx={{ flex:1 }} />
 
-        {/* Right buttons */}
         {step < 2 && (
-          <Button
-            variant="contained"
-            disabled={!canGoNext}
+          <Button variant="contained" disabled={!canGoNext}
             onClick={() => setStep(p => p + 1)}
-            endIcon={<KeyboardArrowRightIcon />}
-            sx={{ minWidth:120 }}
-          >
+            endIcon={<KeyboardArrowRightIcon />} sx={{ minWidth:120 }}>
             Suivant
           </Button>
         )}
 
         {step === 2 && (
-        <Button
-            variant="contained"
-            color="success"
+          <Button variant="contained" color="success"
             onClick={isEdit ? handleUpdateSession : handleCreateSession}
             disabled={saving || !canGoNext}
-            startIcon={saving
-            ? <CircularProgress size={16} color="inherit" />
-            : <CheckIcon />
-            }
-            sx={{ minWidth:140 }}
-        >
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
+            sx={{ minWidth:140 }}>
             {saving
-            ? (isEdit ? 'Mise à jour...' : 'Création...')
-            : (isEdit ? 'Mettre à jour' : 'Créer la session')
-            }
-        </Button>
+              ? (isEdit ? 'Mise à jour...' : 'Création...')
+              : (isEdit ? 'Mettre à jour'  : 'Créer la session')}
+          </Button>
         )}
 
         {step === 3 && (
           <>
-            <Button
-              variant="outlined"
-              onClick={handleSaveParticipants}
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
-            >
+            <Button variant="outlined" onClick={handleSaveParticipants} disabled={saving}
+              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}>
               {saving ? 'Enregistrement...' : 'Terminer'}
             </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleGoToCriteres}
-              disabled={saving}
-              startIcon={<AssignmentIcon />}
-              sx={{ minWidth:180 }}
-            >
-              Terminer & configurer critères
+            <Button variant="contained" color="primary" onClick={handleGoToCriteres}
+              disabled={saving} startIcon={<AssignmentIcon />} sx={{ minWidth:180 }}>
+              Terminer &amp; configurer critères
             </Button>
           </>
         )}

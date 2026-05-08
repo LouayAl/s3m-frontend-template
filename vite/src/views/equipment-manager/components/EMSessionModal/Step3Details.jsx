@@ -1,107 +1,99 @@
-import {
-  Box, Typography, TextField, MenuItem,
-  Grid, Chip, Divider,
-} from '@mui/material';
-import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
-import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
+// frontend-template/vite/src/views/equipment-manager/components/EMSessionModal/Step3Details.jsx
+import { Box, Typography, TextField, MenuItem, Grid } from '@mui/material';
+import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined';
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
+import LockOutlinedIcon       from '@mui/icons-material/LockOutlined';
+import { useAuth } from '../../../../contexts/auth/AuthContext';
 
 export default function Step3Details({
   formData, onChange,
-  formateurs, entreprises,
+  formateurs,
   selectedFormation, selectedDays,
 }) {
-  const count    = selectedDays.length;
+  const { user } = useAuth();
+
+  const count     = selectedDays.length;
   const dateDebut = count > 0 ? selectedDays[0] : null;
   const dateFin   = count > 0 ? selectedDays[count - 1] : null;
-  const fmt = (d) => d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+  const fmt = (d) =>
+    d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
   return (
-    <Box>
-      {/* Session summary */}
-      <Box sx={{
-        p: 2, mb: 2.5, borderRadius: 2,
-        bgcolor: 'background.default',
-        border: '1px solid', borderColor: 'divider',
-      }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
-          Résumé de la session
+    <Box sx={{ display:'flex', flexDirection:'column', gap:2.5 }}>
+
+      {/* ── Session summary ──────────────────────────────────────────────── */}
+      <Box sx={{ p:2, borderRadius:2, bgcolor:'primary.main', color:'#fff' }}>
+        <Typography variant="caption" sx={{ opacity:0.8, fontWeight:600, letterSpacing:'0.05em' }}>
+          RÉSUMÉ DE LA SESSION
         </Typography>
-        <Grid container spacing={1}>
+        <Box sx={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1.5, mt:1.5 }}>
           {[
-            { label: 'Formation',  value: selectedFormation?.module },
-            { label: 'Jours',      value: `${count} jours` },
-            { label: 'Début',      value: fmt(dateDebut) },
-            { label: 'Fin',        value: fmt(dateFin) },
+            { label:'Formation', value: selectedFormation?.module ?? '—' },
+            { label:'Jours',     value: `${count} jour${count !== 1 ? 's' : ''}` },
+            { label:'Début',     value: fmt(dateDebut) },
+            { label:'Fin',       value: fmt(dateFin) },
           ].map(item => (
-            <Grid key={item.label} item xs={6}>
-              <Typography variant="caption" color="text.secondary">{item.label}</Typography>
-              <Typography variant="body2" fontWeight={600}>{item.value ?? '—'}</Typography>
-            </Grid>
+            <Box key={item.label}>
+              <Typography variant="caption" sx={{ opacity:0.7, display:'block' }}>{item.label}</Typography>
+              <Typography variant="body2" fontWeight={700} sx={{
+                overflow:'hidden', display:'-webkit-box',
+                WebkitLineClamp:2, WebkitBoxOrient:'vertical',
+              }}>
+                {item.value}
+              </Typography>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
+      {/* ── Entreprise & Fournisseur — read-only, taken from auth ────────── */}
+      <Box sx={{
+        px:2, py:1.5, border:'1px solid', borderColor:'divider',
+        borderRadius:1, bgcolor:'action.disabledBackground',
+        display:'flex', alignItems:'center', gap:1.5,
+      }}>
+        <LockOutlinedIcon sx={{ fontSize:18, color:'text.disabled' }} />
+        <Box>
+          <Typography variant="caption" color="text.secondary" display="block">
+            Entreprise &amp; Fournisseur (pré-rempli automatiquement)
+          </Typography>
+          <Typography variant="body2" fontWeight={600}>
+            {user?.nom ?? '—'}
+          </Typography>
+          <Typography variant="caption" color="text.disabled">
+            Non modifiable — lié à votre compte
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* ── Editable fields ──────────────────────────────────────────────── */}
       <Grid container spacing={2}>
-        {/* Reference */}
+
+        {/* Référence — full width */}
         <Grid item xs={12}>
           <TextField
-            fullWidth size="small"
+            fullWidth
             label="Référence session"
             value={formData.referenceSession}
             onChange={e => onChange('referenceSession', e.target.value)}
             placeholder="Ex: RTG-2026-001"
+            helperText="Modifiez si vous voulez une référence personnalisée."
           />
         </Grid>
 
-        {/* Entreprise */}
-        <Grid item xs={12} sm={6}>
+        {/* Formateur — full width */}
+        <Grid item xs={12}>
           <TextField
-            select fullWidth size="small"
-            label="Entreprise cliente"
-            value={formData.idEntreprise ?? ''}
-            onChange={e => onChange('idEntreprise', Number(e.target.value))}
-            InputProps={{
-              startAdornment: <BusinessOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
-            }}
-          >
-            {entreprises.map(e => (
-              <MenuItem key={e.idEntreprise} value={e.idEntreprise}>
-                {e.nomEntreprise}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        {/* Fournisseur */}
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select fullWidth size="small"
-            label="Fournisseur"
-            value={formData.idFournisseur ?? ''}
-            onChange={e => onChange('idFournisseur', Number(e.target.value))}
-            InputProps={{
-              startAdornment: <BusinessOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
-            }}
-          >
-            {entreprises.map(e => (
-              <MenuItem key={e.idEntreprise} value={e.idEntreprise}>
-                {e.nomEntreprise}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        {/* Formateur */}
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select fullWidth size="small"
+            select fullWidth
             label="Formateur"
             value={formData.idFormateur ?? ''}
             onChange={e => onChange('idFormateur', Number(e.target.value))}
             InputProps={{
               startAdornment: <PersonOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
             }}
+            helperText="Optionnel — peut être défini plus tard."
           >
+            <MenuItem value=""><em>Aucun</em></MenuItem>
             {formateurs.map(f => (
               <MenuItem key={f.idFormateur} value={f.idFormateur}>
                 {f.nom} {f.prenom}
@@ -110,15 +102,19 @@ export default function Step3Details({
           </TextField>
         </Grid>
 
-        {/* dHeures */}
-        <Grid item xs={12} sm={6}>
+        {/* Durée — full width */}
+        <Grid item xs={12}>
           <TextField
-            fullWidth size="small"
+            fullWidth
             label="Durée totale (heures)"
             type="number"
             value={formData.dHeures}
             onChange={e => onChange('dHeures', e.target.value)}
-            inputProps={{ min: 1, step: 0.5 }}
+            inputProps={{ min:1, step:0.5 }}
+            InputProps={{
+              startAdornment: <AccessTimeOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
+            }}
+            helperText={`${count} jour${count !== 1 ? 's' : ''} sélectionné${count !== 1 ? 's' : ''}. Saisissez le total en heures.`}
           />
         </Grid>
       </Grid>

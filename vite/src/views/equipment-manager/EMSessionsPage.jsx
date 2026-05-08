@@ -1,3 +1,4 @@
+// frontend-template/vite/src/views/equipment-manager/EMSessionsPage.jsx
 import { useEffect, useState, useMemo } from 'react';
 import {
   Box, Typography, Card, CardContent, Button,
@@ -11,13 +12,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import GroupIcon  from '@mui/icons-material/Group';
 import { useNavigate } from 'react-router-dom';
 
-import EMSessionModal from './components/EMSessionModal';
-import ParticipantsModal        from '../session/ParticipantsModal';
-import SessionParticipantsPanel from '../session/SessionParticipantsPanel';
+import EMSessionModal             from './components/EMSessionModal';
+import EMParticipantsModal        from './components/EMParticipantsModal';        // ← scoped
+import EMSessionParticipantsPanel from './components/EMSessionParticipantsPanel'; // ← scoped
 
 import { deleteSession, addParticipantsToSession, removeParticipantsFromSession } from '../../api/sessionApi';
 import { getEmSessions } from '../../api/emApi';
-import { getEmEmployes } from '../../api/employeApi';
 
 const STATUT_LABELS = { EN_COURS:'En cours', PLANIFIEE:'Planifiée', TERMINEE:'Terminée', ANNULEE:'Annulée' };
 const STATUT_COLORS = { EN_COURS:'success',  PLANIFIEE:'warning',   TERMINEE:'default',  ANNULEE:'error'  };
@@ -36,33 +36,28 @@ function StatutChip({ value }) {
 export default function EMSessionsPage() {
   const navigate = useNavigate();
 
-  const [sessions,  setSessions]  = useState([]);
-  const [employes,  setEmployes]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [snackbar,  setSnackbar]  = useState({ open:false, message:'', severity:'success' });
+  const [sessions, setSessions] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [search,   setSearch]   = useState('');
+  const [snackbar, setSnackbar] = useState({ open:false, message:'', severity:'success' });
 
   const showSnackbar        = (msg, sev = 'success') => setSnackbar({ open:true, message:msg, severity:sev });
   const handleCloseSnackbar = () => setSnackbar(p => ({ ...p, open:false }));
 
-  // ─── Modal state ───────────────────────────────────────────────────────────
-  const [sessionModalOpen,  setSessionModalOpen]  = useState(false);
-  const [editingSession,    setEditingSession]    = useState(null);
-
-  const [deleteOpen,  setDeleteOpen]  = useState(false);
-  const [deletingId,  setDeletingId]  = useState(null);
-
-  const [participantsPanelOpen,    setParticipantsPanelOpen]    = useState(false);
-  const [participantsModalOpen,    setParticipantsModalOpen]    = useState(false);
+  const [sessionModalOpen,           setSessionModalOpen]           = useState(false);
+  const [editingSession,             setEditingSession]             = useState(null);
+  const [deleteOpen,                 setDeleteOpen]                 = useState(false);
+  const [deletingId,                 setDeletingId]                 = useState(null);
+  const [participantsPanelOpen,      setParticipantsPanelOpen]      = useState(false);
+  const [participantsModalOpen,      setParticipantsModalOpen]      = useState(false);
   const [editingParticipantsSession, setEditingParticipantsSession] = useState(null);
 
-  // ─── Fetch ─────────────────────────────────────────────────────────────────
+  // ─── Fetch — backend scopes to user's entreprise automatically ────────────
   const fetchSessions = async (showSpinner = true) => {
     try {
       if (showSpinner) setLoading(true);
-      const data   = await getEmSessions();
-      const sorted = data.sort((a, b) => b.idSession - a.idSession);
-      setSessions(sorted);
+      const data = await getEmSessions();
+      setSessions(data.sort((a, b) => b.idSession - a.idSession));
     } catch {
       showSnackbar('Erreur lors du chargement des sessions.', 'error');
     } finally {
@@ -70,18 +65,8 @@ export default function EMSessionsPage() {
     }
   };
 
-  const fetchEmployes = async () => {
-    try {
-      const data = await getEmEmployes();
-      setEmployes(data);
-    } catch {
-      console.error('Erreur chargement employés');
-    }
-  };
-
   useEffect(() => {
     fetchSessions(true);
-    fetchEmployes();
     const interval = setInterval(() => fetchSessions(false), 30000);
     return () => clearInterval(interval);
   }, []);
@@ -129,9 +114,9 @@ export default function EMSessionsPage() {
     }
   };
 
-  // ─── Filtered rows ─────────────────────────────────────────────────────────
+  // ─── Filter ────────────────────────────────────────────────────────────────
   const filteredRows = useMemo(() => sessions.filter(s =>
-    s.formation?.toLowerCase().includes(search.toLowerCase()) ||
+    s.formation?.toLowerCase().includes(search.toLowerCase())        ||
     s.referenceSession?.toLowerCase().includes(search.toLowerCase()) ||
     s.entrepriseNom?.toLowerCase().includes(search.toLowerCase())
   ), [sessions, search]);
@@ -150,12 +135,9 @@ export default function EMSessionsPage() {
       renderCell: (params) => <StatutChip value={params.value} />,
     },
     {
-      field: 'participantsCount',
-      headerName: 'Participants',
-      width: 110,
+      field: 'participantsCount', headerName: 'Participants', width: 110,
       renderCell: (params) => (
-        <Button
-          size="small" variant="outlined"
+        <Button size="small" variant="outlined"
           startIcon={<GroupIcon sx={{ fontSize:14 }} />}
           onClick={(e) => {
             e.stopPropagation();
@@ -171,20 +153,16 @@ export default function EMSessionsPage() {
       field: 'actions', headerName: 'Actions', width: 120, sortable: false,
       renderCell: (params) => (
         <Box sx={{ display:'flex', gap:0.5 }}>
-          <IconButton
-            size="small" color="primary"
-            onClick={(e) => { e.stopPropagation(); handleEdit(params.row); }}
-          >
+          <IconButton size="small" color="primary"
+            onClick={(e) => { e.stopPropagation(); handleEdit(params.row); }}>
             <EditIcon fontSize="small" />
           </IconButton>
-          <IconButton
-            size="small" color="error"
+          <IconButton size="small" color="error"
             onClick={(e) => {
               e.stopPropagation();
               setDeletingId(params.row.idSession);
               setDeleteOpen(true);
-            }}
-          >
+            }}>
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -198,22 +176,17 @@ export default function EMSessionsPage() {
 
       <Card sx={{ borderRadius:2, boxShadow:'none', border:'1px solid', borderColor:'divider' }}>
         <CardContent>
-          {/* Toolbar */}
           <Grid container spacing={2} mb={2} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth size="small"
+              <TextField fullWidth size="small"
                 label="Rechercher par formation, référence, entreprise..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+                value={search} onChange={e => setSearch(e.target.value)}
               />
             </Grid>
             <Grid item xs={12} sm={6} md={8}
               sx={{ display:'flex', gap:1, justifyContent:{ xs:'flex-start', md:'flex-end' } }}
             >
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
+              <Button variant="contained" startIcon={<AddIcon />}
                 onClick={() => { setEditingSession(null); setSessionModalOpen(true); }}
               >
                 Créer une session
@@ -221,13 +194,10 @@ export default function EMSessionsPage() {
             </Grid>
           </Grid>
 
-          {/* Table */}
           <Box sx={{ height:'70vh' }}>
             <DataGrid
-              rows={filteredRows}
-              columns={columns}
-              getRowId={row => row.idSession}
-              loading={loading}
+              rows={filteredRows} columns={columns}
+              getRowId={row => row.idSession} loading={loading}
               pageSizeOptions={[10, 20, 50, 100]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 20 } },
@@ -235,12 +205,13 @@ export default function EMSessionsPage() {
               }}
               onRowClick={(params) => navigate(`/em/sessions/${params.row.idSession}`)}
               sx={{ cursor:'pointer' }}
+              disableRowSelectionOnClick
             />
           </Box>
         </CardContent>
       </Card>
 
-      {/* Create / Edit session modal */}
+      {/* Create / Edit — scoped formations + entreprise pre-filled */}
       <EMSessionModal
         open={sessionModalOpen}
         onClose={() => { setSessionModalOpen(false); setEditingSession(null); }}
@@ -252,26 +223,18 @@ export default function EMSessionsPage() {
       {/* Delete confirm */}
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
-        <DialogContent>
-          Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.
-        </DialogContent>
+        <DialogContent>Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.</DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleDeleteConfirm}>
-            Supprimer
-          </Button>
+          <Button color="error" variant="contained" onClick={handleDeleteConfirm}>Supprimer</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Participants panel (read + manage) */}
-      <Dialog
-        open={participantsPanelOpen}
-        onClose={() => setParticipantsPanelOpen(false)}
-        maxWidth="sm" fullWidth
-      >
+      {/* Participants panel — uses GET /api/em/employes (scoped) */}
+      <Dialog open={participantsPanelOpen} onClose={() => setParticipantsPanelOpen(false)} maxWidth="sm" fullWidth>
         <DialogContent sx={{ p:0 }}>
           {editingParticipantsSession && (
-            <SessionParticipantsPanel
+            <EMSessionParticipantsPanel
               session={editingParticipantsSession}
               onClose={() => setParticipantsPanelOpen(false)}
               onUpdated={() => fetchSessions(false)}
@@ -281,22 +244,18 @@ export default function EMSessionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Participants modal — uses company employees only */}
+      {/* Bulk participants modal — uses GET /api/em/employes (scoped) */}
       {editingParticipantsSession && (
-        <ParticipantsModal
+        <EMParticipantsModal
           open={participantsModalOpen}
           onClose={() => setParticipantsModalOpen(false)}
           preSelectedParticipants={editingParticipantsSession.participants ?? []}
-          employeesList={employes}
           onSelectParticipants={handleParticipantsUpdate}
         />
       )}
 
-      <Snackbar
-        open={snackbar.open} autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical:'top', horizontal:'center' }}
-      >
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical:'top', horizontal:'center' }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>

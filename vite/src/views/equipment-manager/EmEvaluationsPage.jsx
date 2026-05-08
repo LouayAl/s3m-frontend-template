@@ -7,9 +7,9 @@ import {
 } from '@mui/material';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import SessionDetailDialog from './components/SessionDetailDialog';
-import { getEmSessions } from '../../api/emApi';
+import { getEmSessions, getMySessionsAsTrainer } from '../../api/emApi';
 import AddEvaluationModal from './components/AddEvaluationModal';
-
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 const STATUS_CONFIG = {
   EN_COURS:  { label: 'En cours',  color: 'success' },
@@ -18,20 +18,24 @@ const STATUS_CONFIG = {
 };
 
 export default function EMEvaluationsPage() {
-  const [sessions,         setSessions]         = useState([]);
-  const [loading,          setLoading]          = useState(true);
-  const [filterFormation,  setFilterFormation]  = useState('');
-  const [filterStatut,     setFilterStatut]     = useState('');
-  const [selectedSession,  setSelectedSession]  = useState(null);
-  const [snackbar,         setSnackbar]         = useState({ open:false, message:'', severity:'success' });
-  const [openModal, setOpenModal] = useState(false);
+  const { user } = useAuth();
+  const isTrainer = user?.role === 'TRAINER';
+
+  const [sessions,        setSessions]        = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [filterFormation, setFilterFormation] = useState('');
+  const [filterStatut,    setFilterStatut]    = useState('');
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [snackbar,        setSnackbar]        = useState({ open:false, message:'', severity:'success' });
+  const [openModal,       setOpenModal]       = useState(false);
 
   useEffect(() => {
-    getEmSessions()
+    const fetch = isTrainer ? getMySessionsAsTrainer : getEmSessions;
+    fetch()
       .then(setSessions)
       .catch(() => setSnackbar({ open:true, message:'Erreur lors du chargement des sessions.', severity:'error' }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isTrainer]);
 
   const formations = [...new Set(sessions.map(s => s.formation))];
 
@@ -41,14 +45,12 @@ export default function EMEvaluationsPage() {
     return true;
   }), [sessions, filterFormation, filterStatut]);
 
-  // KPIs
   const enCours           = sessions.filter(s => s.statut === 'EN_COURS').length;
   const terminees         = sessions.filter(s => s.statut === 'TERMINEE').length;
   const totalParticipants = sessions.reduce((sum, s) => sum + (s.participantsCount ?? 0), 0);
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', mb:3, flexWrap:'wrap', gap:1 }}>
         <Box>
           <Typography variant="h4" fontWeight={700}>Évaluations</Typography>
@@ -56,18 +58,19 @@ export default function EMEvaluationsPage() {
             Cliquez sur une session pour voir le détail des participants et leur progression.
           </Typography>
         </Box>
-        <Button variant="contained" onClick={() => setOpenModal(true)}>
-          Ajouter une évaluation
-        </Button>
+        {!isTrainer && (
+          <Button variant="contained" onClick={() => setOpenModal(true)}>
+            Ajouter une évaluation
+          </Button>
+        )}
       </Box>
 
-      {/* KPI cards */}
       <Grid container spacing={2} mb={3}>
         {[
-          { label:'Sessions totales',   value: sessions.length, color:'primary.main', bg:'primary.light'  },
-          { label:'En cours',           value: enCours,         color:'success.main', bg:'success.light'  },
-          { label:'Terminées',          value: terminees,       color:'error.main',   bg:'error.light'    },
-          { label:'Participants total', value: totalParticipants, color:'#7b1fa2',    bg:'#f3e5f5'        },
+          { label:'Sessions totales',   value: sessions.length,     color:'primary.main', bg:'primary.light' },
+          { label:'En cours',           value: enCours,             color:'success.main', bg:'success.light' },
+          { label:'Terminées',          value: terminees,           color:'error.main',   bg:'error.light'   },
+          { label:'Participants total', value: totalParticipants,   color:'#7b1fa2',      bg:'#f3e5f5'       },
         ].map(k => (
           <Grid key={k.label} item xs={6} sm={3}>
             <Card sx={{
@@ -83,7 +86,6 @@ export default function EMEvaluationsPage() {
         ))}
       </Grid>
 
-      {/* Filters */}
       <Card sx={{ borderRadius:2, boxShadow:'none', border:'1px solid', borderColor:'divider', mb:2 }}>
         <CardContent sx={{ py:1.5,'&:last-child':{pb:1.5} }}>
           <Grid container spacing={1.5} alignItems="center">
@@ -119,7 +121,6 @@ export default function EMEvaluationsPage() {
         </CardContent>
       </Card>
 
-      {/* Sessions table */}
       <Card sx={{ borderRadius:2, boxShadow:'none', border:'1px solid', borderColor:'divider' }}>
         {loading ? (
           <Box sx={{ display:'flex', justifyContent:'center', py:6 }}>
@@ -140,12 +141,12 @@ export default function EMEvaluationsPage() {
               </TableHead>
               <TableBody>
                 {filtered.map(s => {
-                  const today     = new Date();
-                  const start     = new Date(s.dateDebut);
-                  const duree     = Number(s.dJours);
-                  const diffDays  = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
+                  const today        = new Date();
+                  const start        = new Date(s.dateDebut);
+                  const duree        = Number(s.dJours);
+                  const diffDays     = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
                   const joursAtteint = Math.min(Math.max(diffDays, 0), duree);
-                  const pct       = duree ? Math.round((joursAtteint / duree) * 100) : 0;
+                  const pct          = duree ? Math.round((joursAtteint / duree) * 100) : 0;
 
                   return (
                     <TableRow key={s.idSession} hover
@@ -211,18 +212,19 @@ export default function EMEvaluationsPage() {
         session={selectedSession}
       />
 
+      {!isTrainer && (
+        <AddEvaluationModal
+          open={openModal}
+          onClose={() => setOpenModal(false)}
+          onSubmit={() => setSnackbar({ open:true, message:'Évaluation ajoutée avec succès.', severity:'success' })}
+        />
+      )}
+
       <Snackbar open={snackbar.open} autoHideDuration={3000}
         onClose={() => setSnackbar(p => ({ ...p, open:false }))}
         anchorOrigin={{ vertical:'top', horizontal:'center' }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
-      <AddEvaluationModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        onSubmit={(saved) => {
-          setSnackbar({ open: true, message: 'Évaluation ajoutée avec succès.', severity: 'success' });
-        }}
-      />
     </Box>
   );
 }

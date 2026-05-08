@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Button, Chip, CircularProgress, Snackbar, Alert, Typography } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/auth/AuthContext';
 
 import { useSessionProgress }        from '../../hooks/useSessionProgress';
 import DayTracker                    from './components/DayTracker';
@@ -8,12 +9,15 @@ import EvaluationPanel               from './components/EvaluationPanel';
 import EvaluationsHistoryDialog      from './components/EvaluationHistoryDialog';
 import CritereManagerModal           from './components/CritereManagerModal';
 import SessionInfoCard               from './components/SessionInfoCard';
-
+import DailyProgramPanel             from './components/DailyProgramPanel';
 
 export default function EMSessionsProgressPage() {
   const { id }    = useParams();
   const navigate  = useNavigate();
   const sessionId = Number(id);
+  const { user }  = useAuth();
+  const isEM      = user?.role === 'EQUIPMENT_MANAGER';
+  const isTrainer = user?.role === 'TRAINER';
 
   const {
     session, evaluations, criteres, loading, saving,
@@ -26,7 +30,6 @@ export default function EMSessionsProgressPage() {
   const [histOpen,         setHistOpen]         = useState(false);
   const [critereModalOpen, setCritereModalOpen] = useState(false);
 
-  // ── Loading / error guards ────────────────────────────────────────────────
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
@@ -50,7 +53,6 @@ export default function EMSessionsProgressPage() {
 
   return (
     <Box>
-      {/* Breadcrumb */}
       <Typography variant="caption" color="text.secondary">
         Formations › {session.formation} › {session.referenceSession}
       </Typography>
@@ -74,6 +76,13 @@ export default function EMSessionsProgressPage() {
         onDayChange={(d) => setActiveDay(d)}
       />
 
+      <DailyProgramPanel
+        sessionId={sessionId}
+        activeDay={activeDay}
+        session={session}
+        canEdit={isTrainer || isEM}
+      />
+
       <EvaluationPanel
         activeDay={activeDay}
         participants={participants}
@@ -85,7 +94,7 @@ export default function EMSessionsProgressPage() {
         saving={saving}
         onSave={saveEval}
         onOpenHistory={() => setHistOpen(true)}
-        onOpenCriteres={() => setCritereModalOpen(true)}
+        onOpenCriteres={isEM ? () => setCritereModalOpen(true) : null}
       />
 
       <EvaluationsHistoryDialog
@@ -95,14 +104,16 @@ export default function EMSessionsProgressPage() {
         participants={participants}
       />
 
-      <CritereManagerModal
-        open={critereModalOpen}
-        onClose={() => setCritereModalOpen(false)}
-        sessionId={sessionId}
-        jour={activeDay}
-        hasEvaluations={activeDayHasEvaluations}
-        onSaved={reloadCriteres}
-      />
+      {isEM && (
+        <CritereManagerModal
+          open={critereModalOpen}
+          onClose={() => setCritereModalOpen(false)}
+          sessionId={sessionId}
+          jour={activeDay}
+          hasEvaluations={activeDayHasEvaluations}
+          onSaved={reloadCriteres}
+        />
+      )}
 
       <Snackbar
         open={snackbar.open}

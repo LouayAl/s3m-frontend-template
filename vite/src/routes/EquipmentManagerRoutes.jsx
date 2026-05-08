@@ -16,7 +16,7 @@ function EMGuard({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'EQUIPMENT_MANAGER') return <Navigate to="/dashboard" replace />;
+  if (user.role !== 'EQUIPMENT_MANAGER'&& user.role !== 'TRAINER') return <Navigate to="/dashboard" replace />;
   return children;
 }
 

@@ -11,6 +11,20 @@ export function useSessionProgress(sessionId) {
   const [activeDay,   setActiveDay]   = useState(1);
   const [snackbar,    setSnackbar]    = useState({ open: false, message: '', severity: 'success' });
 
+  const toEvaluationsMap = (evalsData) => {
+    const map = {};
+    evalsData.forEach(ev => {
+      const key = `${ev.idEmploye}-${ev.jour}`;
+      map[key] = {
+        id:       ev.id,
+        ratings:  ev.scores    ?? {},
+        remarks:  ev.remarques ?? '',
+        presence: ev.presence  ?? 'PRESENT',
+      };
+    });
+    return map;
+  };
+
   // ── Load session + evaluations ────────────────────────────────────────────
   useEffect(() => {
     if (!sessionId) return;
@@ -21,18 +35,7 @@ export function useSessionProgress(sessionId) {
     ])
       .then(([sessionData, evalsData]) => {
         setSession(sessionData);
-
-        const map = {};
-        evalsData.forEach(ev => {
-          const key = `${ev.idEmploye}-${ev.jour}`;
-          map[key] = {
-            id:       ev.id,
-            ratings:  ev.scores    ?? {},
-            remarks:  ev.remarques ?? '',
-            presence: ev.presence  ?? 'PRESENT',
-          };
-        });
-        setEvaluations(map);
+        setEvaluations(toEvaluationsMap(evalsData));
 
         // Jump to the day that matches today
         const today    = new Date();
@@ -111,8 +114,15 @@ export function useSessionProgress(sessionId) {
     }
   };
 
-  const reloadCriteres = () =>
-    getSessionCriteres(sessionId, activeDay).then(setCriteres);
+  const reloadCriteres = async () => {
+    const [nextCriteres, nextEvaluations] = await Promise.all([
+      getSessionCriteres(sessionId, activeDay),
+      getSessionEvaluations(sessionId),
+    ]);
+
+    setCriteres(nextCriteres);
+    setEvaluations(toEvaluationsMap(nextEvaluations));
+  };
 
   const closeSnackbar = () => setSnackbar(p => ({ ...p, open: false }));
 
