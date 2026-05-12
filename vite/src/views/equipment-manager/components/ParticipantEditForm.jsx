@@ -10,6 +10,7 @@ export default function ParticipantEditForm({
   editScores, setEditScores,
   editPresence, setEditPresence,
   editRemarks, setEditRemarks,
+  editDureeHeures, setEditDureeHeures,
   saveError, isEM, onConfigureCriteres,
 }) {
   const hasNoCriteres = activeCriteres.length === 0;
@@ -90,6 +91,33 @@ export default function ParticipantEditForm({
               sx={{ fontWeight: editPresence === opt ? 700 : 400, cursor: 'pointer' }}
             />
           ))}
+        </Box>
+      </Box>
+
+      {/* Hours */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
+          Durée (heures)
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="input"
+            type="number"
+            min="0"
+            max="24"
+            step="0.5"
+            value={editDureeHeures ?? ''}
+            onChange={e => setEditDureeHeures(e.target.value ? Number(e.target.value) : null)}
+            placeholder="Ex: 7.5"
+            sx={{
+              width: 120, p: 1, borderRadius: 1,
+              border: '1px solid', borderColor: 'divider',
+              fontFamily: 'inherit', fontSize: 13,
+              bgcolor: 'background.paper', color: 'text.primary',
+              '&:focus': { outline: 'none', borderColor: 'primary.main' },
+            }}
+          />
+          <Typography variant="caption" color="text.secondary">heures ce jour</Typography>
         </Box>
       </Box>
 

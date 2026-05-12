@@ -100,6 +100,20 @@ export default function ParticipantDayView({
         </Table>
       </Box>
 
+      {activeDayData.dureeHeures && (
+        <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+            Durée du jour:
+          </Typography>
+          <Chip
+            label={`${activeDayData.dureeHeures}h`}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        </Box>
+      )}
+
       {/* Remarks */}
       {activeDayData.remarks && (
         <Box sx={{

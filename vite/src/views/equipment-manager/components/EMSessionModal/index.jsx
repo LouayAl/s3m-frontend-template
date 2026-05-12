@@ -21,7 +21,7 @@ import { useAuth } from '../../../../contexts/auth/AuthContext';
 import { getEmFormations }                                    from '../../../../api/emApi';       // ← scoped
 import { getAllFormateurs, createSession, updateParticipants, updateSession } from '../../../../api/sessionApi';
 import { getEmEmployes }                                      from '../../../../api/employeApi';  // ← scoped
-
+import { getAllEntreprises } from '../../../../api/entrepriseApi';
 const STEPS = ['Formation', 'Jours', 'Détails', 'Participants'];
 
 export default function EMSessionModal({ open, onClose, onCreated, showSnackbar, initialData }) {
@@ -38,6 +38,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
   const [formations,  setFormations]  = useState([]);
   const [formateurs,  setFormateurs]  = useState([]);
   const [employes,    setEmployes]    = useState([]);
+  const [entreprises, setEntreprises] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [loadingEmps, setLoadingEmps] = useState(false);
 
@@ -118,7 +119,10 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     const rand  = Math.floor(Math.random() * 9000 + 1000);
     setFormData(prev => ({ ...prev, referenceSession: `${code}-${rand}` }));
   }, [selectedFormation]);
-
+  
+    useEffect(() => {
+    getAllEntreprises().then(setEntreprises);
+    }, []);
   const handleChange = (field, value) =>
     setFormData(prev => ({ ...prev, [field]: value }));
 
@@ -238,6 +242,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       formateurs={formateurs}
       selectedFormation={selectedFormation}
       selectedDays={selectedDays}
+      entreprises={entreprises}
       // NO entreprises prop — Step3Details reads from auth context directly
     />,
     <Step4Participants

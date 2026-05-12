@@ -81,8 +81,6 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
   const validateForm = () => {
     const requiredFields = [
       { field: "module", label: "Module" },
-      { field: "typeFormation", label: "Type" },
-      { field: "familleFormation", label: "Famille" },
     ];
 
     for (let rf of requiredFields) {
@@ -133,13 +131,13 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
             onChange={(e) => handleChange("module", e.target.value)}
           />
           <TextField
-            label="Type *"
+            label="Type "
             fullWidth
             value={formData.typeFormation}
             onChange={(e) => handleChange("typeFormation", e.target.value)}
           />
           <TextField
-            label="Famille *"
+            label="Famille "
             fullWidth
             value={formData.familleFormation}
             onChange={(e) => handleChange("familleFormation", e.target.value)}

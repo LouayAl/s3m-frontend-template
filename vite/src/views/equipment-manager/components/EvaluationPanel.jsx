@@ -34,6 +34,7 @@ export default function EvaluationPanel({
       presence:  currentEval.presence,
       remarks:   currentEval.remarks,
       ratings:   currentEval.ratings,
+      dureeHeures: currentEval.dureeHeures ?? null,
     });
     if (ok) setSelectedParticipant(null);
   };
@@ -182,6 +183,33 @@ export default function EvaluationPanel({
                   />
                 ))}
               </Box>
+            </Box>
+
+            {/* Hours */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
+                Durée (heures)
+              </Typography>
+              <Box
+                component="input"
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                value={currentEval.dureeHeures ?? ''}
+                onChange={e => updateEval(evalKey, { dureeHeures: e.target.value ? Number(e.target.value) : null })}
+                placeholder="Ex: 7.5"
+                sx={{
+                  width: 120, p: 1, borderRadius: 1,
+                  border: '1px solid', borderColor: 'divider',
+                  fontFamily: 'inherit', fontSize: 13,
+                  bgcolor: 'background.paper', color: 'text.primary',
+                  '&:focus': { outline: 'none', borderColor: 'primary.main' },
+                }}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                heures ce jour
+              </Typography>
             </Box>
 
             {/* Remarks */}

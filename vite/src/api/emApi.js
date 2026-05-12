@@ -47,6 +47,7 @@ export const saveDailyProgram = (sessionId, jour, payload) =>
 export const getEmFormations = () =>
     axiosInstance.get('/em/formations').then(r => r.data);
 
+
 // ─── Employees (scoped to EM's entreprise) ────────────────────────────────────
 // FIX: was using undefined `api` instead of `axiosInstance`
 export const getEmEmployes = () =>

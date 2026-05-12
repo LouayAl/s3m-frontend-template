@@ -205,17 +205,17 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
       <DialogContent>
         <Stack spacing={2} mt={1}>
           <TextField
-            label="Nom"
-            fullWidth
-            value={formData.nom}
-            onChange={(e) => handleChange("nom", e.target.value)}
-          />
-
-          <TextField
             label="Prénom"
             fullWidth
             value={formData.prenom}
             onChange={(e) => handleChange("prenom", e.target.value)}
+          />
+          
+          <TextField
+            label="Nom"
+            fullWidth
+            value={formData.nom}
+            onChange={(e) => handleChange("nom", e.target.value)}
           />
 
           <TextField

@@ -20,6 +20,7 @@ export function useSessionProgress(sessionId) {
         ratings:  ev.scores    ?? {},
         remarks:  ev.remarques ?? '',
         presence: ev.presence  ?? 'PRESENT',
+        dureeHeures: ev.dureeHeures ?? null,
       };
     });
     return map;
@@ -80,7 +81,7 @@ export function useSessionProgress(sessionId) {
     }));
 
   // ── Persist to backend ────────────────────────────────────────────────────
-  const saveEval = async ({ employeId, jour, presence, remarks, ratings }) => {
+  const saveEval = async ({ employeId, jour, presence, remarks, ratings, dureeHeures  }) => {
     setSaving(true);
     try {
       const saved = await saveEvaluation({
@@ -90,6 +91,7 @@ export function useSessionProgress(sessionId) {
         presence,
         remarques: remarks,
         scores:    ratings,
+        dureeHeures: dureeHeures ?? null,
       });
 
       const key = `${saved.idEmploye}-${saved.jour}`;
@@ -100,6 +102,7 @@ export function useSessionProgress(sessionId) {
           ratings:  saved.scores    ?? {},
           remarks:  saved.remarques ?? '',
           presence: saved.presence  ?? 'PRESENT',
+          dureeHeures: saved.dureeHeures ?? null,
         },
       }));
 

@@ -77,6 +77,7 @@ export default function EMFormationsPage() {
       const [catalogue, sessions] = await Promise.all([
         getEmFormations(),
         getEmSessions(),
+        
       ]);
 
       const map = {};
@@ -115,22 +116,10 @@ export default function EMFormationsPage() {
     navigate(`/em/sessions/${sessionId}`);
   };
 
-  const handleSaveFormation = (savedFormation) => {
-    setFormations(prev => {
-      const exists = prev.some(f => f.id === savedFormation.id);
-      const nextFormation = toCardFormation(savedFormation);
-
-      if (exists) {
-        return prev.map(f => (
-          f.id === savedFormation.id
-            ? { ...nextFormation, sessions: f.sessions ?? [] }
-            : f
-        ));
-      }
-
-      return [nextFormation, ...prev];
-    });
+  const handleSaveFormation = () => {
     setOpenModal(false);
+    fetchFormations();
+    
   };
 
   if (loading) {

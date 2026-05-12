@@ -34,6 +34,8 @@ export default function ParticipantProgressDialog({
   const [saving,       setSaving]       = useState(false);
   const [saveError,    setSaveError]    = useState('');
 
+  const [editDureeHeures, setEditDureeHeures] = useState(null);
+
   // ─── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!open || !participant || !sessionId) return;
@@ -95,11 +97,13 @@ export default function ParticipantProgressDialog({
     setEditScores(activeDayData ? { ...activeDayData.scores } : {});
     setEditPresence(activeDayData?.presence ?? 'PRESENT');
     setEditRemarks(activeDayData?.remarks ?? '');
+    setEditDureeHeures(activeDayData?.dureeHeures ?? null);
     setSaveError('');
     setEditMode(true);
   };
 
   const cancelEdit = () => { setEditMode(false); setSaveError(''); };
+
 
   // ─── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -115,12 +119,14 @@ export default function ParticipantProgressDialog({
         scores:    Object.fromEntries(
           Object.entries(editScores).map(([k, v]) => [Number(k), v])
         ),
+        dureeHeures: editDureeHeures ?? null,
       });
 
       setEvaluations(prev => {
         const updated = {
           jour: saved.jour, presence: saved.presence,
           remarques: saved.remarques, scores: saved.scores ?? {},
+          dureeHeures: saved.dureeHeures ?? null,
         };
         const exists = prev.find(e => e.jour === activeDay);
         return exists
@@ -219,6 +225,8 @@ export default function ParticipantProgressDialog({
                 setEditPresence={setEditPresence}
                 editRemarks={editRemarks}
                 setEditRemarks={setEditRemarks}
+                editDureeHeures={editDureeHeures}
+                setEditDureeHeures={setEditDureeHeures}
                 saveError={saveError}
                 isEM={isEM}
                 onConfigureCriteres={handleConfigureCriteres}

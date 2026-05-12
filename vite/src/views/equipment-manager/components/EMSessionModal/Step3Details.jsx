@@ -1,13 +1,13 @@
-// frontend-template/vite/src/views/equipment-manager/components/EMSessionModal/Step3Details.jsx
 import { Box, Typography, TextField, MenuItem, Grid } from '@mui/material';
 import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
+import BusinessOutlinedIcon   from '@mui/icons-material/BusinessOutlined';
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../../../../contexts/auth/AuthContext';
 
 export default function Step3Details({
   formData, onChange,
-  formateurs,
+  formateurs, entreprises,
   selectedFormation, selectedDays,
 }) {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function Step3Details({
         </Box>
       </Box>
 
-      {/* ── Entreprise & Fournisseur — read-only, taken from auth ────────── */}
+      {/* ── Entreprise — locked, taken from auth ─────────────────────────── */}
       <Box sx={{
         px:2, py:1.5, border:'1px solid', borderColor:'divider',
         borderRadius:1, bgcolor:'action.disabledBackground',
@@ -55,7 +55,7 @@ export default function Step3Details({
         <LockOutlinedIcon sx={{ fontSize:18, color:'text.disabled' }} />
         <Box>
           <Typography variant="caption" color="text.secondary" display="block">
-            Entreprise &amp; Fournisseur (pré-rempli automatiquement)
+            Entreprise cliente (pré-rempli automatiquement)
           </Typography>
           <Typography variant="body2" fontWeight={600}>
             {user?.nom ?? '—'}
@@ -69,7 +69,7 @@ export default function Step3Details({
       {/* ── Editable fields ──────────────────────────────────────────────── */}
       <Grid container spacing={2}>
 
-        {/* Référence — full width */}
+        {/* Référence */}
         <Grid item xs={12}>
           <TextField
             fullWidth
@@ -81,13 +81,34 @@ export default function Step3Details({
           />
         </Grid>
 
-        {/* Formateur — full width */}
+        {/* Fournisseur — editable */}
+        <Grid item xs={12}>
+          <TextField
+            select fullWidth
+            label="Fournisseur"
+            value={formData.idFournisseur ?? ''}
+            onChange={e => onChange('idFournisseur', e.target.value ? Number(e.target.value) : null)}
+            InputProps={{
+              startAdornment: <BusinessOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
+            }}
+            helperText="Optionnel — organisme prestataire de la formation."
+          >
+            <MenuItem value=""><em>Aucun</em></MenuItem>
+            {entreprises.map(e => (
+              <MenuItem key={e.idEntreprise} value={e.idEntreprise}>
+                {e.nomEntreprise}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+
+        {/* Formateur */}
         <Grid item xs={12}>
           <TextField
             select fullWidth
             label="Formateur"
             value={formData.idFormateur ?? ''}
-            onChange={e => onChange('idFormateur', Number(e.target.value))}
+            onChange={e => onChange('idFormateur', e.target.value ? Number(e.target.value) : null)}
             InputProps={{
               startAdornment: <PersonOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
             }}
@@ -102,7 +123,7 @@ export default function Step3Details({
           </TextField>
         </Grid>
 
-        {/* Durée — full width */}
+        {/* Durée */}
         <Grid item xs={12}>
           <TextField
             fullWidth

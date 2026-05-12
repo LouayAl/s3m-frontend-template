@@ -10,6 +10,7 @@ import EvaluationsHistoryDialog      from './components/EvaluationHistoryDialog'
 import CritereManagerModal           from './components/CritereManagerModal';
 import SessionInfoCard               from './components/SessionInfoCard';
 import DailyProgramPanel             from './components/DailyProgramPanel';
+import ArrowBackIcon                  from '@mui/icons-material/ArrowBack';
 
 export default function EMSessionsProgressPage() {
   const { id }    = useParams();
@@ -56,6 +57,14 @@ export default function EMSessionsProgressPage() {
       <Typography variant="caption" color="text.secondary">
         Formations › {session.formation} › {session.referenceSession}
       </Typography>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/em/sessions')}
+        sx={{ mb: 1 }}
+        size="small"
+      >
+        Retour aux sessions
+      </Button>
       <Typography variant="h4" fontWeight={700} mt={0.5} mb={0.5}>
         Suivi de progression
       </Typography>
