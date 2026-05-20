@@ -1,30 +1,15 @@
-import { useEffect, useState } from 'react';
+// views/equipment-manager/components/DailyProgramPanel.jsx
+import { useState, useEffect } from 'react';
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
+  Alert, Box, Button, Card, CardContent,
+  CircularProgress, IconButton, TextField, Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import AddIcon    from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SaveIcon from '@mui/icons-material/Save';
+import SaveIcon   from '@mui/icons-material/Save';
 import { getDailyProgram, saveDailyProgram } from '../../../api/emApi';
 
-const emptyRow = (dateDebut = '', dateFin = '') => ({
-  dateDebut,
-  dateFin,
-  activite: '',
-});
+// ── Time helpers ──────────────────────────────────────────────────────────────
 
 const toInputDateTime = (value) => {
   if (!value) return '';
@@ -35,30 +20,97 @@ const getDayDate = (sessionDateDebut, day) => {
   if (!sessionDateDebut || !day) return '';
   const date = new Date(`${sessionDateDebut}T00:00:00`);
   date.setDate(date.getDate() + day - 1);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const dateOfMonth = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${dateOfMonth}`;
+  const y  = date.getFullYear();
+  const m  = String(date.getMonth() + 1).padStart(2, '0');
+  const d  = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
 
+const emptyRow = (dateDebut = '', dateFin = '') => ({
+  dateDebut,
+  dateFin,
+  activite: '',
+});
+
+// ── Activity row — stacked layout (mobile-first) ──────────────────────────────
+
+function ActivityRow({ row, index, canEdit, onUpdate, onDelete }) {
+  return (
+    <Box sx={{
+      p: 1.5, mb: 1.5, borderRadius: 1.5,
+      border: '1px solid', borderColor: 'divider',
+      bgcolor: 'background.default',
+      display: 'flex', flexDirection: 'column', gap: 1,
+    }}>
+      {/* Row number + delete */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={700}>
+          Activité {index + 1}
+        </Typography>
+        {canEdit && (
+          <IconButton color="error" size="small" onClick={() => onDelete(index)}>
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        )}
+      </Box>
+
+      {/* Activité field — full width */}
+      <TextField
+        size="small"
+        fullWidth
+        label="Activité"
+        value={row.activite}
+        onChange={e => onUpdate(index, 'activite', e.target.value)}
+        disabled={!canEdit}
+        placeholder="Décrivez l'activité..."
+      />
+
+      {/* Date début + fin — side by side on sm+, stacked on xs */}
+      <Box sx={{ display: 'flex', gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+        <TextField
+          type="datetime-local"
+          size="small"
+          fullWidth
+          label="Début"
+          InputLabelProps={{ shrink: true }}
+          value={row.dateDebut}
+          onChange={e => onUpdate(index, 'dateDebut', e.target.value)}
+          disabled={!canEdit}
+        />
+        <TextField
+          type="datetime-local"
+          size="small"
+          fullWidth
+          label="Fin"
+          InputLabelProps={{ shrink: true }}
+          value={row.dateFin}
+          onChange={e => onUpdate(index, 'dateFin', e.target.value)}
+          disabled={!canEdit}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function DailyProgramPanel({ sessionId, activeDay, session, canEdit }) {
-  const [rows, setRows] = useState([]);
+  const [rows,        setRows]        = useState([]);
   const [commentaire, setCommentaire] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [loading,     setLoading]     = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [message,     setMessage]     = useState(null);
 
   useEffect(() => {
     if (!sessionId || !activeDay) return;
-
     setLoading(true);
     setMessage(null);
     getDailyProgram(sessionId, activeDay)
       .then(data => {
         setRows((data.entries ?? []).map(entry => ({
           dateDebut: toInputDateTime(entry.dateDebut),
-          dateFin: toInputDateTime(entry.dateFin),
-          activite: entry.activite ?? '',
+          dateFin:   toInputDateTime(entry.dateFin),
+          activite:  entry.activite ?? '',
         })));
         setCommentaire(data.commentaire ?? '');
       })
@@ -68,16 +120,20 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
 
   const handleAddRow = () => {
     const dayDate = getDayDate(session?.dateDebut, activeDay);
-    setRows(prev => [...prev, emptyRow(dayDate ? `${dayDate}T09:00` : '', dayDate ? `${dayDate}T10:00` : '')]);
+    setRows(prev => [
+      ...prev,
+      emptyRow(
+        dayDate ? `${dayDate}T09:00` : '',
+        dayDate ? `${dayDate}T10:00` : '',
+      ),
+    ]);
   };
 
-  const handleUpdateRow = (index, field, value) => {
-    setRows(prev => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
-  };
+  const handleUpdateRow = (index, field, value) =>
+    setRows(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
 
-  const handleDeleteRow = (index) => {
+  const handleDeleteRow = (index) =>
     setRows(prev => prev.filter((_, i) => i !== index));
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -88,21 +144,20 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
         entries: rows
           .map((row, index) => ({
             dateDebut: row.dateDebut || null,
-            dateFin: row.dateFin || null,
-            activite: row.activite,
-            position: index,
+            dateFin:   row.dateFin   || null,
+            activite:  row.activite,
+            position:  index,
           }))
           .filter(row => row.activite.trim() !== ''),
       };
-
       const saved = await saveDailyProgram(sessionId, activeDay, payload);
       setRows((saved.entries ?? []).map(entry => ({
         dateDebut: toInputDateTime(entry.dateDebut),
-        dateFin: toInputDateTime(entry.dateFin),
-        activite: entry.activite ?? '',
+        dateFin:   toInputDateTime(entry.dateFin),
+        activite:  entry.activite ?? '',
       })));
       setCommentaire(saved.commentaire ?? '');
-      setMessage({ severity: 'success', text: 'Programme du jour enregistre.' });
+      setMessage({ severity: 'success', text: 'Programme du jour enregistré.' });
     } catch {
       setMessage({ severity: 'error', text: "Erreur lors de l'enregistrement du programme." });
     } finally {
@@ -113,13 +168,14 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
   return (
     <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mb: 2 }}>
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', mb: 2 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              Programme journalier - Jour {activeDay}
+              Programme journalier — Jour {activeDay}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Activites et remarques propres a ce jour.
+              Activités et remarques propres à ce jour.
             </Typography>
           </Box>
           {canEdit && (
@@ -137,70 +193,30 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
           </Box>
         ) : (
           <>
-            <Box sx={{ overflowX: 'auto', mb: 2 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 190 }}>Date de debut</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 190 }}>Date de fin</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 260 }}>Activite</TableCell>
-                    {canEdit && <TableCell align="right" sx={{ fontWeight: 700, width: 56 }}> </TableCell>}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {rows.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={canEdit ? 4 : 3} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                        Aucun programme defini pour ce jour.
-                      </TableCell>
-                    </TableRow>
-                  )}
+            {/* Activity rows — stacked cards instead of a table */}
+            {rows.length === 0 ? (
+              <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', mb: 2 }}>
+                <Typography variant="body2">Aucun programme défini pour ce jour.</Typography>
+                {canEdit && (
+                  <Typography variant="caption">Cliquez sur «Ajouter» pour commencer.</Typography>
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ mb: 2 }}>
+                {rows.map((row, index) => (
+                  <ActivityRow
+                    key={index}
+                    row={row}
+                    index={index}
+                    canEdit={canEdit}
+                    onUpdate={handleUpdateRow}
+                    onDelete={handleDeleteRow}
+                  />
+                ))}
+              </Box>
+            )}
 
-                  {rows.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <TextField
-                          type="datetime-local"
-                          size="small"
-                          fullWidth
-                          value={row.dateDebut}
-                          onChange={e => handleUpdateRow(index, 'dateDebut', e.target.value)}
-                          disabled={!canEdit}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          type="datetime-local"
-                          size="small"
-                          fullWidth
-                          value={row.dateFin}
-                          onChange={e => handleUpdateRow(index, 'dateFin', e.target.value)}
-                          disabled={!canEdit}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          value={row.activite}
-                          onChange={e => handleUpdateRow(index, 'activite', e.target.value)}
-                          disabled={!canEdit}
-                          placeholder="Activite"
-                        />
-                      </TableCell>
-                      {canEdit && (
-                        <TableCell align="right">
-                          <IconButton color="error" size="small" onClick={() => handleDeleteRow(index)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-
+            {/* Commentaire */}
             <TextField
               label="Commentaire"
               value={commentaire}

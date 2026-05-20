@@ -122,7 +122,7 @@ const EMParticipantsModal = ({
 
         values.forEach(val => {
           const emp = source.find(
-            e => String(e.matricule ?? '').trim().toLowerCase() === val.toLowerCase()
+            e => String(e.cin ?? '').trim().toLowerCase() === val.toLowerCase()
           );
           if (emp) matched.push(Number(emp.idEmploye));
           else     notFound.push(val);
@@ -196,7 +196,7 @@ const EMParticipantsModal = ({
               style={{ display: 'none' }}
               onChange={handleImportExcel}
             />
-            <Tooltip title="Importer des matricules depuis un fichier Excel. Les participants correspondants seront auto-sélectionnés.">
+            <Tooltip title="Importer des CIN depuis un fichier Excel. Les participants correspondants seront auto-sélectionnés.">
               <Button
                 size="small"
                 variant="outlined"
@@ -215,7 +215,7 @@ const EMParticipantsModal = ({
         {/* Import warnings */}
         {importWarnings.length > 0 && (
           <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setImportWarnings([])}>
-            Matricules non trouvés : <strong>{importWarnings.join(', ')}</strong>
+            CIN non trouvés : <strong>{importWarnings.join(', ')}</strong>
           </Alert>
         )}
 

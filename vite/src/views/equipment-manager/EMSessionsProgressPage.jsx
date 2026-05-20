@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, Chip, CircularProgress, Snackbar, Alert, Typography } from '@mui/material';
+import { Box, Button, Chip, CircularProgress, Snackbar, Alert, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth/AuthContext';
 
@@ -10,7 +10,7 @@ import EvaluationsHistoryDialog      from './components/EvaluationHistoryDialog'
 import CritereManagerModal           from './components/CritereManagerModal';
 import SessionInfoCard               from './components/SessionInfoCard';
 import DailyProgramPanel             from './components/DailyProgramPanel';
-import ArrowBackIcon                  from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon                 from '@mui/icons-material/ArrowBack';
 
 export default function EMSessionsProgressPage() {
   const { id }    = useParams();
@@ -19,6 +19,9 @@ export default function EMSessionsProgressPage() {
   const { user }  = useAuth();
   const isEM      = user?.role === 'EQUIPMENT_MANAGER';
   const isTrainer = user?.role === 'TRAINER';
+
+  const theme   = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const {
     session, evaluations, criteres, loading, saving,
@@ -53,21 +56,37 @@ export default function EMSessionsProgressPage() {
   const activeDayHasEvaluations = participants.some(p => isEvaluated(p.idEmploye, activeDay));
 
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary">
+    <Box sx={{ maxWidth: '100%', overflow: 'hidden' }}>
+      {/* Breadcrumb */}
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{
+          display: 'block',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '100%',
+        }}
+      >
         Formations › {session.formation} › {session.referenceSession}
       </Typography>
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/em/sessions')}
-        sx={{ mb: 1 }}
-        size="small"
-      >
-        Retour aux sessions
-      </Button>
-      <Typography variant="h4" fontWeight={700} mt={0.5} mb={0.5}>
+
+      {/* Back button + title row */}
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mt: 0.5, mb: 0.5 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/em/sessions')}
+          size="small"
+        >
+          {isMobile ? 'Retour' : 'Retour aux sessions'}
+        </Button>
+      </Box>
+
+      <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700} mb={0.5}>
         Suivi de progression
       </Typography>
+
       <Chip
         label={`${session.statut} · Jour ${activeDay} / ${duree}`}
         color="success"
@@ -75,36 +94,39 @@ export default function EMSessionsProgressPage() {
         sx={{ fontWeight: 600, mb: 2 }}
       />
 
-      <SessionInfoCard session={session} activeDay={activeDay} />
+      {/* Stacked sections with consistent spacing */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
+        <SessionInfoCard session={session} activeDay={activeDay} />
 
-      <DayTracker
-        duree={duree}
-        activeDay={activeDay}
-        participants={participants}
-        isEvaluated={isEvaluated}
-        onDayChange={(d) => setActiveDay(d)}
-      />
+        <DayTracker
+          duree={duree}
+          activeDay={activeDay}
+          participants={participants}
+          isEvaluated={isEvaluated}
+          onDayChange={(d) => setActiveDay(d)}
+        />
 
-      <DailyProgramPanel
-        sessionId={sessionId}
-        activeDay={activeDay}
-        session={session}
-        canEdit={isTrainer || isEM}
-      />
+        <DailyProgramPanel
+          sessionId={sessionId}
+          activeDay={activeDay}
+          session={session}
+          canEdit={isTrainer || isEM}
+        />
 
-      <EvaluationPanel
-        activeDay={activeDay}
-        participants={participants}
-        criteres={criteres}
-        isEvaluated={isEvaluated}
-        getEval={getEval}
-        updateEval={updateEval}
-        updateRating={updateRating}
-        saving={saving}
-        onSave={saveEval}
-        onOpenHistory={() => setHistOpen(true)}
-        onOpenCriteres={isEM ? () => setCritereModalOpen(true) : null}
-      />
+        <EvaluationPanel
+          activeDay={activeDay}
+          participants={participants}
+          criteres={criteres}
+          isEvaluated={isEvaluated}
+          getEval={getEval}
+          updateEval={updateEval}
+          updateRating={updateRating}
+          saving={saving}
+          onSave={saveEval}
+          onOpenHistory={() => setHistOpen(true)}
+          onOpenCriteres={isEM ? () => setCritereModalOpen(true) : null}
+        />
+      </Box>
 
       <EvaluationsHistoryDialog
         open={histOpen}

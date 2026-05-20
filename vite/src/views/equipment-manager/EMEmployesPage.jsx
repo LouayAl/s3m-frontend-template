@@ -72,6 +72,7 @@ export default function EMEmployesPage() {
   const filteredRows = useMemo(() => employes.filter(e =>
     e.nom?.toLowerCase().includes(search.toLowerCase()) ||
     e.prenom?.toLowerCase().includes(search.toLowerCase()) ||
+    e.cin?.toLowerCase().includes(search.toLowerCase()) ||
     e.matricule?.toLowerCase().includes(search.toLowerCase())
   ), [employes, search]);
 
@@ -84,7 +85,7 @@ export default function EMEmployesPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Rechercher par nom, prénom ou matricule"
+                label="Rechercher par nom, prénom, CIN ou matricule"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />

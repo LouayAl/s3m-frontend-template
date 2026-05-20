@@ -1,54 +1,83 @@
-// TODO: enhance reordering with drag-and-drop using @dnd-kit/sortable or react-beautiful-dnd
-//       once the basic app is complete
-
+// views/equipment-manager/components/CritereManagerModal.jsx
 import { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Button, IconButton, TextField,
-  Alert, CircularProgress, Divider, Tooltip,
+  Alert, CircularProgress, Divider, Tooltip, Chip,
 } from '@mui/material';
-import AddIcon        from '@mui/icons-material/Add';
-import DeleteIcon     from '@mui/icons-material/Delete';
+import AddIcon           from '@mui/icons-material/Add';
+import DeleteIcon        from '@mui/icons-material/Delete';
 import ArrowUpwardIcon   from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import WarningAmberIcon  from '@mui/icons-material/WarningAmber';
+import LabelOutlinedIcon from '@mui/icons-material/LabelOutlined';
 import { getSessionCriteres, saveSessionCriteres } from '../../../api/emApi';
 
-export default function CritereManagerModal({ open, onClose, sessionId, jour, hasEvaluations, onSaved }) {
-  const [criteres, setCriteres] = useState([]); // list of { id, libelle }
-  const [loading,  setLoading]  = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [error,    setError]    = useState('');
+// ── Rebuild items list from loaded criteres ────────────────────────────────────
+// Each critere has { id, libelle, categorie }.
+// We reconstruct category header rows so they appear correctly on re-open.
+function buildItems(rawCriteres) {
+  const items = [];
+  let lastCategorie = undefined; // undefined = "not started yet"
 
-  // ─── Load existing criteria on open ────────────────────────────────────────
+  for (const c of rawCriteres) {
+    const cat = c.categorie ?? null; // null = no category
+
+    // Insert a category header row when the category changes
+    if (cat !== lastCategorie) {
+      if (cat !== null) {
+        // Real category name — insert a header row
+        items.push({ type: 'category', id: null, libelle: cat, categorie: null });
+      }
+      lastCategorie = cat;
+    }
+
+    items.push({
+      type:      'critere',
+      id:        c.id,
+      libelle:   c.libelle,
+      categorie: cat,
+    });
+  }
+
+  return items;
+}
+
+export default function CritereManagerModal({
+  open, onClose, sessionId, jour, hasEvaluations, onSaved,
+}) {
+  const [items,   setItems]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
+
+  // ── Load on open ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!open || !sessionId || !jour) return;
     setLoading(true);
     setError('');
     getSessionCriteres(sessionId, jour)
-      .then(data => {
-        setCriteres(data.map(c => ({ id: c.id, libelle: c.libelle })));
-      })
+      .then(data => setItems(buildItems(data)))
       .catch(() => setError('Erreur lors du chargement des critères.'))
       .finally(() => setLoading(false));
   }, [open, sessionId, jour]);
 
-  // ─── Handlers ──────────────────────────────────────────────────────────────
-  const handleAdd = () => {
-    setCriteres(prev => [...prev, { id: null, libelle: '' }]);
-  };
+  // ── Item handlers ─────────────────────────────────────────────────────────
+  const handleAddCritere  = () =>
+    setItems(prev => [...prev, { type:'critere',   id:null, libelle:'', categorie:'' }]);
 
-  const handleDelete = (idx) => {
-    setCriteres(prev => prev.filter((_, i) => i !== idx));
-  };
+  const handleAddCategory = () =>
+    setItems(prev => [...prev, { type:'category',  id:null, libelle:'', categorie:null }]);
 
-  const handleChange = (idx, value) => {
-    setCriteres(prev => prev.map((c, i) => i === idx ? { ...c, libelle: value } : c));
-  };
+  const handleDelete = (idx) =>
+    setItems(prev => prev.filter((_, i) => i !== idx));
+
+  const handleChange = (idx, field, value) =>
+    setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
 
   const handleMoveUp = (idx) => {
     if (idx === 0) return;
-    setCriteres(prev => {
+    setItems(prev => {
       const next = [...prev];
       [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
       return next;
@@ -56,7 +85,7 @@ export default function CritereManagerModal({ open, onClose, sessionId, jour, ha
   };
 
   const handleMoveDown = (idx) => {
-    setCriteres(prev => {
+    setItems(prev => {
       if (idx === prev.length - 1) return prev;
       const next = [...prev];
       [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
@@ -64,17 +93,35 @@ export default function CritereManagerModal({ open, onClose, sessionId, jour, ha
     });
   };
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    const libelles = criteres.map(c => c.libelle.trim()).filter(l => l !== '');
-    if (libelles.length === 0) {
+    // Walk the items list, tracking the current category heading.
+    // Build a flat array of { libelle, categorie } for the backend.
+    let currentCategory = null;
+    const criteres = [];
+
+    for (const item of items) {
+      if (item.type === 'category') {
+        currentCategory = item.libelle.trim() || null;
+      } else {
+        const libelle = item.libelle.trim();
+        if (libelle) {
+          criteres.push({ libelle, categorie: currentCategory });
+        }
+      }
+    }
+
+    if (criteres.length === 0) {
       setError('Veuillez ajouter au moins un critère.');
       return;
     }
+
     setSaving(true);
     setError('');
     try {
-      await saveSessionCriteres(sessionId, jour, libelles);
-      onSaved(); // refresh criteria in parent
+      // Pass the full criteres array — emApi must forward { libelle, categorie } pairs
+      await saveSessionCriteres(sessionId, jour, criteres);
+      onSaved();
       onClose();
     } catch {
       setError('Erreur lors de la sauvegarde des critères.');
@@ -83,14 +130,13 @@ export default function CritereManagerModal({ open, onClose, sessionId, jour, ha
     }
   };
 
-  const handleClose = () => {
-    setError('');
-    onClose();
-  };
+  const handleClose = () => { setError(''); onClose(); };
+
+  const critereCount = items.filter(i => i.type === 'critere' && i.libelle.trim()).length;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
+      <DialogTitle sx={{ pb:1 }}>
         <Typography component="span" display="block" fontWeight={700}>
           Gérer les critères — Jour {jour}
         </Typography>
@@ -100,132 +146,136 @@ export default function CritereManagerModal({ open, onClose, sessionId, jour, ha
       </DialogTitle>
 
       <DialogContent dividers>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Les criteres enregistres ici seront appliques a tous les jours de cette session.
+        <Alert severity="info" sx={{ mb:2 }}>
+          Les critères enregistrés ici seront appliqués à tous les jours de cette session.
+          Les catégories servent uniquement à organiser l'affichage.
         </Alert>
 
-        {/* Warning when evaluations already exist */}
         {hasEvaluations && (
-          <Alert
-            severity="warning"
-            icon={<WarningAmberIcon />}
-            sx={{ mb: 2 }}
-          >
+          <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb:2 }}>
             Des évaluations existent déjà pour ce jour. Modifier les critères recalculera
             les scores existants selon le nouvel ordre.
           </Alert>
         )}
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>}
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Box sx={{ display:'flex', justifyContent:'center', py:4 }}>
             <CircularProgress />
           </Box>
         ) : (
           <Box>
-            {criteres.length === 0 && (
+            {items.length === 0 && (
               <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
                 Aucun critère défini. Cliquez sur "Ajouter" pour commencer.
               </Typography>
             )}
 
-            {criteres.map((c, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1,
-                  mb: 1, p: 1, borderRadius: 1,
-                  border: '1px solid', borderColor: 'divider',
-                  bgcolor: 'background.default',
-                }}
-              >
-                {/* Index badge */}
-                <Typography
-                  variant="caption" fontWeight={700}
-                  sx={{
-                    minWidth: 24, height: 24, borderRadius: '50%',
-                    bgcolor: 'primary.main', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {idx + 1}
-                </Typography>
-
-                {/* Text input */}
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder={`Critère ${idx + 1}...`}
-                  value={c.libelle}
-                  onChange={e => handleChange(idx, e.target.value)}
-                  variant="outlined"
-                />
-
-                {/* Up / Down */}
-                {/* TODO: replace with drag handle once @dnd-kit/sortable is added */}
-                <Tooltip title="Monter">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleMoveUp(idx)}
-                      disabled={idx === 0}
-                    >
+            {items.map((item, idx) =>
+              item.type === 'category' ? (
+                // ── Category header row ──────────────────────────────────────
+                <Box key={idx} sx={{
+                  display:'flex', alignItems:'center', gap:1,
+                  mb:1, mt: idx > 0 ? 1.5 : 0, p:1, borderRadius:1,
+                  border:'1px dashed', borderColor:'warning.main',
+                  bgcolor:'rgba(255,152,0,0.06)',
+                }}>
+                  <LabelOutlinedIcon sx={{ color:'warning.main', fontSize:18, flexShrink:0 }} />
+                  <TextField
+                    fullWidth size="small"
+                    placeholder="Nom de la catégorie..."
+                    value={item.libelle}
+                    onChange={e => handleChange(idx, 'libelle', e.target.value)}
+                    sx={{ '& .MuiInputBase-input':{ fontWeight:700, fontSize:13 } }}
+                  />
+                  <Chip label="Catégorie" size="small" color="warning" variant="outlined"
+                    sx={{ flexShrink:0, fontSize:10 }} />
+                  <Tooltip title="Monter"><span>
+                    <IconButton size="small" onClick={() => handleMoveUp(idx)} disabled={idx === 0}>
                       <ArrowUpwardIcon fontSize="small" />
                     </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Descendre">
-                  <span>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleMoveDown(idx)}
-                      disabled={idx === criteres.length - 1}
-                    >
+                  </span></Tooltip>
+                  <Tooltip title="Descendre"><span>
+                    <IconButton size="small" onClick={() => handleMoveDown(idx)} disabled={idx === items.length - 1}>
                       <ArrowDownwardIcon fontSize="small" />
                     </IconButton>
-                  </span>
-                </Tooltip>
+                  </span></Tooltip>
+                  <Tooltip title="Supprimer la catégorie">
+                    <IconButton size="small" color="error" onClick={() => handleDelete(idx)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              ) : (
+                // ── Critere row ──────────────────────────────────────────────
+                <Box key={idx} sx={{
+                  display:'flex', alignItems:'center', gap:1,
+                  mb:1, p:1, borderRadius:1,
+                  border:'1px solid', borderColor:'divider',
+                  bgcolor:'background.default',
+                  ml: items.slice(0, idx).some(i => i.type === 'category') ? 2 : 0,
+                }}>
+                  <Typography variant="caption" fontWeight={700} sx={{
+                    minWidth:24, height:24, borderRadius:'50%',
+                    bgcolor:'primary.main', color:'#fff',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    flexShrink:0, fontSize:11,
+                  }}>
+                    {items.slice(0, idx + 1).filter(i => i.type === 'critere').length}
+                  </Typography>
 
-                {/* Delete */}
-                <Tooltip title="Supprimer">
-                  <IconButton
-                    size="small" color="error"
-                    onClick={() => handleDelete(idx)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            ))}
+                  <TextField
+                    fullWidth size="small"
+                    placeholder="Critère..."
+                    value={item.libelle}
+                    onChange={e => handleChange(idx, 'libelle', e.target.value)}
+                  />
 
-            <Divider sx={{ my: 1.5 }} />
+                  <Tooltip title="Monter"><span>
+                    <IconButton size="small" onClick={() => handleMoveUp(idx)} disabled={idx === 0}>
+                      <ArrowUpwardIcon fontSize="small" />
+                    </IconButton>
+                  </span></Tooltip>
+                  <Tooltip title="Descendre"><span>
+                    <IconButton size="small" onClick={() => handleMoveDown(idx)} disabled={idx === items.length - 1}>
+                      <ArrowDownwardIcon fontSize="small" />
+                    </IconButton>
+                  </span></Tooltip>
+                  <Tooltip title="Supprimer">
+                    <IconButton size="small" color="error" onClick={() => handleDelete(idx)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )
+            )}
 
-            <Button
-              startIcon={<AddIcon />}
-              variant="outlined"
-              size="small"
-              onClick={handleAdd}
-              fullWidth
-            >
-              Ajouter un critère
-            </Button>
+            <Divider sx={{ my:1.5 }} />
+
+            <Box sx={{ display:'flex', gap:1 }}>
+              <Button startIcon={<AddIcon />} variant="outlined" size="small"
+                onClick={handleAddCritere} sx={{ flex:1 }}>
+                Ajouter un critère
+              </Button>
+              <Button startIcon={<LabelOutlinedIcon />} variant="outlined" size="small"
+                color="warning" onClick={handleAddCategory} sx={{ flex:1 }}>
+                Ajouter une catégorie
+              </Button>
+            </Box>
           </Box>
         )}
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions sx={{ px:3, py:2 }}>
         <Button onClick={handleClose} disabled={saving}>Annuler</Button>
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || loading}
+          disabled={saving || loading || critereCount === 0}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {saving ? 'Sauvegarde...' : 'Enregistrer les critères'}
+          {saving ? 'Sauvegarde...' : `Enregistrer (${critereCount} critère${critereCount > 1 ? 's' : ''})`}
         </Button>
       </DialogActions>
     </Dialog>

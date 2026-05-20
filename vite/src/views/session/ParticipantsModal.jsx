@@ -18,7 +18,7 @@ const ParticipantsModal = ({
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
-  const [importWarnings, setImportWarnings] = useState([]); // matricules not found
+  const [importWarnings, setImportWarnings] = useState([]); // CIN values not found
   const fileInputRef = useRef(null);
 
   const isSelected    = (id) => selectedIds.includes(id);
@@ -90,7 +90,7 @@ const ParticipantsModal = ({
         const ws   = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-        // Collect all cell values that look like matricules (non-empty strings/numbers)
+        // Collect all cell values that look like CIN values (non-empty strings/numbers)
         const allValues = rows.flat().map(v => String(v ?? "").trim()).filter(Boolean);
 
         const source = employeesList || employees;
@@ -100,7 +100,7 @@ const ParticipantsModal = ({
 
         allValues.forEach(val => {
           const emp = source.find(
-            e => String(e.matricule ?? "").trim().toLowerCase() === val.toLowerCase()
+            e => String(e.cin ?? "").trim().toLowerCase() === val.toLowerCase()
           );
           if (emp) matched.push(Number(emp.idEmploye));
           else     notFound.push(val);
@@ -163,7 +163,7 @@ const ParticipantsModal = ({
               style={{ display: "none" }}
               onChange={handleImportExcel}
             />
-            <Tooltip title="Importer des matricules depuis un fichier Excel (.xlsx). Les participants correspondants seront auto-selectionnés.">
+            <Tooltip title="Importer des CIN depuis un fichier Excel (.xlsx). Les participants correspondants seront auto-selectionnés.">
               <Button
                 size="small"
                 variant="outlined"
@@ -182,7 +182,7 @@ const ParticipantsModal = ({
         {/* Import warnings */}
         {importWarnings.length > 0 && (
           <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setImportWarnings([])}>
-            Les matricules suivants ne correspondent a aucun employe dans la liste :{" "}
+            Les CIN suivants ne correspondent a aucun employe dans la liste :{" "}
             <strong>{importWarnings.join(", ")}</strong>
           </Alert>
         )}

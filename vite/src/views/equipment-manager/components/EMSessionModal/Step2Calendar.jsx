@@ -1,22 +1,29 @@
-// frontend-template/vite/src/views/equipment-manager/components/Step2Calendar.jsx
 import { Box, Typography, Chip, Button } from '@mui/material';
 import { DayPicker } from 'react-day-picker';
 import { fr } from 'react-day-picker/locale';
 import 'react-day-picker/style.css';
 
+// ── Helper: format date as YYYY-MM-DD using LOCAL time (no UTC shift) ────────
+function toLocalDateStr(d) {
+  const year  = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day   = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function Step2Calendar({ selectedDays, onDaysChange }) {
-  const count    = selectedDays.length;
+  const count     = selectedDays.length;
   const dateDebut = count > 0 ? selectedDays[0] : null;
   const dateFin   = count > 0 ? selectedDays[count - 1] : null;
 
   const fmt = (d) =>
-    d ? d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
   const handleDayClick = (day) => {
-    const dayStr = day.toISOString().split('T')[0];
-    const exists = selectedDays.some(d => d.toISOString().split('T')[0] === dayStr);
+    const dayStr = toLocalDateStr(day);
+    const exists = selectedDays.some(d => toLocalDateStr(d) === dayStr);
     if (exists) {
-      onDaysChange(selectedDays.filter(d => d.toISOString().split('T')[0] !== dayStr));
+      onDaysChange(selectedDays.filter(d => toLocalDateStr(d) !== dayStr));
     } else {
       onDaysChange([...selectedDays, day].sort((a, b) => a - b));
     }
@@ -37,27 +44,22 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
         <Chip
           label={`${count} jour${count !== 1 ? 's' : ''} sélectionné${count !== 1 ? 's' : ''}`}
           color={count > 0 ? 'primary' : 'default'}
-          size="small"
-          sx={{ fontWeight: 700 }}
+          size="small" sx={{ fontWeight: 700 }}
         />
         {count > 0 && (
           <>
             <Typography variant="caption" color="text.secondary">
               Du {fmt(dateDebut)} au {fmt(dateFin)}
             </Typography>
-            <Button
-              size="small" color="error"
-              onClick={handleClear}
-              sx={{ ml: 'auto', fontSize: 11 }}
-            >
+            <Button size="small" color="error" onClick={handleClear}
+              sx={{ ml:'auto', fontSize:11 }}>
               Effacer
             </Button>
           </>
         )}
       </Box>
 
-      {/* Calendar — key forces full remount when selection is cleared,
-          fixing the visual ghost-selection bug in react-day-picker */}
+      {/* Calendar */}
       <Box sx={{
         display: 'flex', justifyContent: 'center',
         '& .rdp': { margin: 0 },
@@ -74,12 +76,11 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
         },
         '& .rdp-day_button:hover': { transform: 'scale(1.1)' },
         '& .rdp-day[data-weekend] .rdp-day_button': {
-          color: 'text.secondary',
           opacity: 0.75,
         },
       }}>
         <DayPicker
-          key={count === 0 ? 'empty' : 'filled'}   // ← fixes clear bug
+          key={count === 0 ? 'empty' : 'filled'}
           mode="multiple"
           selected={selectedDays}
           onDayClick={handleDayClick}
@@ -96,7 +97,8 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
       </Box>
 
       {count === 0 && (
-        <Typography variant="caption" color="text.secondary" display="block" textAlign="center" mt={1}>
+        <Typography variant="caption" color="text.secondary"
+          display="block" textAlign="center" mt={1}>
           Cliquez sur les jours de formation pour les sélectionner.
           Les week-ends peuvent être inclus si nécessaire.
         </Typography>

@@ -1,4 +1,3 @@
-// frontend-template/vite/src/layout/EquipmentManagerLayout/index.jsx
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -9,14 +8,15 @@ import {
 import DashboardOutlinedIcon  from '@mui/icons-material/DashboardOutlined';
 import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined';
 import SchoolOutlinedIcon     from '@mui/icons-material/SchoolOutlined';
-import EventNoteOutlinedIcon  from '@mui/icons-material/EventNoteOutlined';   // ← Sessions icon
+import EventNoteOutlinedIcon  from '@mui/icons-material/EventNoteOutlined';
 import FactCheckOutlinedIcon  from '@mui/icons-material/FactCheckOutlined';
 import MenuIcon               from '@mui/icons-material/Menu';
 import LogoutOutlinedIcon     from '@mui/icons-material/LogoutOutlined';
 import { useAuth } from 'contexts/auth/AuthContext';
 import Logo from 'ui-component/Logo';
 
-const DRAWER_WIDTH = 248;
+const DRAWER_WIDTH         = 248;
+const DRAWER_WIDTH_COLLAPSED = 0; // fully hidden on desktop when collapsed
 
 const NAV = [
   {
@@ -29,7 +29,7 @@ const NAV = [
     section: 'Formations',
     items: [
       { label: 'Formations',  icon: <SchoolOutlinedIcon    sx={{ fontSize: 18 }} />, path: '/em/formations' },
-      { label: 'Sessions',    icon: <EventNoteOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/sessions'   }, // ← NEW
+      { label: 'Sessions',    icon: <EventNoteOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/sessions'   },
     ],
   },
   {
@@ -47,15 +47,16 @@ const NAV = [
 ];
 
 export default function EquipmentManagerLayout() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const { user, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl,   setAnchorEl]   = useState(null);
+
+  const [mobileOpen,       setMobileOpen]       = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [anchorEl,         setAnchorEl]         = useState(null);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  // Mark sessions list AND sessions/:id as active for the Sessions nav item
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
@@ -131,13 +132,22 @@ export default function EquipmentManagerLayout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.100' }}>
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — hidden when collapsed */}
       <Drawer
         variant="permanent"
         sx={{
-          width: DRAWER_WIDTH, flexShrink: 0,
+          width: desktopCollapsed ? 0 : DRAWER_WIDTH,
+          flexShrink: 0,
           display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider' },
+          transition: 'width 0.2s ease',
+          '& .MuiDrawer-paper': {
+            width: desktopCollapsed ? 0 : DRAWER_WIDTH,
+            boxSizing: 'border-box',
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+            transition: 'width 0.2s ease',
+          },
         }}
       >
         {SidebarContent}
@@ -161,10 +171,22 @@ export default function EquipmentManagerLayout() {
           px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1,
           position: 'sticky', top: 0, zIndex: 100,
         }}>
-          <IconButton sx={{ display: { md: 'none' } }} onClick={() => setMobileOpen(true)}>
+          {/* Hamburger — mobile opens drawer, desktop toggles collapse */}
+          <IconButton
+            sx={{ display: { xs: 'none', md: 'flex' } }}
+            onClick={() => setDesktopCollapsed(prev => !prev)}
+          >
             <MenuIcon sx={{ color: 'primary.main' }} />
           </IconButton>
+          <IconButton
+            sx={{ display: { xs: 'flex', md: 'none' } }}
+            onClick={() => setMobileOpen(true)}
+          >
+            <MenuIcon sx={{ color: 'primary.main' }} />
+          </IconButton>
+
           <Box sx={{ flex: 1 }} />
+
           <IconButton onClick={e => setAnchorEl(e.currentTarget)}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 13 }}>
               {user?.email?.[0]?.toUpperCase() ?? 'E'}

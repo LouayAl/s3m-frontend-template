@@ -101,7 +101,7 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
   // ── Exports ───────────────────────────────────────────────────────────────
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(
-      participants.map(p => ({ Nom: p.nom, Prénom: p.prenom, Matricule: p.matricule || '' }))
+      participants.map(p => ({ Nom: p.nom, Prénom: p.prenom, CIN: p.cin || '', Matricule: p.matricule || '' }))
     );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Participants');
@@ -113,8 +113,8 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     const doc = new jsPDF();
     doc.text(`Participants - Session ${session.referenceSession}`, 10, 10);
     autoTable(doc, {
-      head: [['Nom', 'Prénom', 'Matricule']],
-      body: participants.map(p => [p.nom, p.prenom, p.matricule || '']),
+      head: [['Nom', 'Prénom', 'CIN', 'Matricule']],
+      body: participants.map(p => [p.nom, p.prenom, p.cin || '', p.matricule || '']),
     });
     doc.save(`participants_${session.referenceSession}.pdf`);
     showSnackbar?.('Export PDF réussi !', 'success');
@@ -126,6 +126,7 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     return (
       p.nom?.toLowerCase().includes(kw)      ||
       p.prenom?.toLowerCase().includes(kw)   ||
+      p.cin?.toLowerCase().includes(kw)      ||
       p.matricule?.toLowerCase().includes(kw)
     );
   });
@@ -134,6 +135,7 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
   const columns = [
     { field: 'nom',       headerName: 'Nom',       flex: 1 },
     { field: 'prenom',    headerName: 'Prénom',    flex: 1 },
+    { field: 'cin',       headerName: 'CIN',       flex: 1 },
     { field: 'matricule', headerName: 'Matricule', flex: 1 },
     {
       field: 'actions', headerName: 'Actions', width: 80, sortable: false,

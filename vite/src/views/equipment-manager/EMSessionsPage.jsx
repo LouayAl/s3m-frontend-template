@@ -123,19 +123,19 @@ export default function EMSessionsPage() {
 
   // ─── Columns ───────────────────────────────────────────────────────────────
   const columns = [
-    { field:'referenceSession',    headerName:'Référence',   flex:1,   minWidth:130 },
-    { field:'formation',           headerName:'Formation',   flex:1.5, minWidth:160 },
-    { field:'entrepriseNom',       headerName:'Entreprise',  flex:1,   minWidth:130 },
-    { field:'formateurNomComplet', headerName:'Formateur',   flex:1,   minWidth:130 },
-    { field:'dateDebut',           headerName:'Début',       width:110 },
-    { field:'dateFin',             headerName:'Fin',         width:110 },
-    { field:'dJours',              headerName:'Durée (j)',   width:90,  type:'number' },
+    { field:'referenceSession',    headerName:'Référence',    flex:1, minWidth:120 },
+    { field:'formation',           headerName:'Formation',    flex:2, minWidth:160 },
+    { field:'entrepriseNom',       headerName:'Entreprise',   flex:1.5, minWidth:130 },
+    { field:'formateurNomComplet', headerName:'Formateur',    flex:1.5, minWidth:130 },
+    { field:'dateDebut',           headerName:'Début',        flex:1, minWidth:110 },
+    { field:'dateFin',             headerName:'Fin',          flex:1, minWidth:110 },
+    { field:'dJours',              headerName:'Durée (j)',    flex:0.8, minWidth:80, type:'number' },
     {
-      field: 'statut', headerName: 'Statut', width: 120,
+      field: 'statut', headerName: 'Statut', flex:1, minWidth:110,
       renderCell: (params) => <StatutChip value={params.value} />,
     },
     {
-      field: 'participantsCount', headerName: 'Participants', width: 110,
+      field: 'participantsCount', headerName: 'Participants', flex:1, minWidth:100,
       renderCell: (params) => (
         <Button size="small" variant="outlined"
           startIcon={<GroupIcon sx={{ fontSize:14 }} />}
@@ -150,7 +150,7 @@ export default function EMSessionsPage() {
       ),
     },
     {
-      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
+      field: 'actions', headerName: 'Actions', flex:0.8, minWidth:90, sortable: false,
       renderCell: (params) => (
         <Box sx={{ display:'flex', gap:0.5 }}>
           <IconButton size="small" color="primary"

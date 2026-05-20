@@ -34,8 +34,10 @@ export const saveEvaluation = (payload) =>
 export const getSessionCriteres = (sessionId, jour) =>
     axiosInstance.get(`/em/sessions/${sessionId}/days/${jour}/criteres`).then(r => r.data);
 
-export const saveSessionCriteres = (sessionId, jour, libelles) =>
-    axiosInstance.post(`/em/sessions/${sessionId}/days/${jour}/criteres`, { libelles }).then(r => r.data);
+export const saveSessionCriteres = (sessionId, jour, criteres) =>
+  axiosInstance
+    .post(`/em/sessions/${sessionId}/days/${jour}/criteres`, { criteres })
+    .then(r => r.data);
 
 export const getDailyProgram = (sessionId, jour) =>
     axiosInstance.get(`/em/sessions/${sessionId}/days/${jour}/program`).then(r => r.data);

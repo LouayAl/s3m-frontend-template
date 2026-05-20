@@ -37,6 +37,11 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+function parseLocalDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 
 // ─── Reusable KPI card ────────────────────────────────────────────────────────
 function KpiCard({ label, value, icon, color = 'primary' }) {
@@ -126,17 +131,17 @@ export default function EMDashboard() {
     s => s.statut === 'PLANIFIEE' || s.statut === 'EN_COURS'
   );
 
-  const calendarEvents = plannedSessions.map((s) => ({
-    title: s.formation,
-    start: new Date(s.dateDebut),
-    end: new Date(
-      new Date(s.dateFin).setDate(
-        new Date(s.dateFin).getDate() + 1
-      )
-    ),
-    sessionId: s.idSession,
-    resource: s,
-  }));
+  const calendarEvents = plannedSessions.map((s) => {
+    const end = parseLocalDate(s.dateFin);
+    end.setDate(end.getDate() + 1); // ← react-big-calendar end is exclusive
+    return {
+      title:     s.formation,
+      start:     parseLocalDate(s.dateDebut),
+      end,
+      sessionId: s.idSession,
+      resource:  s,
+    };
+  });
 
 
   if (loading) return <Box sx={{ p: 3 }}><LinearProgress /></Box>;

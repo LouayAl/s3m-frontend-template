@@ -24,6 +24,18 @@ import { getEmEmployes }                                      from '../../../../
 import { getAllEntreprises } from '../../../../api/entrepriseApi';
 const STEPS = ['Formation', 'Jours', 'Détails', 'Participants'];
 
+function toLocalDateStr(d) {
+  const year  = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day   = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(str) {
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export default function EMSessionModal({ open, onClose, onCreated, showSnackbar, initialData }) {
   const theme    = useTheme();
   const navigate = useNavigate();
@@ -91,10 +103,10 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
           // Pre-fill days from date range
           if (initialData.dateDebut && initialData.dateFin) {
             const days  = [];
-            const start = new Date(initialData.dateDebut);
-            const end   = new Date(initialData.dateFin);
+            const start = parseLocalDate(initialData.dateDebut); // ← fixed
+            const end   = parseLocalDate(initialData.dateFin);   // ← fixed
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-              days.push(new Date(d));
+                days.push(new Date(d));
             }
             setSelectedDays(days);
           }
@@ -119,7 +131,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     const rand  = Math.floor(Math.random() * 9000 + 1000);
     setFormData(prev => ({ ...prev, referenceSession: `${code}-${rand}` }));
   }, [selectedFormation]);
-  
+
     useEffect(() => {
     getAllEntreprises().then(setEntreprises);
     }, []);
@@ -140,8 +152,8 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     setError('');
     try {
       const sortedDays = [...selectedDays].sort((a, b) => a - b);
-      const dateDebut  = sortedDays[0].toISOString().split('T')[0];
-      const dateFin    = sortedDays[sortedDays.length - 1].toISOString().split('T')[0];
+      const dateDebut = toLocalDateStr(sortedDays[0]);
+      const dateFin   = toLocalDateStr(sortedDays[sortedDays.length - 1]);
 
       const created = await createSession({
         idFormation:      selectedFormation.id,
@@ -171,8 +183,8 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     setError('');
     try {
       const sortedDays = [...selectedDays].sort((a, b) => a - b);
-      const dateDebut  = sortedDays[0].toISOString().split('T')[0];
-      const dateFin    = sortedDays[sortedDays.length - 1].toISOString().split('T')[0];
+      const dateDebut = toLocalDateStr(sortedDays[0]);  
+      const dateFin   = toLocalDateStr(sortedDays[sortedDays.length - 1]); 
 
       await updateSession(initialData.idSession, {
         idFormation:   selectedFormation?.id ?? initialData.formationId,

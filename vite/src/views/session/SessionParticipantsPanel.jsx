@@ -184,6 +184,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     const data = participants.map((p) => ({
       Nom: p.nom,
       Prénom: p.prenom,
+      CIN: p.cin || "",
       Matricule: p.matricule || "",
     }));
 
@@ -201,10 +202,11 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     doc.text(`Participants - Session ${session.referenceSession}`, 10, 10);
 
     autoTable(doc, {
-      head: [["Nom", "Prénom", "Matricule"]],
+      head: [["Nom", "Prénom", "CIN", "Matricule"]],
       body: participants.map((p) => [
         p.nom,
         p.prenom,
+        p.cin || "",
         p.matricule || "",
       ]),
     });
@@ -222,6 +224,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     return (
       p.nom?.toLowerCase().includes(keyword) ||
       p.prenom?.toLowerCase().includes(keyword) ||
+      p.cin?.toLowerCase().includes(keyword) ||
       p.matricule?.toLowerCase().includes(keyword)
     );
   });
@@ -239,6 +242,12 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
       field: "prenom",
       headerName: "Prénom",
       width: 200,
+      flex: 1,
+    },
+    {
+      field: "cin",
+      headerName: "CIN",
+      width: 180,
       flex: 1,
     },
     {
