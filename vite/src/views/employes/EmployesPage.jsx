@@ -1,5 +1,5 @@
 // frontend-template/vite/src/views/employes/EmployesPage.jsx
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Box, Typography, Card, CardContent,
   TextField, Grid, Stack, IconButton,
@@ -13,7 +13,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import EmployeModal from "./EmployesModal";
 import {
-  getAllEmployes,
+  getEmployesPaginated,
   deleteEmploye,
   importEmployes,
 } from "../../api/employeApi";
@@ -36,6 +36,8 @@ const EmployesPage = () => {
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [sortModel, setSortModel] = useState([{ field: "idEmploye", sort: "desc" }]);
+  const [paginationModel, setPaginationModel] = useState({ pageSize: 20, page: 0 });
+  const [totalEmployes, setTotalEmployes] = useState(0);
 
   const [modalOpen, setModalOpen]           = useState(false);
   const [editingEmploye, setEditingEmploye] = useState(null);
@@ -47,21 +49,48 @@ const EmployesPage = () => {
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
+  // Mounted refs to avoid state updates before the component has mounted
+  const isMountedRef = useRef(false);
+  const pendingPaginationRef = useRef(null);
+  const pendingSortRef = useRef(null);
+
   const fetchEmployes = useCallback(async (showSpinner = true) => {
     try {
       if (showSpinner) setLoading(true);
-      const data = await getAllEmployes();
-      setEmployes(data);
+      const sortBy = sortModel[0]?.field || "idEmploye";
+      const sortDir = sortModel[0]?.sort === "asc" ? "asc" : "desc";
+      const data = await getEmployesPaginated({
+        page: paginationModel.page,
+        size: paginationModel.pageSize,
+        search: search.trim(),
+        sortBy,
+        sortDir,
+      });
+      setEmployes(data.content || []);
+      setTotalEmployes(data.totalElements || 0);
     } catch (err) {
       showSnackbar("Erreur lors du chargement des employés", "error");
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, []);
+  }, [paginationModel, sortModel, search]);
 
   useEffect(() => {
     fetchEmployes(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [paginationModel, sortModel, search, fetchEmployes]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    if (pendingPaginationRef.current) {
+      setPaginationModel(pendingPaginationRef.current);
+      pendingPaginationRef.current = null;
+    }
+    if (pendingSortRef.current) {
+      setSortModel(pendingSortRef.current);
+      pendingSortRef.current = null;
+    }
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (modalOpen) return;
@@ -100,36 +129,84 @@ const EmployesPage = () => {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!employes.length) { showSnackbar("Aucun employé à exporter.", "warning"); return; }
-    const data = employes.map(e => ({
-      "Entreprise":      e.entrepriseNom,
-      "Département":     e.departementNom,
-      "Nom":             e.nom,
-      "Prénom":          e.prenom,
-      "CSP":             e.csp,
-      "Genre":           e.f_h,
-      "CIN":             e.cin,
-      "CNSS":            e.cnss,
-      "Matricule":       e.matricule,
-      "Email":           e.email,
-      "Téléphone":       e.telephone,
-      "Fonction":        e.fonction,
-      "Type Contrat":    e.typeContrat,
-      "Date Embauche":   e.dateEmbauche,
-      "Date Naissance":  e.dateNaissance,
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Employés");
-    const today = new Date().toISOString().split("T")[0];
-    saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
-      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      `Export_Employes_${today}.xlsx`);
+    try {
+      setLoading(true);
+      // Fetch ALL employees for export (large page size)
+      const allData = await getEmployesPaginated({
+        page: 0,
+        size: 10000,
+        search: search.trim(),
+      });
+      const dataToExport = allData.content || [];
+      if (!dataToExport.length) { showSnackbar("Aucun employé à exporter.", "warning"); return; }
+      const data = dataToExport.map(e => ({
+        "Entreprise":      e.entrepriseNom,
+        "Département":     e.departementNom,
+        "Nom":             e.nom,
+        "Prénom":          e.prenom,
+        "CSP":             e.csp,
+        "Genre":           e.f_h,
+        "CIN":             e.cin,
+        "CNSS":            e.cnss,
+        "Matricule":       e.matricule,
+        "Email":           e.email,
+        "Téléphone":       e.telephone,
+        "Fonction":        e.fonction,
+        "Type Contrat":    e.typeContrat,
+        "Date Embauche":   e.dateEmbauche,
+        "Date Naissance":  e.dateNaissance,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Employés");
+      const today = new Date().toISOString().split("T")[0];
+      saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
+        { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+        `Export_Employes_${today}.xlsx`);
+      showSnackbar("Export réussi !", "success");
+    } catch (err) {
+      showSnackbar("Erreur lors de l'export", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenDeleteDialog  = (id) => { setSelectedEmployeId(id); setOpenDeleteDialog(true); };
   const handleCloseDeleteDialog = () => { setOpenDeleteDialog(false); setSelectedEmployeId(null); };
+
+  const handlePaginationModelChange = useCallback((newModel) => {
+    if (!isMountedRef.current) {
+      pendingPaginationRef.current = newModel;
+      return;
+    }
+
+    setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setPaginationModel(prev => {
+        if (prev.page === newModel.page && prev.pageSize === newModel.pageSize) return prev;
+        return newModel;
+      });
+    }, 0);
+  }, []);
+
+  const handleSortModelChange = useCallback((newModel) => {
+    if (!isMountedRef.current) {
+      pendingSortRef.current = newModel;
+      return;
+    }
+
+    setTimeout(() => {
+      if (!isMountedRef.current) return;
+      setSortModel(prev => {
+        const nextSort = newModel?.[0] || {};
+        const currentSort = prev?.[0] || {};
+        if (nextSort.field === currentSort.field && nextSort.sort === currentSort.sort) return prev;
+        return newModel;
+      });
+    }, 0);
+  }, []);
 
   const handleDelete = async () => {
     try {
@@ -182,13 +259,6 @@ const EmployesPage = () => {
     user?.role === "ADMIN" ? [...columns, actionsColumn] : columns,
   [columns, actionsColumn, user?.role]);
 
-  const filteredRows = useMemo(() => employes.filter(e =>
-    e.nom?.toLowerCase().includes(search.toLowerCase()) ||
-    e.prenom?.toLowerCase().includes(search.toLowerCase()) ||
-    e.cin?.toLowerCase().includes(search.toLowerCase()) ||
-    e.matricule?.toLowerCase().includes(search.toLowerCase())
-  ), [employes, search]);
-
   return (
     <Box p={3}>
       <Typography variant="h4" fontWeight="bold" mb={2}>Liste des Employés</Typography>
@@ -222,15 +292,19 @@ const EmployesPage = () => {
 
           <Box sx={{ height: "70vh", width: "100%" }}>
             <DataGrid
-              rows={filteredRows}
+              rows={employes}
               columns={columnsWithActions}
               getRowId={row => row.idEmploye}
               loading={loading}
               pageSizeOptions={[10, 20, 50, 100]}
+              paginationModel={paginationModel}
+              onPaginationModelChange={handlePaginationModelChange}
               sortModel={sortModel}
-              onSortModelChange={(model) => setTimeout(() => setSortModel(model), 0)}
+              onSortModelChange={handleSortModelChange}
+              rowCount={totalEmployes}
+              paginationMode="server"
+              sortingMode="server"
               initialState={{
-                pagination: { paginationModel: { pageSize: 20 } },
                 columns: {
                   columnVisibilityModel: { email: false, telephone: false, fonction: false },
                 },
