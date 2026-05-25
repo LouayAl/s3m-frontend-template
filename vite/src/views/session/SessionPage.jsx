@@ -285,7 +285,7 @@ const SessionPage = () => {
         />
       )}
 
-      <Dialog open={openParticipantsPanel} onClose={() => setOpenParticipantsPanel(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openParticipantsPanel} onClose={() => setOpenParticipantsPanel(false)} maxWidth="lg" fullWidth>
         <DialogContent>
           {editingParticipantsSession && (
             <SessionParticipantsPanel

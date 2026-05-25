@@ -247,7 +247,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     {
       field: "cin",
       headerName: "CIN",
-      width: 180,
+      width: 200,
       flex: 1,
     },
     {
@@ -332,7 +332,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
 
       {/* DATAGRID RESPONSIVE HEIGHT */}
       <Box sx={{ height: "70vh", width: "100%", overflowX: "auto" }}>
-        <Box sx={{ minWidth: 500, height: isMobile ? 320 : 800 }}>
+        <Box sx={{ minWidth: 700, height: isMobile ? 320 : 800 }}>
             <DataGrid
             rows={filteredParticipants}
             columns={columns}
