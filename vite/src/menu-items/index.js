@@ -7,11 +7,12 @@ import session from './session';
 import formation from './formation';
 import entreprise from './entreprise';
 import employe from './employe';
+import planification  from './planification'; 
 
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard, session, formation, entreprise, employe]
+  items: [dashboard, session, formation, entreprise, employe, planification]
 };
 
 export default menuItems;

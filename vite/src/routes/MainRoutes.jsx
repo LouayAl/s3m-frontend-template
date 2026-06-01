@@ -21,6 +21,7 @@ const UtilsShadow = Loadable(lazy(() => import('views/utilities/Shadow')));
 // sample page routing
 const SamplePage = Loadable(lazy(() => import('views/sample-page')));
 
+const PlanificationPage  = Loadable(lazy(() => import('views/planification/PlanificationPage')));
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -83,7 +84,11 @@ const MainRoutes = {
           <EmployesPage />
         </ProtectedRoute>
       )
-    }
+    },
+    {
+      path: 'planification',
+      element: <ProtectedRoute><PlanificationPage /></ProtectedRoute>,  // ← new
+    },
   ]
 };
 
