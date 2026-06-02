@@ -30,13 +30,22 @@ export default function PlanificationPage() {
     setSnackbar({ open: true, message, severity });
 
   useEffect(() => {
+    if (!isAdmin) return;
+
     getAllEntreprises()
       .then(data => {
         setEntreprises(data);
-        if (data.length > 0) setSelectedEntId(data[0].idEntreprise);
+        if (data.length > 0 && !selectedEntId) setSelectedEntId(data[0].idEntreprise);
       })
       .catch(() => showSnackbar('Erreur lors du chargement des entreprises.', 'error'));
-  }, []);
+  }, [isAdmin, selectedEntId]);
+
+  useEffect(() => {
+    if (isAdmin) return;
+    if (user?.entrepriseId) {
+      setSelectedEntId(user.entrepriseId);
+    }
+  }, [isAdmin, user?.entrepriseId]);
 
   const loadPlan = useCallback(async () => {
     if (!selectedEntId) return;
@@ -137,13 +146,32 @@ export default function PlanificationPage() {
 
   const pct = totalPlanifie > 0 ? Math.round((totalCreated / totalPlanifie) * 100) : null;
 
-  const chartData = planData
-    ? planData.months.map((month, index) => ({
+  const chartData = useMemo(() => {
+    if (!planData) return [];
+
+    let cumulativePlanifie = 0;
+    let cumulativeCreees = 0;
+
+    return planData.months.map((month, index) => {
+        const planifie = month.planifie || 0;
+        const creees = createdMonthlyCounts[index] || 0;
+
+        cumulativePlanifie += planifie;
+        cumulativeCreees += creees;
+
+        return {
         name: MONTH_KEY_TO_LABEL[month.month] || month.label || month.month,
-        Planifié: month.planifie,
-        Créées: createdMonthlyCounts[index] || 0,
-      }))
-    : [];
+
+        // monthly values
+        Planifié: planifie,
+        Créées: creees,
+
+        // cumulative values
+        "Planifié Cumulé": cumulativePlanifie,
+        "Créées Cumulées": cumulativeCreees,
+        };
+    });
+    }, [planData, createdMonthlyCounts]);
 
   return (
     <Box p={3}>

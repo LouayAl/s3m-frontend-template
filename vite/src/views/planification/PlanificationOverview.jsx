@@ -129,6 +129,23 @@ export default function PlanificationOverview({
                     dot={{ r: 4, fill: S3M_LIGHT_BLUE }}
                     activeDot={{ r: 6 }}
                   />
+                  <Line
+                    type="monotone"
+                    dataKey="Planifié Cumulé"
+                    stroke={'#d32f2f'}
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={false}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="Créées Cumulées"
+                    stroke='#54bafd'
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={false}
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </Box>
@@ -167,7 +184,7 @@ export default function PlanificationOverview({
                   <TableRow key={monthItem.month} sx={{ '&:last-child td': { border: 0 }, '&:hover': { backgroundColor: '#fafafa' } }}>
                     <TableCell sx={{ py: 1.25 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: S3M_ORANGE }} />
+                        {/* <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: S3M_ORANGE }} /> */}
                         <Typography variant="body2" fontWeight={700} color={S3M_DARK_BLUE}>
                           {monthLabel}
                         </Typography>

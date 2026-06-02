@@ -32,22 +32,24 @@ export default function PlanificationFilters({
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Entreprise"
-                  value={selectedEntId}
-                  onChange={onEntrepriseChange}
-                >
-                  {entreprises.map(entreprise => (
-                    <MenuItem key={entreprise.idEntreprise} value={entreprise.idEntreprise}>
-                      {entreprise.nomEntreprise}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              {isAdmin && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    label="Entreprise"
+                    value={selectedEntId}
+                    onChange={onEntrepriseChange}
+                  >
+                    {entreprises.map(entreprise => (
+                      <MenuItem key={entreprise.idEntreprise} value={entreprise.idEntreprise}>
+                        {entreprise.nomEntreprise}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              )}
             </Grid>
           </Grid>
           {isAdmin && (
