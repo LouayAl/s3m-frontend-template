@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Box, Typography, Button, Snackbar, Alert, CircularProgress, Stack } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import { Box, Typography, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { getAllEntreprises } from '../../api/entrepriseApi';
-import { getPlanification, savePlanification } from '../../api/planificationApi';
-import { getAllSessions } from '../../api/sessionApi';
+import { getPlanification, bulkAddSessions, updateSession, deleteSession } from '../../api/planificationApi';
 import { useAuth } from '../../contexts/auth/AuthContext';
 import PlanificationFilters from './PlanificationFilters';
 import PlanificationOverview from './PlanificationOverview';
-import PlanificationObjectivesModal from './PlanificationObjectivesModal';
-import { YEAR_OPTIONS, MONTH_KEYS, MONTH_KEY_TO_LABEL, emptyTargets } from './planificationConstants';
+import { YEAR_OPTIONS } from './planificationConstants';
 
 export default function PlanificationPage() {
   const { user } = useAuth();
@@ -18,33 +15,27 @@ export default function PlanificationPage() {
   const [selectedYear, setSelectedYear] = useState(YEAR_OPTIONS[2] || new Date().getFullYear());
   const [selectedEntId, setSelectedEntId] = useState('');
 
-  const [planData, setPlanData] = useState(null);
+  const [planData, setPlanData] = useState(null); // { annee, entrepriseId, sessions, planned, actual }
   const [loading, setLoading] = useState(false);
-  const [createdSessions, setCreatedSessions] = useState([]);
-
-  const [openObjectivesModal, setOpenObjectivesModal] = useState(false);
-  const [savingObjectives, setSavingObjectives] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const showSnackbar = (message, severity = 'success') =>
     setSnackbar({ open: true, message, severity });
 
+  // Load entreprises (admin only)
   useEffect(() => {
     if (!isAdmin) return;
-
     getAllEntreprises()
       .then(data => {
         setEntreprises(data);
         if (data.length > 0 && !selectedEntId) setSelectedEntId(data[0].idEntreprise);
       })
       .catch(() => showSnackbar('Erreur lors du chargement des entreprises.', 'error'));
-  }, [isAdmin, selectedEntId]);
+  }, [isAdmin]);
 
+  // Set entreprise from user context (non-admin)
   useEffect(() => {
-    if (isAdmin) return;
-    if (user?.entrepriseId) {
-      setSelectedEntId(user.entrepriseId);
-    }
+    if (!isAdmin && user?.entrepriseId) setSelectedEntId(user.entrepriseId);
   }, [isAdmin, user?.entrepriseId]);
 
   const loadPlan = useCallback(async () => {
@@ -53,137 +44,104 @@ export default function PlanificationPage() {
     try {
       const data = await getPlanification(selectedYear, selectedEntId);
       setPlanData(data);
-    } catch (err) {
-      console.error('Erreur lors du chargement du plan :', err);
+    } catch {
       showSnackbar('Erreur lors du chargement du plan.', 'error');
     } finally {
       setLoading(false);
     }
   }, [selectedYear, selectedEntId]);
 
-  const loadCreatedSessions = useCallback(async () => {
+  useEffect(() => { loadPlan(); }, [loadPlan]);
+
+  // ── Handlers passed down to Overview ────────────────────────────────────────
+
+    const handleBulkAdd = useCallback(async (payload) => {
     try {
-      const data = await getAllSessions();
-      setCreatedSessions(data);
-    } catch (err) {
-      console.error('Erreur lors du chargement des sessions créées :', err);
-      showSnackbar('Erreur lors du chargement des sessions créées.', 'error');
+        const data = await bulkAddSessions({
+        ...payload,
+        entrepriseId: selectedEntId
+        });
+
+        setPlanData(data);
+
+        if (data.yearChanged && data.annee !== selectedYear) {
+        setSelectedYear(data.annee);
+
+        showSnackbar(
+            `La session a été créée dans l'année ${data.annee}. Affichage basculé automatiquement.`
+        );
+        } else {
+        showSnackbar('Sessions ajoutées avec succès !');
+        }
+    } catch {
+        showSnackbar("Erreur lors de l'ajout des sessions.", "error");
     }
-  }, []);
+    }, [selectedEntId, selectedYear]);
 
-  useEffect(() => {
-    loadPlan();
-  }, [loadPlan]);
-
-  useEffect(() => {
-    loadCreatedSessions();
-  }, [selectedYear, selectedEntId, loadCreatedSessions]);
-
-  const handleSaveObjectives = async (objectivesData) => {
-    if (!selectedEntId) return;
-    setSavingObjectives(true);
-
+    const handleUpdateSession = useCallback(async (id, payload) => {
     try {
-      const newTargets = emptyTargets();
-      objectivesData.forEach((month) => {
-        newTargets[month.month] = month.sessions.length;
-      });
+        const data = await updateSession(id, selectedEntId, payload);
 
-      const payload = {
-        annee: selectedYear,
-        entrepriseId: selectedEntId,
-        ...Object.fromEntries(
-          MONTH_KEYS.map((key) => [key, Number(newTargets[key]) || 0])
-        ),
-      };
+        setPlanData(data);
 
-      const data = await savePlanification(payload);
+        if (data.yearChanged && data.annee !== selectedYear) {
+        setSelectedYear(data.annee);
+
+        showSnackbar(
+            `La session a été déplacée vers ${data.annee}.`
+        );
+        } else {
+        showSnackbar('Session mise à jour.');
+        }
+    } catch {
+        showSnackbar('Erreur lors de la mise à jour.', 'error');
+    }
+    }, [selectedEntId, selectedYear]);
+
+  const handleDeleteSession = useCallback(async (id) => {
+    try {
+      await deleteSession(id, selectedEntId);
+      // Re-fetch to get fresh aggregates
+      const data = await getPlanification(selectedYear, selectedEntId);
       setPlanData(data);
-      showSnackbar('Objectifs enregistrés avec succès !');
-      setOpenObjectivesModal(false);
-    } catch (err) {
-      console.error("Erreur lors de l'enregistrement des objectifs :", err);
-      showSnackbar("Erreur lors de l'enregistrement.", "error");
-    } finally {
-      setSavingObjectives(false);
+      showSnackbar('Session supprimée.');
+    } catch {
+      showSnackbar('Erreur lors de la suppression.', 'error');
     }
-  };
+  }, [selectedEntId, selectedYear]);
 
-  const createdSessionsForSelection = useMemo(() => {
-    if (!selectedEntId || !createdSessions.length) return [];
-    return createdSessions.filter((session) => {
-      const sessionYear = session.dateDebut ? new Date(session.dateDebut).getFullYear() : null;
-      return sessionYear === selectedYear && Number(session.idEntreprise) === Number(selectedEntId);
-    });
-  }, [createdSessions, selectedYear, selectedEntId]);
-
-  const createdMonthlyCounts = useMemo(() => {
-    const counts = Array(12).fill(0);
-    createdSessionsForSelection.forEach((session) => {
-      if (!session.dateDebut) return;
-      const month = new Date(session.dateDebut).getMonth();
-      counts[month] += 1;
-    });
-    return counts;
-  }, [createdSessionsForSelection]);
-
-  const createdMonthlyParticipants = useMemo(() => {
-    const counts = Array(12).fill(0);
-    createdSessionsForSelection.forEach((session) => {
-      if (!session.dateDebut) return;
-      const month = new Date(session.dateDebut).getMonth();
-      counts[month] += session.participants?.length || 0;
-    });
-    return counts;
-  }, [createdSessionsForSelection]);
-
-  const totalPlanifie = planData?.months.reduce((sum, month) => sum + month.planifie, 0) ?? 0;
-  const totalCreated = createdSessionsForSelection.length;
-  const totalParticipants = createdSessionsForSelection.reduce(
-    (sum, session) => sum + (session.participants?.length || 0),
-    0
-  );
-
-  const pct = totalPlanifie > 0 ? Math.round((totalCreated / totalPlanifie) * 100) : null;
-
+  // ── Derived chart data from new response shape ───────────────────────────────
   const chartData = useMemo(() => {
-    if (!planData) return [];
-
-    let cumulativePlanifie = 0;
-    let cumulativeCreees = 0;
-
-    return planData.months.map((month, index) => {
-        const planifie = month.planifie || 0;
-        const creees = createdMonthlyCounts[index] || 0;
-
-        cumulativePlanifie += planifie;
-        cumulativeCreees += creees;
-
-        return {
-        name: MONTH_KEY_TO_LABEL[month.month] || month.label || month.month,
-
-        // monthly values
-        Planifié: planifie,
-        Créées: creees,
-
-        // cumulative values
-        "Planifié Cumulé": cumulativePlanifie,
-        "Créées Cumulées": cumulativeCreees,
-        };
+    if (!planData?.planned) return [];
+    let cumPlan = 0, cumActual = 0;
+    return planData.planned.map((p, i) => {
+      const a = planData.actual[i] ?? { sessionCount: 0, heures: 0 };
+      cumPlan   += p.sessionCount;
+      cumActual += a.sessionCount;
+      return {
+        name: p.monthLabel,
+        'Planifié':          p.sessionCount,
+        'Réalisé':           a.sessionCount,
+        'Planifié Cumulé':   cumPlan,
+        'Réalisé Cumulé':    cumActual,
+      };
     });
-    }, [planData, createdMonthlyCounts]);
+  }, [planData]);
+
+  const totalPlanifie = planData?.planned?.reduce((s, m) => s + m.sessionCount, 0) ?? 0;
+  const totalActual   = planData?.actual?.reduce((s, m) => s + m.sessionCount, 0) ?? 0;
+  const totalHeures   = planData?.actual?.reduce((s, m) => s + m.heures, 0) ?? 0;
+  const pct = totalPlanifie > 0 ? Math.round((totalActual / totalPlanifie) * 100) : null;
 
   return (
     <Box p={3}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} mb={0.25}>
-            Planification des sessions
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Planifiez vos sessions avec participants, puis comparez-les aux sessions créées dans la page Session.
-          </Typography>
-        </Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" fontWeight={700} mb={0.25}>
+          Planification des sessions
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Planifiez vos sessions de formation par date, puis suivez leur réalisation mois par mois.
+        </Typography>
       </Box>
 
       <PlanificationFilters
@@ -194,8 +152,6 @@ export default function PlanificationPage() {
         selectedEntId={selectedEntId}
         onEntrepriseChange={(e) => setSelectedEntId(e.target.value)}
         isAdmin={isAdmin}
-        onEditObjectives={() => setOpenObjectivesModal(true)}
-        disableEdit={loading || !planData}
       />
 
       {loading ? (
@@ -203,40 +159,29 @@ export default function PlanificationPage() {
           <CircularProgress />
         </Box>
       ) : (
-        <Box>
-          <PlanificationOverview
-            planData={planData}
-            totalPlanifie={totalPlanifie}
-            totalCreated={totalCreated}
-            totalParticipants={totalParticipants}
-            actualMonthlyParticipants={createdMonthlyParticipants}
-            chartData={chartData}
-            selectedYear={selectedYear}
-            pct={pct}
-            createdMonthlyCounts={createdMonthlyCounts}
-          />
-        </Box>
+        <PlanificationOverview
+          planData={planData}
+          chartData={chartData}
+          selectedYear={selectedYear}
+          totalPlanifie={totalPlanifie}
+          totalActual={totalActual}
+          totalHeures={totalHeures}
+          pct={pct}
+          isAdmin={isAdmin}
+          onBulkAdd={handleBulkAdd}
+          onUpdateSession={handleUpdateSession}
+          onDeleteSession={handleDeleteSession}
+        />
       )}
 
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        onClose={() => setSnackbar(p => ({ ...p, open: false }))}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
+        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
-
-      <PlanificationObjectivesModal
-        open={openObjectivesModal}
-        onClose={() => setOpenObjectivesModal(false)}
-        planData={planData}
-        selectedYear={selectedYear}
-        onSave={handleSaveObjectives}
-        saving={savingObjectives}
-      />
     </Box>
   );
 }
