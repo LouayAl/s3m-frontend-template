@@ -6,7 +6,7 @@ import {
   Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon   from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -15,10 +15,11 @@ import {
   getAllFormateurs, getAllFormations, removeParticipantsFromSession,
 } from "../../api/sessionApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
-import SessionModal from "./SessionModal";
-import ParticipantsModal from "./ParticipantsModal";
-import SessionParticipantsPanel from "./SessionParticipantsPanel";
-import YearFilter from "../dashboard/Default/YearFilter";
+import SessionModal              from "./SessionModal";
+import ParticipantsModal         from "./ParticipantsModal";
+import SessionParticipantsPanel  from "./SessionParticipantsPanel";
+import YearFilter                from "../dashboard/Default/YearFilter";
+import { useIsVisitor }          from '../../hooks/useIsVisitor';
 
 const exportButtonSx = {
   backgroundColor: "#4CAF50",
@@ -26,22 +27,22 @@ const exportButtonSx = {
 };
 
 const SessionPage = () => {
-  const [sessions, setSessions]   = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState("");
+  const isVisitor = useIsVisitor();
 
-  // Year filter — empty means "all years"
+  const [sessions, setSessions]   = useState([]);
+  const [loading,  setLoading]    = useState(true);
+  const [search,   setSearch]     = useState("");
   const [selectedYears, setSelectedYears] = useState([]);
 
-  const [openSessionModal, setOpenSessionModal]   = useState(false);
-  const [editingSession, setEditingSession]       = useState(null);
+  const [openSessionModal,  setOpenSessionModal]  = useState(false);
+  const [editingSession,    setEditingSession]    = useState(null);
 
-  const [openDeleteDialog, setOpenDeleteDialog]   = useState(false);
+  const [openDeleteDialog,  setOpenDeleteDialog]  = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
 
-  const [openParticipantsModal, setOpenParticipantsModal]           = useState(false);
+  const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
+  const [openParticipantsPanel, setOpenParticipantsPanel] = useState(false);
   const [editingParticipantsSession, setEditingParticipantsSession] = useState(null);
-  const [openParticipantsPanel, setOpenParticipantsPanel]           = useState(false);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
@@ -65,7 +66,6 @@ const SessionPage = () => {
     }
   };
 
-  // Derive available years from loaded sessions
   const availableYears = useMemo(() => {
     const years = sessions
       .map(s => s.dateDebut ? new Date(s.dateDebut).getFullYear() : null)
@@ -76,11 +76,11 @@ const SessionPage = () => {
   const handleEdit = (row) => {
     setEditingSession({
       ...row,
-      idFormation:  row.idFormation,
-      idEntreprise: row.idEntreprise,
+      idFormation:   row.idFormation,
+      idEntreprise:  row.idEntreprise,
       idFournisseur: row.idFournisseur,
-      idFormateur:  row.idFormateur,
-      statut:       row.statut,
+      idFormateur:   row.idFormateur,
+      statut:        row.statut,
     });
     setOpenSessionModal(true);
   };
@@ -124,32 +124,33 @@ const SessionPage = () => {
           "Formation":    s.formation,
           "Nom":          p.nom,
           "Prénom":       p.prenom,
-          "Email":        p.email,
-          "Téléphone":    p.telephone,
+          "CIN":          p.cin,
+          "Matricule":    p.matricule,
           "Entreprise":   s.entrepriseNom,
         });
       });
     });
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sessionsData), "Sessions");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(participantsData), "Participants");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sessionsData),      "Sessions");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(participantsData),  "Participants");
     const today = new Date().toISOString().split("T")[0];
-    saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
-      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      `Export_Sessions_IFMIA_${today}.xlsx`);
+    saveAs(
+      new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
+        { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      `Export_Sessions_IFMIA_${today}.xlsx`
+    );
   };
 
-  // Apply search + year filter
   const filteredRows = useMemo(() => sessions.filter(s => {
     const matchesSearch = s.formation?.toLowerCase().includes(search.toLowerCase());
-    const matchesYear   = selectedYears.length === 0 || (
-      s.dateDebut && selectedYears.includes(new Date(s.dateDebut).getFullYear())
-    );
+    const matchesYear   = selectedYears.length === 0 ||
+      (s.dateDebut && selectedYears.includes(new Date(s.dateDebut).getFullYear()));
     return matchesSearch && matchesYear;
   }), [sessions, search, selectedYears]);
 
-  const columns = [
+  // ── Columns — actions column hidden for VISITOR ───────────────────────────
+  const baseColumns = [
     { field: "referenceSession",    headerName: "Réf. session", flex: 1, minWidth: 140 },
     { field: "formation",           headerName: "Formation",    flex: 1, minWidth: 160 },
     { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 140 },
@@ -168,29 +169,39 @@ const SessionPage = () => {
         <Button
           variant="outlined"
           size="small"
-          onClick={() => { setEditingParticipantsSession(params.row); setOpenParticipantsPanel(true); }}
+          onClick={() => {
+            setEditingParticipantsSession(params.row);
+            setOpenParticipantsPanel(true);
+          }}
         >
           {params.row.participants?.length || 0}
         </Button>
       ),
     },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <>
-          <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton color="error" size="small" onClick={() => { setSelectedSessionId(params.row.idSession); setOpenDeleteDialog(true); }}>
-            <DeleteIcon />
-          </IconButton>
-        </>
-      ),
-    },
   ];
+
+  // Actions column only for non-visitors
+  const actionsColumn = {
+    field: "actions",
+    headerName: "Actions",
+    width: 120,
+    sortable: false,
+    renderCell: (params) => (
+      <>
+        <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
+          <EditIcon />
+        </IconButton>
+        <IconButton color="error" size="small" onClick={() => {
+          setSelectedSessionId(params.row.idSession);
+          setOpenDeleteDialog(true);
+        }}>
+          <DeleteIcon />
+        </IconButton>
+      </>
+    ),
+  };
+
+  const columns = isVisitor ? baseColumns : [...baseColumns, actionsColumn];
 
   return (
     <Box p={3}>
@@ -199,7 +210,6 @@ const SessionPage = () => {
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            {/* Search */}
             <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
@@ -209,18 +219,21 @@ const SessionPage = () => {
               />
             </Grid>
 
-            {/* Buttons */}
             <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
-                Créer session
-              </Button>
+              {/* Créer session — hidden for VISITOR */}
+              {!isVisitor && (
+                <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
+                  Créer session
+                </Button>
+              )}
+              {/* Export always visible */}
               <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
                 Export Excel
               </Button>
             </Grid>
 
-            {/* Year filter — right on desktop, full width on mobile */}
-            <Grid size={{ xs: 12, md: "grow" }} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+            <Grid size={{ xs: 12, md: "grow" }}
+              sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
               <YearFilter
                 availableYears={availableYears}
                 selectedYears={selectedYears}
@@ -243,6 +256,7 @@ const SessionPage = () => {
         </CardContent>
       </Card>
 
+      {/* Delete confirm — never shown to VISITOR since they can't trigger it */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
         <DialogContent>Êtes-vous sûr de vouloir supprimer cette session ?</DialogContent>
@@ -252,16 +266,20 @@ const SessionPage = () => {
         </DialogActions>
       </Dialog>
 
-      <SessionModal
-        open={openSessionModal}
-        onClose={() => setOpenSessionModal(false)}
-        onSessionCreated={() => fetchSessions(false)}
-        onCompleted={() => { setOpenSessionModal(false); setEditingSession(null); }}
-        initialData={editingSession}
-        showSnackbar={showSnackbar}
-      />
+      {/* Session create/edit modal — never opened by VISITOR */}
+      {!isVisitor && (
+        <SessionModal
+          open={openSessionModal}
+          onClose={() => setOpenSessionModal(false)}
+          onSessionCreated={() => fetchSessions(false)}
+          onCompleted={() => { setOpenSessionModal(false); setEditingSession(null); }}
+          initialData={editingSession}
+          showSnackbar={showSnackbar}
+        />
+      )}
 
-      {editingParticipantsSession && (
+      {/* Participants modal — never opened by VISITOR */}
+      {!isVisitor && editingParticipantsSession && (
         <ParticipantsModal
           open={openParticipantsModal}
           onClose={() => setOpenParticipantsModal(false)}
@@ -272,7 +290,7 @@ const SessionPage = () => {
               const newIds = selected.map(p => Number(p.idEmploye));
               const toAdd    = newIds.filter(id => !oldIds.includes(id));
               const toRemove = oldIds.filter(id => !newIds.includes(id));
-              if (toAdd.length > 0)    await addParticipantsToSession(editingParticipantsSession.idSession, toAdd);
+              if (toAdd.length    > 0) await addParticipantsToSession(editingParticipantsSession.idSession, toAdd);
               if (toRemove.length > 0) await removeParticipantsFromSession(editingParticipantsSession.idSession, toRemove);
               showSnackbar(`${selected.length} participants mis à jour avec succès !`);
               fetchSessions(false);
@@ -285,7 +303,12 @@ const SessionPage = () => {
         />
       )}
 
-      <Dialog open={openParticipantsPanel} onClose={() => setOpenParticipantsPanel(false)} maxWidth="lg" fullWidth>
+      {/* Participants panel — always available but read-only for VISITOR */}
+      <Dialog
+        open={openParticipantsPanel}
+        onClose={() => setOpenParticipantsPanel(false)}
+        maxWidth="lg" fullWidth
+      >
         <DialogContent>
           {editingParticipantsSession && (
             <SessionParticipantsPanel
@@ -293,12 +316,14 @@ const SessionPage = () => {
               onClose={() => setOpenParticipantsPanel(false)}
               onUpdated={() => fetchSessions(false)}
               showSnackbar={showSnackbar}
+              readOnly={isVisitor}   // ← passed to panel
             />
           )}
         </DialogContent>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>

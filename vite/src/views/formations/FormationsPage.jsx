@@ -7,7 +7,7 @@ import {
   DialogContent, DialogContentText, DialogActions, Button,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon   from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -15,39 +15,38 @@ import FormationsModal from "./FormationsModal";
 import { getAllFormations, deleteFormation, importFormations } from "../../api/formationApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
-const importButtonSx = {
-  backgroundColor: "#4CAF50",
-  "&:hover": { backgroundColor: "#43A047" },
-};
+const importButtonSx = { backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" } };
+const exportButtonSx = { backgroundColor: "#ff5e00", "&:hover": { backgroundColor: "#ff3c00" } };
 
-const exportButtonSx = {
-  backgroundColor: "#ff5e00",
-  "&:hover": { backgroundColor: "#ff3c00" },
-};
+// Roles that can mutate data
+const CAN_MUTATE = new Set(["ADMIN", "MANAGER", "EQUIPMENT_MANAGER"]);
 
 const FormationsPage = () => {
-  const { token } = useAuth();
+  const { user } = useAuth();
+  const canEdit = CAN_MUTATE.has(user?.role);   // false for VISITOR, TRAINER, etc.
 
-  const [formations, setFormations] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
+  const [formations,        setFormations]        = useState([]);
+  const [loading,           setLoading]           = useState(true);
+  const [search,            setSearch]            = useState("");
 
-  const [modalOpen, setModalOpen]             = useState(false);
-  const [editingFormation, setEditingFormation] = useState(null);
+  const [modalOpen,         setModalOpen]         = useState(false);
+  const [editingFormation,  setEditingFormation]  = useState(null);
 
-  const [openDeleteDialog, setOpenDeleteDialog]     = useState(false);
+  const [openDeleteDialog,  setOpenDeleteDialog]  = useState(false);
   const [selectedFormationId, setSelectedFormationId] = useState(null);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  // Backend scopes to the user's entrepriseId via JWT automatically.
   useEffect(() => { fetchFormations(); }, []);
 
   const fetchFormations = async () => {
     try {
       setLoading(true);
-      const data = await getAllFormations(token);
+      const data = await getAllFormations();
       setFormations(data);
     } catch {
       showSnackbar("Erreur lors du chargement des formations.", "error");
@@ -56,6 +55,7 @@ const FormationsPage = () => {
     }
   };
 
+  // ── Modal ─────────────────────────────────────────────────────────────────
   const handleModalOpen  = (formation = null) => { setEditingFormation(formation); setModalOpen(true); };
   const handleModalClose = () => { setEditingFormation(null); setModalOpen(false); };
 
@@ -68,6 +68,7 @@ const FormationsPage = () => {
     handleModalClose();
   };
 
+  // ── Import / Export ───────────────────────────────────────────────────────
   const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -85,27 +86,30 @@ const FormationsPage = () => {
   const handleExportExcel = () => {
     if (!formations.length) { showSnackbar("Aucune formation à exporter.", "warning"); return; }
     const data = formations.map(f => ({
-      "Module":           f.module,
-      "Famille":          f.familleFormation,
-      "Type":             f.typeFormation,
-      "Sous-famille":     f.sousFamille,
-      "Interne/Externe":  f.interneExterne,
-      "Référence":        f.referenceFormation,
-      "Année":            f.annee,
-      "Durée (h)":        f.dureeHeures,
-      "Durée (j)":        f.dureeJours,
-      "Prix / h (MAD)":   f.prixHeureMad,
-      "Prix / j (MAD)":   f.prixJourMad,
+      "Module":          f.module,
+      "Famille":         f.familleFormation,
+      "Type":            f.typeFormation,
+      "Sous-famille":    f.sousFamille,
+      "Interne/Externe": f.interneExterne,
+      "Référence":       f.referenceFormation,
+      "Année":           f.annee,
+      "Durée (h)":       f.dureeHeures,
+      "Durée (j)":       f.dureeJours,
+      "Prix / h (MAD)":  f.prixHeureMad,
+      "Prix / j (MAD)":  f.prixJourMad,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Formations");
     const today = new Date().toISOString().split("T")[0];
-    saveAs(new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
-      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-      `Export_Formations_${today}.xlsx`);
+    saveAs(
+      new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })],
+        { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      `Export_Formations_${today}.xlsx`
+    );
   };
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   const handleOpenDeleteDialog  = (id) => { setSelectedFormationId(id); setOpenDeleteDialog(true); };
   const handleCloseDeleteDialog = () => { setOpenDeleteDialog(false); setSelectedFormationId(null); };
 
@@ -121,40 +125,43 @@ const FormationsPage = () => {
     }
   };
 
-  const columns = [
-    { field: "module",             headerName: "Module",           flex: 1, minWidth: 160 },
-    { field: "familleFormation",   headerName: "Famille",          flex: 1, minWidth: 120 },
-    { field: "typeFormation",      headerName: "Type",             flex: 1, minWidth: 120 },
-    { field: "sousFamille",        headerName: "Sous-famille",     flex: 1, minWidth: 120 },
-    { field: "interneExterne",     headerName: "Interne/Externe",  flex: 1, minWidth: 140 },
-    { field: "referenceFormation", headerName: "Référence",        flex: 1, minWidth: 120 },
-    { field: "annee",              headerName: "Année",            width: 100 },
-    { field: "dureeHeures",        headerName: "Durée (h)",        width: 120 },
-    { field: "dureeJours",         headerName: "Durée (j)",        width: 120 },
-    { field: "prixHeureMad",       headerName: "Prix / h (MAD)",   width: 140 },
-    { field: "prixJourMad",        headerName: "Prix / j (MAD)",   width: 140 },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <Stack direction="row" spacing={1}>
-          <IconButton color="primary" size="small" onClick={() => handleModalOpen(params.row)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.id)}>
-            <DeleteIcon />
-          </IconButton>
-        </Stack>
-      ),
-    },
+  // ── Columns ───────────────────────────────────────────────────────────────
+  const baseColumns = [
+    { field: "module",             headerName: "Module",          flex: 1, minWidth: 160 },
+    { field: "familleFormation",   headerName: "Famille",         flex: 1, minWidth: 120 },
+    { field: "typeFormation",      headerName: "Type",            flex: 1, minWidth: 120 },
+    { field: "sousFamille",        headerName: "Sous-famille",    flex: 1, minWidth: 120 },
+    { field: "interneExterne",     headerName: "Interne/Externe", flex: 1, minWidth: 140 },
+    { field: "referenceFormation", headerName: "Référence",       flex: 1, minWidth: 120 },
+    { field: "annee",              headerName: "Année",           width: 100 },
+    { field: "dureeHeures",        headerName: "Durée (h)",       width: 120 },
+    { field: "dureeJours",         headerName: "Durée (j)",       width: 120 },
+    { field: "prixHeureMad",       headerName: "Prix / h (MAD)",  width: 140 },
+    { field: "prixJourMad",        headerName: "Prix / j (MAD)",  width: 140 },
   ];
+
+  const actionsColumn = {
+    field: "actions", headerName: "Actions", width: 120, sortable: false,
+    renderCell: (params) => (
+      <Stack direction="row" spacing={1}>
+        <IconButton color="primary" size="small" onClick={() => handleModalOpen(params.row)}>
+          <EditIcon />
+        </IconButton>
+        <IconButton color="error" size="small" onClick={() => handleOpenDeleteDialog(params.row.id)}>
+          <DeleteIcon />
+        </IconButton>
+      </Stack>
+    ),
+  };
+
+  // Only add actions column for users who can mutate
+  const columns = canEdit ? [...baseColumns, actionsColumn] : baseColumns;
 
   const filteredRows = formations.filter(f =>
     f.module?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box p={3}>
       <Typography variant="h4" fontWeight="bold" mb={2}>Catalogue des Formations</Typography>
@@ -170,14 +177,26 @@ const FormationsPage = () => {
                 onChange={e => setSearch(e.target.value)}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
-              <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
-                Créer Formation
-              </Button>
-              <Button variant="contained" component="label" sx={importButtonSx}>
-                Importer Excel
-                <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
-              </Button>
+
+            <Grid size={{ xs: 12, md: 6 }}
+              sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
+
+              {/* Create — mutators only */}
+              {canEdit && (
+                <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
+                  Créer Formation
+                </Button>
+              )}
+
+              {/* Import — mutators only */}
+              {canEdit && (
+                <Button variant="contained" component="label" sx={importButtonSx}>
+                  Importer Excel
+                  <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
+                </Button>
+              )}
+
+              {/* Export — everyone can export */}
               <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
                 Export Excel
               </Button>
@@ -197,18 +216,23 @@ const FormationsPage = () => {
         </CardContent>
       </Card>
 
-      <FormationsModal
-        open={modalOpen}
-        onClose={handleModalClose}
-        onSave={handleSave}
-        showSnackbar={showSnackbar}
-        initialData={editingFormation}
-      />
+      {/* Modal — only rendered when canEdit to prevent any bypass */}
+      {canEdit && (
+        <FormationsModal
+          open={modalOpen}
+          onClose={handleModalClose}
+          onSave={handleSave}
+          showSnackbar={showSnackbar}
+          initialData={editingFormation}
+        />
+      )}
 
       <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmation de suppression</DialogTitle>
         <DialogContent>
-          <DialogContentText>Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.</DialogContentText>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer cette formation ? Cette action est irréversible.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
@@ -216,7 +240,8 @@ const FormationsPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}>
         <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
       </Snackbar>
     </Box>

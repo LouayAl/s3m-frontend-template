@@ -17,12 +17,16 @@ import { getEmployesPaginated, deleteEmploye, importEmployes } from "../../api/e
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
+import { useIsVisitor } from '../../hooks/useIsVisitor';
+
+
 const importButtonSx = { backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" } };
 const exportButtonSx = { backgroundColor: "#ff5e00", "&:hover": { backgroundColor: "#ff3c00" } };
 
 const EmployesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
+  const isVisitor = useIsVisitor();
 
   const [employes,        setEmployes]        = useState([]);
   const [loading,         setLoading]         = useState(true);
@@ -228,8 +232,8 @@ const EmployesPage = () => {
   }), []); // eslint-disable-line
 
   const columnsWithActions = useMemo(() =>
-    isAdmin ? [...columns, actionsColumn] : columns,
-  [columns, actionsColumn, isAdmin]);
+    isAdmin && !isVisitor ? [...columns, actionsColumn] : columns,
+  [columns, actionsColumn, isAdmin, isVisitor]);
 
   return (
     <Box p={3}>
@@ -277,15 +281,18 @@ const EmployesPage = () => {
             {/* Action buttons */}
             <Grid size={{ xs: 12, md: isAdmin ? 6 : 6 }}
               sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
-              {isAdmin && (
+              {!isVisitor && isAdmin && (
                 <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
                   Créer Employé
                 </Button>
               )}
+              {!isVisitor && (
               <Button variant="contained" component="label" sx={importButtonSx}>
                 Importer Excel
                 <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />
               </Button>
+              )}
+
               <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
                 Export Excel
               </Button>

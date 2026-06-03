@@ -1,69 +1,41 @@
 // frontend-template/vite/src/views/sessions/SessionParticipantsPanel.jsx
-
 import { useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Stack,
-  useMediaQuery,
+  Box, Typography, Button, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Stack, useMediaQuery,
 } from "@mui/material";
-
-import { useTheme } from "@mui/material/styles";
-
-import { DataGrid } from "@mui/x-data-grid";
-
-import DeleteIcon from "@mui/icons-material/Delete";
-import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
-import DownloadIcon from "@mui/icons-material/Download";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-
+import { useTheme }      from "@mui/material/styles";
+import { DataGrid }      from "@mui/x-data-grid";
+import DeleteIcon        from "@mui/icons-material/Delete";
+import GroupRemoveIcon   from "@mui/icons-material/GroupRemove";
+import DownloadIcon      from "@mui/icons-material/Download";
+import PictureAsPdfIcon  from "@mui/icons-material/PictureAsPdf";
 import ParticipantsModal from "./ParticipantsModal";
-
 import {
   getSessionParticipants,
   addParticipantsToSession,
   removeParticipantsFromSession,
   getAllEmployees,
 } from "../../api/sessionApi";
+import * as XLSX    from "xlsx";
+import jsPDF        from "jspdf";
+import autoTable    from "jspdf-autotable";
 
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
-const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
-  const [participants, setParticipants] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Search
-  const [search, setSearch] = useState("");
-
-  // Add modal
-  const [openAddModal, setOpenAddModal] = useState(false);
-  const [availableEmployees, setAvailableEmployees] = useState([]);
-
-  // Delete one participant
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [participantToDelete, setParticipantToDelete] = useState(null);
-
-  // Delete all participants
-  const [confirmRemoveAllOpen, setConfirmRemoveAllOpen] = useState(false);
-
-  /* ============================
-     RESPONSIVE SETTINGS
-     ============================ */
-  const theme = useTheme();
+// readOnly={true}  → VISITOR: can see list, export, but cannot add/remove
+const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly = false }) => {
+  const theme    = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  /* ============================
-     FETCH PARTICIPANTS
-     ============================ */
+  const [participants,         setParticipants]         = useState([]);
+  const [loading,              setLoading]              = useState(true);
+  const [search,               setSearch]               = useState("");
+  const [openAddModal,         setOpenAddModal]         = useState(false);
+  const [availableEmployees,   setAvailableEmployees]   = useState([]);
+  const [confirmDeleteOpen,    setConfirmDeleteOpen]    = useState(false);
+  const [participantToDelete,  setParticipantToDelete]  = useState(null);
+  const [confirmRemoveAllOpen, setConfirmRemoveAllOpen] = useState(false);
+
   useEffect(() => {
     if (session) fetchParticipants();
   }, [session]);
@@ -73,279 +45,170 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
       setLoading(true);
       const data = await getSessionParticipants(session.idSession);
       setParticipants(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       showSnackbar?.("Impossible de charger les participants.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ============================
-     OPEN ADD MODAL
-     ============================ */
+  // ── Add ───────────────────────────────────────────────────────────────────
   const handleOpenAddModal = async () => {
     try {
-      const allEmployees = await getAllEmployees();
-
-      const assignedIds = participants.map((p) => p.idEmploye);
-
-      const filtered = allEmployees.filter(
-        (emp) => !assignedIds.includes(emp.idEmploye)
-      );
-
-      setAvailableEmployees(filtered);
+      const all        = await getAllEmployees();
+      const assignedIds = participants.map(p => p.idEmploye);
+      setAvailableEmployees(all.filter(e => !assignedIds.includes(e.idEmploye)));
       setOpenAddModal(true);
-    } catch (err) {
-      console.error(err);
+    } catch {
       showSnackbar?.("Impossible de charger les employés.", "error");
     }
   };
 
-  /* ============================
-     ADD PARTICIPANTS
-     ============================ */
   const handleAddParticipants = async (selected) => {
     try {
-      const idsToAdd = selected.map((p) => p.idEmploye);
-      if (idsToAdd.length === 0) return;
-
-      await addParticipantsToSession(session.idSession, idsToAdd);
-
-      showSnackbar?.(
-        `${selected.length} participant(s) ajouté(s) avec succès !`,
-        "success"
-      );
-
+      await addParticipantsToSession(session.idSession, selected.map(p => p.idEmploye));
+      showSnackbar?.(`${selected.length} participant(s) ajouté(s) avec succès !`, "success");
       setOpenAddModal(false);
       fetchParticipants();
       onUpdated?.();
-    } catch (err) {
-      console.error(err);
+    } catch {
       showSnackbar?.("Erreur ajout participants.", "error");
     }
   };
 
-  /* ============================
-     DELETE ONE PARTICIPANT
-     ============================ */
-  const handleDeleteClick = (participant) => {
-    setParticipantToDelete(participant);
-    setConfirmDeleteOpen(true);
-  };
-
+  // ── Delete one ────────────────────────────────────────────────────────────
+  const handleDeleteClick   = (p) => { setParticipantToDelete(p); setConfirmDeleteOpen(true); };
   const handleConfirmDelete = async () => {
     if (!participantToDelete) return;
-
     try {
-      await removeParticipantsFromSession(session.idSession, [
-        participantToDelete.idEmploye,
-      ]);
-
+      await removeParticipantsFromSession(session.idSession, [participantToDelete.idEmploye]);
       showSnackbar?.("Participant supprimé avec succès !", "success");
-
       setConfirmDeleteOpen(false);
       setParticipantToDelete(null);
-
       fetchParticipants();
       onUpdated?.();
-    } catch (err) {
-      console.error(err);
+    } catch {
       showSnackbar?.("Erreur suppression participant.", "error");
     }
   };
 
-  /* ============================
-     REMOVE ALL PARTICIPANTS
-     ============================ */
+  // ── Remove all ────────────────────────────────────────────────────────────
   const handleRemoveAll = async () => {
     try {
-      const allIds = participants.map((p) => p.idEmploye);
-      if (allIds.length === 0) return;
-
-      await removeParticipantsFromSession(session.idSession, allIds);
-
+      await removeParticipantsFromSession(session.idSession, participants.map(p => p.idEmploye));
       showSnackbar?.("Tous les participants ont été supprimés.", "success");
-
       setConfirmRemoveAllOpen(false);
-
       fetchParticipants();
       onUpdated?.();
-    } catch (err) {
-      console.error(err);
+    } catch {
       showSnackbar?.("Erreur suppression globale.", "error");
     }
   };
 
-  /* ============================
-     EXPORTS
-     ============================ */
+  // ── Exports ───────────────────────────────────────────────────────────────
   const exportToExcel = () => {
-    const data = participants.map((p) => ({
-      Nom: p.nom,
-      Prénom: p.prenom,
-      CIN: p.cin || "",
-      Matricule: p.matricule || "",
+    const data = participants.map(p => ({
+      Nom: p.nom, Prénom: p.prenom,
+      CIN: p.cin || "", Matricule: p.matricule || "",
     }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
-
-    XLSX.writeFile(workbook, `participants_${session.referenceSession}.xlsx`);
-
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Participants");
+    XLSX.writeFile(wb, `participants_${session.referenceSession}.xlsx`);
     showSnackbar?.("Export Excel réussi !", "success");
   };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text(`Participants - Session ${session.referenceSession}`, 10, 10);
-
     autoTable(doc, {
       head: [["Nom", "Prénom", "CIN", "Matricule"]],
-      body: participants.map((p) => [
-        p.nom,
-        p.prenom,
-        p.cin || "",
-        p.matricule || "",
-      ]),
+      body: participants.map(p => [p.nom, p.prenom, p.cin || "", p.matricule || ""]),
     });
-
     doc.save(`participants_${session.referenceSession}.pdf`);
-
     showSnackbar?.("Export PDF réussi !", "success");
   };
 
-  /* ============================
-     FILTER PARTICIPANTS
-     ============================ */
-  const filteredParticipants = participants.filter((p) => {
-    const keyword = search.toLowerCase();
+  // ── Filter ────────────────────────────────────────────────────────────────
+  const filteredParticipants = participants.filter(p => {
+    const kw = search.toLowerCase();
     return (
-      p.nom?.toLowerCase().includes(keyword) ||
-      p.prenom?.toLowerCase().includes(keyword) ||
-      p.cin?.toLowerCase().includes(keyword) ||
-      p.matricule?.toLowerCase().includes(keyword)
+      p.nom?.toLowerCase().includes(kw)      ||
+      p.prenom?.toLowerCase().includes(kw)   ||
+      p.cin?.toLowerCase().includes(kw)      ||
+      p.matricule?.toLowerCase().includes(kw)
     );
   });
 
-  /* ============================
-     DATAGRID COLUMNS
-     ============================ */
-  const columns = [
-    {
-      field: "nom",
-      headerName: "Nom",
-      flex: 1,
-    },
-    {
-      field: "prenom",
-      headerName: "Prénom",
-      width: 200,
-      flex: 1,
-    },
-    {
-      field: "cin",
-      headerName: "CIN",
-      width: 200,
-      flex: 1,
-    },
-    {
-      field: "matricule",
-      headerName: "Matricule",
-      width: 200,
-      flex: 1,
-      hide: isMobile, // 👈 hide matricule column on mobile
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 120,
-      sortable: false,
-      renderCell: (params) => (
-        <IconButton
-          color="error"
-          size="small"
-          onClick={() => handleDeleteClick(params.row)}
-        >
-          <DeleteIcon />
-        </IconButton>
-      ),
-    },
+  // ── Columns — actions column hidden for readOnly/VISITOR ──────────────────
+  const baseColumns = [
+    { field: "nom",       headerName: "Nom",       flex: 1 },
+    { field: "prenom",    headerName: "Prénom",     flex: 1 },
+    { field: "cin",       headerName: "CIN",        flex: 1 },
+    { field: "matricule", headerName: "Matricule",  flex: 1 },
   ];
+
+  const actionsColumn = {
+    field: "actions", headerName: "Actions", width: 100, sortable: false,
+    renderCell: (params) => (
+      <IconButton color="error" size="small" onClick={() => handleDeleteClick(params.row)}>
+        <DeleteIcon />
+      </IconButton>
+    ),
+  };
+
+  const columns = readOnly ? baseColumns : [...baseColumns, actionsColumn];
 
   return (
     <Box p={2}>
-      {/* TITLE */}
-      <Typography
-        variant="h6"
-        mb={2}
-        textAlign={isMobile ? "center" : "left"}
-      >
-        Participants - Session "{session.referenceSession}"
+      <Typography variant="h6" mb={2} textAlign={isMobile ? "center" : "left"}>
+        Participants — Session «{session.referenceSession}»
       </Typography>
 
-      {/* SEARCH */}
       <TextField
-        fullWidth
-        label="Rechercher..."
+        fullWidth label="Rechercher..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={e => setSearch(e.target.value)}
         sx={{ mb: 2 }}
       />
 
-      {/* BUTTONS RESPONSIVE */}
-      <Stack
-        direction={isMobile ? "column" : "row"}
-        spacing={1}
-        mb={1}
-      >
-        <Button variant="contained" onClick={handleOpenAddModal}>
-          Ajouter des participants
-        </Button>
-
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<GroupRemoveIcon />}
-          onClick={() => setConfirmRemoveAllOpen(true)}
-        >
-          Tout supprimer
-        </Button>
-
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          onClick={exportToExcel}
-        >
+      {/* Button bar — mutation buttons hidden for VISITOR */}
+      <Stack direction={isMobile ? "column" : "row"} spacing={1} mb={1}>
+        {!readOnly && (
+          <Button variant="contained" onClick={handleOpenAddModal}>
+            Ajouter des participants
+          </Button>
+        )}
+        {!readOnly && (
+          <Button variant="outlined" color="error" startIcon={<GroupRemoveIcon />}
+            onClick={() => setConfirmRemoveAllOpen(true)}>
+            Tout supprimer
+          </Button>
+        )}
+        {/* Exports always visible */}
+        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel}>
           Excel
         </Button>
-
-        <Button
-          variant="outlined"
-          startIcon={<PictureAsPdfIcon />}
-          onClick={exportToPDF}
-        >
+        <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={exportToPDF}>
           PDF
         </Button>
       </Stack>
 
-      {/* DATAGRID RESPONSIVE HEIGHT */}
       <Box sx={{ height: "70vh", width: "100%", overflowX: "auto" }}>
         <Box sx={{ minWidth: 700, height: isMobile ? 320 : 800 }}>
-            <DataGrid
+          <DataGrid
             rows={filteredParticipants}
             columns={columns}
-            getRowId={(row) => row.idEmploye}
+            getRowId={row => row.idEmploye}
             loading={loading}
             pageSizeOptions={[10, 20, 50, 100]}
             disableRowSelectionOnClick
-            />
+          />
         </Box>
       </Box>
 
-      {/* ADD PARTICIPANTS MODAL */}
-      {openAddModal && (
+      {/* Add participants modal — never mounted for VISITOR */}
+      {!readOnly && openAddModal && (
         <ParticipantsModal
           open={openAddModal}
           onClose={() => setOpenAddModal(false)}
@@ -354,7 +217,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
         />
       )}
 
-      {/* DELETE ONE CONFIRM */}
+      {/* Delete one confirm */}
       <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
         <DialogTitle>Supprimer participant ?</DialogTitle>
         <DialogContent>
@@ -362,26 +225,17 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDeleteOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
-            Supprimer
-          </Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>Supprimer</Button>
         </DialogActions>
       </Dialog>
 
-      {/* REMOVE ALL CONFIRM */}
-      <Dialog
-        open={confirmRemoveAllOpen}
-        onClose={() => setConfirmRemoveAllOpen(false)}
-      >
+      {/* Remove all confirm */}
+      <Dialog open={confirmRemoveAllOpen} onClose={() => setConfirmRemoveAllOpen(false)}>
         <DialogTitle>Supprimer tous ?</DialogTitle>
-        <DialogContent>
-          Retirer tous les participants de cette session ?
-        </DialogContent>
+        <DialogContent>Retirer tous les participants de cette session ?</DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmRemoveAllOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleRemoveAll}>
-            Oui, supprimer
-          </Button>
+          <Button color="error" variant="contained" onClick={handleRemoveAll}>Oui, supprimer</Button>
         </DialogActions>
       </Dialog>
     </Box>
