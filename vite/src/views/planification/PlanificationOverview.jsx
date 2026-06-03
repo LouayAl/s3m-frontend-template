@@ -1,4 +1,4 @@
-import { useState, useMemo, React, Fragment } from 'react';
+import React, { useState, useMemo, Fragment } from 'react';
 import {
   Box, Card, CardContent, Typography, Stack, Table, TableBody,
   TableCell, TableHead, TableRow, TextField, Button, IconButton,
@@ -40,6 +40,7 @@ function ChartTooltip({ active, payload, label }) {
 function EditableRow({ session, onSave, onCancel, isAdmin }) {
   const [date, setDate] = useState(session.dateSession);
   const [hours, setHours] = useState(session.dHeures ?? 8);
+  const [participants, setParticipants] =useState(session.nbParticipants ?? 0);
   const [notes, setNotes] = useState(session.notes ?? '');
 
   return (
@@ -71,6 +72,18 @@ function EditableRow({ session, onSave, onCancel, isAdmin }) {
         />
       </TableCell>
 
+        <TableCell>
+            <TextField
+            type="number"
+            size="small"
+            label="Participants"
+            value={participants}
+            onChange={(e) => setParticipants(e.target.value)}
+            inputProps={{ min: 0 }}
+            sx={{ width: 120 }}
+            />
+        </TableCell>
+
       {/* Heures totales column */}
       <TableCell>
         <TextField
@@ -92,6 +105,7 @@ function EditableRow({ session, onSave, onCancel, isAdmin }) {
               onSave({
                 dateSession: date,
                 dHeures: Number(hours),
+                nbParticipants: Number(participants),
                 notes,
               })
             }
@@ -118,8 +132,8 @@ export default function PlanificationOverview({
   const [bulkDate,   setBulkDate]   = useState('');
   const [bulkCount,  setBulkCount]  = useState(1);
   const [bulkHours,  setBulkHours]  = useState(8);
+  const [bulkParticipants, setBulkParticipants] = useState(0);
   const [bulkAdding, setBulkAdding] = useState(false);
-
   // Sessions table
   const [editingId,       setEditingId]       = useState(null);
   const [expandedDates,   setExpandedDates]   = useState({});   // keyed by dateSession string
@@ -184,9 +198,11 @@ export default function PlanificationOverview({
     if (!bulkDate || bulkCount < 1) return;
     setBulkAdding(true);
     try {
-      await onBulkAdd({ dateSession: bulkDate, count: Number(bulkCount), dHeures: Number(bulkHours) });
+      await onBulkAdd({ dateSession: bulkDate, count: Number(bulkCount), dHeures: Number(bulkHours), nbParticipants: Number(bulkParticipants) });
       setBulkDate('');
       setBulkCount(1);
+      setBulkHours(8);
+      setBulkParticipants(0);
     } finally {
       setBulkAdding(false);
     }
@@ -197,17 +213,48 @@ export default function PlanificationOverview({
     setEditingId(null);
   };
 
+  const totalParticipants = useMemo(
+    () =>
+        sessions.reduce(
+        (sum, s) => sum + Number(s.nbParticipants ?? 0),
+        0
+        ),
+    [sessions]
+    );
+
   return (
     <Box>
       {/* ── Stat cards ──────────────────────────────────────────────────────── */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, flexWrap: 'wrap' }}>
         {[
-          { label: 'Planifié',          value: totalPlanifie,        color: S3M_DARK_BLUE },
-          { label: 'Réalisé',           value: totalActual,          color: S3M_BLUE },
-          { label: 'Heures réalisées',  value: `${totalHeures}h`,    color: S3M_ORANGE },
-          { label: '% atteint',
-            value: pct !== null ? `${pct}%` : 'N/A',
-            color: pct === null ? '#999' : pct >= 100 ? S3M_BLUE : pct >= 60 ? S3M_ORANGE : '#d32f2f' },
+            { label: 'Planifié', value: totalPlanifie, color: S3M_DARK_BLUE },
+
+            { label: 'Réalisé', value: totalActual, color: S3M_BLUE },
+
+            {
+                label: 'Participants',
+                value: totalParticipants,
+                color: '#2e7d32'
+            },
+
+            {
+                label: 'Heures réalisées',
+                value: `${totalHeures}h`,
+                color: S3M_ORANGE
+            },
+
+            {
+                label: '% atteint',
+                value: pct !== null ? `${pct}%` : 'N/A',
+                color:
+                pct === null
+                    ? '#999'
+                    : pct >= 100
+                    ? S3M_BLUE
+                    : pct >= 60
+                        ? S3M_ORANGE
+                        : '#d32f2f'
+            }
         ].map(({ label, value, color }) => (
           <Box key={label} sx={{ flex: '1 1 130px', p: 2, bgcolor: '#f9f9f9', borderRadius: 1.5, border: '1px solid #e0e0e0' }}>
             <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>{label}</Typography>
@@ -239,6 +286,15 @@ export default function PlanificationOverview({
                 inputProps={{ min: 1, max: 24 }}
                 sx={{ width: 130 }}
               />
+              <TextField
+                type="number"
+                size="small"
+                label="Participants"
+                value={bulkParticipants}
+                onChange={(e) => setBulkParticipants(e.target.value)}
+                inputProps={{ min: 0 }}
+                sx={{ width: 120 }}
+                />
               <Button
                 variant="contained" startIcon={<AddIcon />}
                 onClick={handleBulkAdd}
@@ -283,6 +339,8 @@ export default function PlanificationOverview({
                     <TableCell sx={{ fontWeight: 700, color: S3M_ORANGE }}>Date</TableCell>
                     <TableCell sx={{ fontWeight: 700, color: S3M_DARK_BLUE }}>Sessions</TableCell>
                     <TableCell sx={{ fontWeight: 700, color: S3M_DARK_BLUE }}>Heures totales</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: S3M_DARK_BLUE }}>Notes</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: S3M_DARK_BLUE }}>Participants</TableCell>
                     {isAdmin && <TableCell />}
                   </TableRow>
                 </TableHead>
@@ -307,6 +365,8 @@ export default function PlanificationOverview({
                           <TableCell sx={{ fontWeight: 700, color: S3M_DARK_BLUE, py: 1 }}>{date}</TableCell>
                           <TableCell sx={{ py: 1, color: 'text.secondary', fontSize: 13 }}>{rows.length} session{rows.length !== 1 ? 's' : ''}</TableCell>
                           <TableCell sx={{ py: 1, color: 'text.secondary', fontSize: 13 }}>{totalH}h</TableCell>
+                          <TableCell sx={{ py: 1, color: 'text.secondary', fontSize: 13 }}>—</TableCell>
+                          <TableCell sx={{ py: 1, color: 'text.secondary', fontSize: 13 }}>{rows.reduce((s, r) => s + Number(r.nbParticipants ?? 0), 0)}</TableCell>
                           {isAdmin && <TableCell />}
                         </TableRow>
 
@@ -325,6 +385,7 @@ export default function PlanificationOverview({
                               <TableCell />
                               <TableCell sx={{ color: 'text.secondary', fontSize: 13, pl: 4 }}>└ #{session.id}</TableCell>
                               <TableCell sx={{ fontSize: 13 }}>{session.dHeures}h</TableCell>
+                              <TableCell sx={{ fontSize: 13 }}>{session.nbParticipants ?? 0}</TableCell>
                               <TableCell sx={{ fontSize: 13, color: 'text.secondary' }}>{session.notes ?? '—'}</TableCell>
                               {isAdmin && (
                                 <TableCell align="center">
