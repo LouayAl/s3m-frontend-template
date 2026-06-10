@@ -38,6 +38,7 @@ const localizer = dateFnsLocalizer({
 });
 
 function parseLocalDate(dateStr) {
+  if (!dateStr) return null;
   const [year, month, day] = dateStr.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
@@ -131,7 +132,9 @@ export default function EMDashboard() {
     s => s.statut === 'PLANIFIEE' || s.statut === 'EN_COURS'
   );
 
-  const calendarEvents = plannedSessions.map((s) => {
+  const calendarEvents = plannedSessions
+  .filter(s => s.dateDebut != null && s.dateFin != null)
+  .map((s) => {
     const end = parseLocalDate(s.dateFin);
     end.setDate(end.getDate() + 1); // ← react-big-calendar end is exclusive
     return {

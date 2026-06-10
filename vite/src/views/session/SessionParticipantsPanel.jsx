@@ -1,9 +1,9 @@
-// frontend-template/vite/src/views/sessions/SessionParticipantsPanel.jsx
+// frontend-template/vite/src/views/session/SessionParticipantsPanel.jsx
 import { useEffect, useState } from "react";
 import {
   Box, Typography, Button, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Stack, useMediaQuery,
+  TextField, Stack, useMediaQuery, Tab, Tabs,
 } from "@mui/material";
 import { useTheme }      from "@mui/material/styles";
 import { DataGrid }      from "@mui/x-data-grid";
@@ -11,22 +11,26 @@ import DeleteIcon        from "@mui/icons-material/Delete";
 import GroupRemoveIcon   from "@mui/icons-material/GroupRemove";
 import DownloadIcon      from "@mui/icons-material/Download";
 import PictureAsPdfIcon  from "@mui/icons-material/PictureAsPdf";
+import PeopleIcon        from "@mui/icons-material/People";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import ParticipantsModal from "./ParticipantsModal";
+import PresencePanel     from "./PresencePanel";
 import {
   getSessionParticipants,
   addParticipantsToSession,
   removeParticipantsFromSession,
   getAllEmployees,
 } from "../../api/sessionApi";
-import * as XLSX    from "xlsx";
-import jsPDF        from "jspdf";
-import autoTable    from "jspdf-autotable";
+import * as XLSX   from "xlsx";
+import jsPDF       from "jspdf";
+import autoTable   from "jspdf-autotable";
 
-// readOnly={true}  → VISITOR: can see list, export, but cannot add/remove
+// readOnly={true} → VISITOR: can see list + presence, but cannot edit
 const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly = false }) => {
   const theme    = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const [activeTab,            setActiveTab]            = useState(0); // 0 = Participants, 1 = Présence
   const [participants,         setParticipants]         = useState([]);
   const [loading,              setLoading]              = useState(true);
   const [search,               setSearch]               = useState("");
@@ -55,7 +59,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
   // ── Add ───────────────────────────────────────────────────────────────────
   const handleOpenAddModal = async () => {
     try {
-      const all        = await getAllEmployees();
+      const all         = await getAllEmployees();
       const assignedIds = participants.map(p => p.idEmploye);
       setAvailableEmployees(all.filter(e => !assignedIds.includes(e.idEmploye)));
       setOpenAddModal(true);
@@ -140,12 +144,12 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
     );
   });
 
-  // ── Columns — actions column hidden for readOnly/VISITOR ──────────────────
+  // ── Columns ───────────────────────────────────────────────────────────────
   const baseColumns = [
-    { field: "nom",       headerName: "Nom",       flex: 1 },
-    { field: "prenom",    headerName: "Prénom",     flex: 1 },
-    { field: "cin",       headerName: "CIN",        flex: 1 },
-    { field: "matricule", headerName: "Matricule",  flex: 1 },
+    { field: "nom",       headerName: "Nom",      flex: 1 },
+    { field: "prenom",    headerName: "Prénom",    flex: 1 },
+    { field: "cin",       headerName: "CIN",       flex: 1 },
+    { field: "matricule", headerName: "Matricule", flex: 1 },
   ];
 
   const actionsColumn = {
@@ -159,55 +163,78 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
 
   const columns = readOnly ? baseColumns : [...baseColumns, actionsColumn];
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box p={2}>
       <Typography variant="h6" mb={2} textAlign={isMobile ? "center" : "left"}>
-        Participants — Session «{session.referenceSession}»
+        Session «{session.referenceSession}»
       </Typography>
 
-      <TextField
-        fullWidth label="Rechercher..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        sx={{ mb: 2 }}
-      />
+      {/* Tabs */}
+      <Tabs
+        value={activeTab}
+        onChange={(_, v) => setActiveTab(v)}
+        sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+      >
+        <Tab icon={<PeopleIcon />} iconPosition="start" label="Participants" />
+        <Tab icon={<EventAvailableIcon />} iconPosition="start" label="Présence" />
+      </Tabs>
 
-      {/* Button bar — mutation buttons hidden for VISITOR */}
-      <Stack direction={isMobile ? "column" : "row"} spacing={1} mb={1}>
-        {!readOnly && (
-          <Button variant="contained" onClick={handleOpenAddModal}>
-            Ajouter des participants
-          </Button>
-        )}
-        {!readOnly && (
-          <Button variant="outlined" color="error" startIcon={<GroupRemoveIcon />}
-            onClick={() => setConfirmRemoveAllOpen(true)}>
-            Tout supprimer
-          </Button>
-        )}
-        {/* Exports always visible */}
-        <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel}>
-          Excel
-        </Button>
-        <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={exportToPDF}>
-          PDF
-        </Button>
-      </Stack>
-
-      <Box sx={{ height: "70vh", width: "100%", overflowX: "auto" }}>
-        <Box sx={{ minWidth: 700, height: isMobile ? 320 : 800 }}>
-          <DataGrid
-            rows={filteredParticipants}
-            columns={columns}
-            getRowId={row => row.idEmploye}
-            loading={loading}
-            pageSizeOptions={[10, 20, 50, 100]}
-            disableRowSelectionOnClick
+      {/* ── Tab 0: Participants ── */}
+      {activeTab === 0 && (
+        <>
+          <TextField
+            fullWidth label="Rechercher..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            sx={{ mb: 2 }}
           />
-        </Box>
-      </Box>
 
-      {/* Add participants modal — never mounted for VISITOR */}
+          <Stack direction={isMobile ? "column" : "row"} spacing={1} mb={1}>
+            {!readOnly && (
+              <Button variant="contained" onClick={handleOpenAddModal}>
+                Ajouter des participants
+              </Button>
+            )}
+            {!readOnly && (
+              <Button variant="outlined" color="error" startIcon={<GroupRemoveIcon />}
+                onClick={() => setConfirmRemoveAllOpen(true)}>
+                Tout supprimer
+              </Button>
+            )}
+            <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel}>
+              Excel
+            </Button>
+            <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={exportToPDF}>
+              PDF
+            </Button>
+          </Stack>
+
+          <Box sx={{ height: "60vh", width: "100%", overflowX: "auto" }}>
+            <Box sx={{ minWidth: 700, height: isMobile ? 320 : 700 }}>
+              <DataGrid
+                rows={filteredParticipants}
+                columns={columns}
+                getRowId={row => row.idEmploye}
+                loading={loading}
+                pageSizeOptions={[10, 20, 50, 100]}
+                disableRowSelectionOnClick
+              />
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* ── Tab 1: Présence ── */}
+      {activeTab === 1 && (
+        <PresencePanel
+          session={session}
+          readOnly={readOnly}
+          showSnackbar={showSnackbar}
+        />
+      )}
+
+      {/* Add participants modal */}
       {!readOnly && openAddModal && (
         <ParticipantsModal
           open={openAddModal}

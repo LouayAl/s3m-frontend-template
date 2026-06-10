@@ -59,6 +59,7 @@ const SessionModal = ({
     statut: "PLANIFIEE",
 
     participants: [],
+    lieu: "",
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -175,6 +176,7 @@ const SessionModal = ({
       dHeures: Number(formData.dHeures),
       dJours: Number(formData.dJours),
       statut: formData.statut,
+      lieu: formData.lieu || null,
     };
 
     try {
@@ -373,6 +375,16 @@ const SessionModal = ({
               }))
             }
           />
+
+          {/* Lieu ← new */}
+          <TextField
+            label="Lieu"
+            placeholder="Ex: Salle A, Site Casablanca..."
+            value={formData.lieu}
+            fullWidth
+            onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
+          />
+
           {/* Statut */}
           <TextField
             select
