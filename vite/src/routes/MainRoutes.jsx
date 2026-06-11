@@ -10,6 +10,10 @@ import FormationsPage from '../views/formations/FormationsPage';
 import EntreprisesPage from '../views/entreprises/EntreprisesPage';
 import EmployesPage from '../views/employes/EmployesPage';
 
+import EvaluationAChaudPage      from '../views/evaluation/EvaluationAChaudPage';
+import EvaluationAChaudStatsPage from '../views/evaluation/EvaluationAChaudStatsPage';
+
+
 // dashboard routing
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
 
@@ -88,6 +92,14 @@ const MainRoutes = {
     {
       path: 'planification',
       element: <ProtectedRoute><PlanificationPage /></ProtectedRoute>,  // ← new
+    },
+    {
+      path: 'evaluations-a-chaud',
+      element: <ProtectedRoute><EvaluationAChaudPage /></ProtectedRoute>,
+    },
+    {
+      path: 'evaluations-a-chaud/:sessionId',
+      element: <ProtectedRoute><EvaluationAChaudStatsPage /></ProtectedRoute>,
     },
   ]
 };

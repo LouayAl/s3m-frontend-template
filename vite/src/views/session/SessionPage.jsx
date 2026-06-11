@@ -20,6 +20,8 @@ import ParticipantsModal        from "./ParticipantsModal";
 import SessionParticipantsPanel from "./SessionParticipantsPanel";
 import YearFilter               from "../dashboard/Default/YearFilter";
 import { useIsVisitor }         from "../../hooks/useIsVisitor";
+import QRCodeDialog from './QRCodeDialog';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 
 const exportButtonSx = {
   backgroundColor: "#4CAF50",
@@ -47,6 +49,9 @@ const SessionPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
+
+  const [qrSession, setQrSession] = useState(null);
+
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -159,11 +164,11 @@ const SessionPage = () => {
 
   // ── Columns ───────────────────────────────────────────────────────────────
   const baseColumns = [
-    { field: "referenceSession",    headerName: "Réf. session", flex: 1, minWidth: 140 },
-    { field: "formation",           headerName: "Formation",    flex: 1, minWidth: 160 },
-    { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 140 },
-    { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 140 },
-    { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140 },
+    { field: "referenceSession",    headerName: "Réf. session", flex: 1, minWidth: 100, maxWidth: 200 },
+    { field: "formation",           headerName: "Formation",    flex: 1, minWidth: 100, maxWidth: 500 },
+    { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200 },
+    { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200 },
+    { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
     { field: "dateDebut",           headerName: "Début",        width: 120 },
     { field: "dateFin",             headerName: "Fin",          width: 120 },
     { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
@@ -186,17 +191,28 @@ const SessionPage = () => {
   ];
 
   const actionsColumn = {
-    field: "actions", headerName: "Actions", width: 120, sortable: false,
+    field: "actions", headerName: "Actions", width: 180, sortable: false,
     renderCell: (params) => (
       <>
+
         <IconButton color="primary" size="small" onClick={() => handleEdit(params.row)}>
           <EditIcon />
         </IconButton>
+
         <IconButton color="error" size="small" onClick={() => {
           setSelectedSessionId(params.row.idSession);
           setOpenDeleteDialog(true);
         }}>
           <DeleteIcon />
+        </IconButton>
+
+        <IconButton
+          color="secondary"
+          size="small"
+          title="QR Code évaluation"
+          onClick={() => setQrSession(params.row)}
+        >
+          <QrCode2Icon />
         </IconButton>
       </>
     ),
@@ -253,7 +269,7 @@ const SessionPage = () => {
               initialState={{
                 pagination: { paginationModel: { pageSize: 20 } },
                 columns: {
-                  columnVisibilityModel: { lieu: false }, // hidden by default, user can toggle
+                  columnVisibilityModel: { lieu: false, referenceSession: false }, // hidden by default, user can toggle
                 },
               }}
             />
@@ -322,6 +338,12 @@ const SessionPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <QRCodeDialog
+        open={!!qrSession}
+        onClose={() => setQrSession(null)}
+        session={qrSession}
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}>

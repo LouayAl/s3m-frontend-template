@@ -17,16 +17,22 @@ export default function CspPieChart({ isLoading = false, data = [] }) {
   const {
     state: { fontFamily }
   } = useConfig();
+  const CHART_COLORS = [
+    '#2196F3', // blue
+    '#FF6B35', // orange
+    '#4CAF50', // green
+    '#9C27B0', // purple
+    '#F44336', // red
+    '#00BCD4', // cyan
+    '#FF9800', // amber
+    '#795548', // brown
+    '#607D8B', // blue-grey
+    '#E91E63', // pink
+  ];
 
   const [chartOptions, setChartOptions] = useState({
     labels: [],
-    colors: [
-      theme.palette.primary.main,
-      theme.palette.secondary.main,
-      theme.palette.error.main,
-      theme.palette.warning.main,
-      theme.palette.info.main
-    ],
+      colors: CHART_COLORS,
     legend: { position: 'bottom', labels: { colors: theme.palette.text.primary } },
     chart: { fontFamily },
     tooltip: { theme: 'light', y: { formatter: (val, opts) => `${val} h` } }

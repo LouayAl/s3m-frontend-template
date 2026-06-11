@@ -1,8 +1,8 @@
 // frontend-template/vite/src/menu-items/session.js
 // assets
-import { IconEdit } from '@tabler/icons-react'; // or any icon you like
+import { IconEdit, IconStars } from '@tabler/icons-react'; // or any icon you like
 
-const icons = { IconEdit };
+const icons = { IconEdit, IconStars };
 
 // ==============================|| SESSION MENU ITEMS ||============================= //
 
@@ -17,6 +17,14 @@ const session = {
       type: 'item',
       url: '/sessions',
       icon: icons.IconEdit,
+      breadcrumbs: false
+    },
+    {
+      id: 'evaluations-a-chaud',
+      title: 'Évaluations à chaud',
+      type: 'item',
+      url: '/evaluations-a-chaud',
+      icon: icons.IconStars ,
       breadcrumbs: false
     }
   ]
