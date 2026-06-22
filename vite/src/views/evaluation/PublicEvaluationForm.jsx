@@ -5,12 +5,9 @@ import {
   Box, Typography, Card, CardContent, MenuItem,
   Select, FormControl, InputLabel, Button,
   TextField, Alert, CircularProgress, Divider,
-  Chip, ToggleButtonGroup, ToggleButton, Radio,
-  RadioGroup, FormControlLabel, Stack,
+  ToggleButtonGroup, ToggleButton, useMediaQuery, useTheme,
 } from '@mui/material';
 import { getPublicParticipants, submitEvaluationAChaud } from '../../api/evaluationApi';
-
-// ── Hardcoded formulaire ───────────────────────────────────────────────────────
 
 const SECTIONS = {
   fr: [
@@ -84,6 +81,8 @@ const SCALE = {
   ar: ['أبدًا', 'قليلاً', 'متوسط', 'تمامًا'],
 };
 
+const SCALE_COLORS = ['#ef5350', '#ff9800', '#42a5f5', '#66bb6a'];
+
 const UI = {
   fr: {
     title: 'Évaluation à chaud',
@@ -94,7 +93,7 @@ const UI = {
     successBody: 'Vos réponses ont été enregistrées avec succès.',
     errorName: 'Veuillez sélectionner votre nom.',
     errorAll: 'Veuillez répondre à toutes les questions.',
-    errorConflict: 'Vous avez déjà soumis une évaluation pour ce jour.',
+    errorConflict: 'Vous avez déjà soumis une évaluation pour cette session.',
     errorGeneric: 'Une erreur est survenue. Veuillez réessayer.',
     errorLoad: 'Impossible de charger les participants. Vérifiez le lien.',
   },
@@ -107,7 +106,7 @@ const UI = {
     successBody: 'Your answers have been successfully recorded.',
     errorName: 'Please select your name.',
     errorAll: 'Please answer all questions.',
-    errorConflict: 'You have already submitted an evaluation for this day.',
+    errorConflict: 'You have already submitted an evaluation for this session.',
     errorGeneric: 'An error occurred. Please try again.',
     errorLoad: 'Unable to load participants. Check the link.',
   },
@@ -120,16 +119,60 @@ const UI = {
     successBody: 'تم تسجيل إجاباتك بنجاح.',
     errorName: 'يرجى اختيار اسمك.',
     errorAll: 'يرجى الإجابة على جميع الأسئلة.',
-    errorConflict: 'لقد قدمت تقييماً لهذا اليوم من قبل.',
+    errorConflict: 'لقد قدمت تقييماً لهذه الدورة من قبل.',
     errorGeneric: 'حدث خطأ. يرجى المحاولة مرة أخرى.',
     errorLoad: 'تعذّر تحميل المشاركين. تحقق من الرابط.',
   },
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function ScoreToggle({ questionId, value, onChange, scaleLabels, isMobile }) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.75, width: '100%' }}>
+      {[1, 2, 3, 4].map((score, i) => {
+        const selected = value === score;
+        const color    = SCALE_COLORS[i];
+        return (
+          <Box
+            key={score}
+            onClick={() => onChange(questionId, score)}
+            sx={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              gap: 0.5,
+              py: isMobile ? 1.25 : 0.75, px: 0.5,
+              borderRadius: 2,
+              border:  selected ? `2px solid ${color}` : '2px solid #e0e0e0',
+              bgcolor: selected ? `${color}18` : 'transparent',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+              userSelect: 'none', WebkitTapHighlightColor: 'transparent',
+              '&:active': { transform: 'scale(0.95)' },
+            }}
+          >
+            <Box sx={{
+              width: isMobile ? 28 : 22, height: isMobile ? 28 : 22,
+              borderRadius: '50%',
+              bgcolor: selected ? color : '#e0e0e0',
+              transition: 'background-color 0.15s ease', flexShrink: 0,
+            }} />
+            <Typography variant="caption" sx={{
+              fontSize: isMobile ? '0.65rem' : '0.6rem',
+              lineHeight: 1.2, textAlign: 'center',
+              color: selected ? color : 'text.secondary',
+              fontWeight: selected ? 700 : 400,
+            }}>
+              {scaleLabels[i]}
+            </Typography>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
 
 export default function PublicEvaluationForm() {
-  const { sessionId, jour } = useParams();
+  const { sessionId } = useParams();
+  const theme         = useTheme();
+  const isMobile      = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [lang,            setLang]            = useState('fr');
   const [participants,    setParticipants]    = useState([]);
@@ -138,18 +181,11 @@ export default function PublicEvaluationForm() {
   const [submitted,       setSubmitted]       = useState(false);
   const [error,           setError]           = useState('');
   const [selectedEmploye, setSelectedEmploye] = useState('');
-  const [answers,         setAnswers]         = useState({}); // { questionId: score 1-4 }
+  const [answers,         setAnswers]         = useState({});
   const [commentaire,     setCommentaire]     = useState('');
 
-  const t  = UI[lang];
+  const t     = UI[lang];
   const isRtl = lang === 'ar';
-
-  const formattedJour = jour
-    ? new Date(...jour.split('-').map((v, i) => i === 1 ? Number(v) - 1 : Number(v)))
-        .toLocaleDateString(lang === 'ar' ? 'ar-MA' : lang === 'en' ? 'en-GB' : 'fr-FR', {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-        })
-    : '';
 
   useEffect(() => {
     getPublicParticipants(sessionId)
@@ -163,18 +199,16 @@ export default function PublicEvaluationForm() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedEmploye) { setError(t.errorName); return; }
-    const allAnswered = QUESTIONS[lang].every(q => answers[q.id] > 0);
-    if (!allAnswered) { setError(t.errorAll); return; }
+    if (!selectedEmploye)                                { setError(t.errorName); return; }
+    if (!QUESTIONS[lang].every(q => answers[q.id] > 0)) { setError(t.errorAll);  return; }
 
     setError('');
     setSubmitting(true);
     try {
       await submitEvaluationAChaud({
-        idSession:      parseInt(sessionId),
-        idEmploye:      selectedEmploye,
-        jourEvaluation: jour,
-        reponses:       answers,
+        idSession:  parseInt(sessionId),
+        idEmploye:  selectedEmploye,
+        reponses:   answers,
         commentaire,
       });
       setSubmitted(true);
@@ -193,7 +227,7 @@ export default function PublicEvaluationForm() {
 
   if (submitted) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" p={2}>
-      <Card sx={{ maxWidth: 480, width: '100%', textAlign: 'center', p: 4 }}>
+      <Card sx={{ maxWidth: 480, width: '100%', textAlign: 'center', p: { xs: 3, sm: 4 } }}>
         <Typography variant="h3" mb={2}>✅</Typography>
         <Typography variant="h5" fontWeight={700} mb={1}>{t.successTitle}</Typography>
         <Typography color="text.secondary">{t.successBody}</Typography>
@@ -201,133 +235,124 @@ export default function PublicEvaluationForm() {
     </Box>
   );
 
-  const questions  = QUESTIONS[lang];
-  const sections   = SECTIONS[lang];
-  const scaleLabels = SCALE[lang];
+  const questions     = QUESTIONS[lang];
+  const sections      = SECTIONS[lang];
+  const scaleLabels   = SCALE[lang];
+  const answeredCount = Object.keys(answers).length;
+  const progressPct   = Math.round((answeredCount / 13) * 100);
 
   return (
     <Box
       display="flex" justifyContent="center"
-      minHeight="100vh" p={2}
+      minHeight="100vh" p={{ xs: 1, sm: 2 }}
       sx={{ bgcolor: '#f5f5f5' }}
       dir={isRtl ? 'rtl' : 'ltr'}
     >
-      <Box sx={{ maxWidth: 720, width: '100%', mt: 3, mb: 4 }}>
+      <Box sx={{ maxWidth: 720, width: '100%', mt: { xs: 1, sm: 3 }, mb: 4 }}>
 
-        {/* Header card */}
+        {/* Header */}
         <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
             <Box display="flex" justifyContent="space-between" alignItems="flex-start"
-              flexWrap="wrap" gap={2}>
-              <Box>
-                <Typography variant="h5" fontWeight={700}>{t.title}</Typography>
-                <Chip label={formattedJour} color="primary" size="small" sx={{ mt: 1 }} />
-              </Box>
-
-              {/* Language switcher */}
+              flexWrap="wrap" gap={1.5} mb={1.5}>
+              <Typography variant={isMobile ? 'h6' : 'h5'} fontWeight={700} flex={1}>
+                {t.title}
+              </Typography>
               <ToggleButtonGroup
-                value={lang}
-                exclusive
+                value={lang} exclusive
                 onChange={(_, v) => v && setLang(v)}
-                size="small"
+                size="small" sx={{ flexShrink: 0 }}
               >
-                <ToggleButton value="fr">FR</ToggleButton>
-                <ToggleButton value="en">EN</ToggleButton>
-                <ToggleButton value="ar">AR</ToggleButton>
+                <ToggleButton value="fr" sx={{ px: { xs: 1.25, sm: 2 } }}>FR</ToggleButton>
+                <ToggleButton value="en" sx={{ px: { xs: 1.25, sm: 2 } }}>EN</ToggleButton>
+                <ToggleButton value="ar" sx={{ px: { xs: 1.25, sm: 2 } }}>AR</ToggleButton>
               </ToggleButtonGroup>
             </Box>
 
-            <Divider sx={{ my: 2 }} />
+            {answeredCount > 0 && (
+              <Box mb={1.5}>
+                <Box display="flex" justifyContent="space-between" mb={0.5}>
+                  <Typography variant="caption" color="text.secondary">{answeredCount}/13</Typography>
+                  <Typography variant="caption" color="text.secondary">{progressPct}%</Typography>
+                </Box>
+                <Box sx={{ bgcolor: '#e0e0e0', borderRadius: 4, height: 6, overflow: 'hidden' }}>
+                  <Box sx={{
+                    width: `${progressPct}%`,
+                    bgcolor: progressPct === 100 ? '#66bb6a' : '#1976d2',
+                    height: '100%', borderRadius: 4, transition: 'width 0.3s ease',
+                  }} />
+                </Box>
+              </Box>
+            )}
 
-            {/* Participant selector */}
-            <FormControl fullWidth>
+            <Divider sx={{ my: 1.5 }} />
+
+            <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
               <InputLabel>{t.yourName}</InputLabel>
               <Select
-                value={selectedEmploye}
-                label={t.yourName}
+                value={selectedEmploye} label={t.yourName}
                 onChange={e => setSelectedEmploye(e.target.value)}
               >
                 {participants.map(p => (
-                  <MenuItem key={p.idEmploye} value={p.idEmploye}>
-                    {p.nomComplet}
-                  </MenuItem>
+                  <MenuItem key={p.idEmploye} value={p.idEmploye}>{p.nomComplet}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </CardContent>
         </Card>
 
-        {/* Sections and questions */}
+        {/* Sections */}
         {sections.map(section => {
           const sectionQuestions = questions.filter(q => q.sectionId === section.id);
+          const sectionAnswered  = sectionQuestions.filter(q => answers[q.id]).length;
+
           return (
             <Card key={section.id} sx={{ mb: 2 }}>
               <CardContent sx={{ p: 0 }}>
-                {/* Section header — matches the original table style */}
-                <Box
-                  sx={{
-                    bgcolor: '#1a1a2e',
-                    color: 'white',
-                    px: 2, py: 1.5,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                  }}
-                >
-                  <Typography fontWeight={700}>{section.label}</Typography>
-                  <Box display="flex" gap={1}>
-                    {scaleLabels.map((label, i) => (
-                      <Typography
-                        key={i}
-                        variant="caption"
-                        sx={{
-                          width: 64,
-                          textAlign: 'center',
-                          color: 'rgba(255,255,255,0.85)',
-                          fontWeight: 500,
-                        }}
-                      >
-                        {label}
-                      </Typography>
-                    ))}
+                <Box sx={{
+                  bgcolor: '#1a1a2e', color: 'white',
+                  px: 2, py: 1.5,
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1,
+                }}>
+                  <Typography fontWeight={700} variant={isMobile ? 'body2' : 'body1'}>
+                    {section.label}
+                  </Typography>
+                  <Box sx={{
+                    px: 1, py: 0.25, borderRadius: 1,
+                    bgcolor: sectionAnswered === sectionQuestions.length
+                      ? '#66bb6a' : 'rgba(255,255,255,0.15)',
+                    color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
+                  }}>
+                    {sectionAnswered}/{sectionQuestions.length}
                   </Box>
                 </Box>
 
-                {/* Questions */}
                 {sectionQuestions.map((q, idx) => (
                   <Box key={q.id}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        px: 2, py: 1.5,
-                        bgcolor: idx % 2 === 0 ? 'transparent' : 'action.hover',
-                        gap: 2,
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ flex: 1 }}>
+                    <Box sx={{
+                      px: 2, py: 1.5,
+                      bgcolor: idx % 2 === 0 ? 'transparent' : 'action.hover',
+                      display: 'flex',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                      gap: isMobile ? 1.25 : 2,
+                    }}>
+                      <Typography variant="body2" sx={{
+                        flex: isMobile ? undefined : 1, lineHeight: 1.5,
+                        color: answers[q.id] ? 'text.primary' : 'text.secondary',
+                        fontWeight: answers[q.id] ? 500 : 400,
+                      }}>
                         {q.label}
                       </Typography>
-
-                      <RadioGroup
-                        row
-                        value={answers[q.id] ?? ''}
-                        onChange={e => handleAnswer(q.id, parseInt(e.target.value))}
-                        sx={{ flexShrink: 0 }}
-                      >
-                        {[1, 2, 3, 4].map(score => (
-                          <FormControlLabel
-                            key={score}
-                            value={score}
-                            control={<Radio size="small" />}
-                            label=""
-                            sx={{ mx: 0, width: 64, justifyContent: 'center' }}
-                          />
-                        ))}
-                      </RadioGroup>
+                      <Box sx={{ width: isMobile ? '100%' : 280, flexShrink: 0 }}>
+                        <ScoreToggle
+                          questionId={q.id}
+                          value={answers[q.id] ?? null}
+                          onChange={handleAnswer}
+                          scaleLabels={scaleLabels}
+                          isMobile={isMobile}
+                        />
+                      </Box>
                     </Box>
                     {idx < sectionQuestions.length - 1 && <Divider />}
                   </Box>
@@ -339,25 +364,24 @@ export default function PublicEvaluationForm() {
 
         {/* Comment + submit */}
         <Card>
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
             <TextField
               fullWidth multiline rows={3}
-              label={t.comment}
-              value={commentaire}
+              label={t.comment} value={commentaire}
               onChange={e => setCommentaire(e.target.value)}
-              sx={{ mb: 2 }}
+              size={isMobile ? 'small' : 'medium'} sx={{ mb: 2 }}
             />
-
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
             <Button
               fullWidth variant="contained" size="large"
               onClick={handleSubmit} disabled={submitting}
+              sx={{ py: { xs: 1.5, sm: 1.25 }, fontSize: { xs: '1rem', sm: '0.9375rem' } }}
             >
-              {submitting ? <CircularProgress size={24} /> : t.submit}
+              {submitting ? <CircularProgress size={24} color="inherit" /> : t.submit}
             </Button>
           </CardContent>
         </Card>
+
       </Box>
     </Box>
   );

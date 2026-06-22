@@ -30,3 +30,8 @@ export const getFormulaire = async () => {
   const res = await axios.get(`${BASE_URL}/public/formulaire`);
   return res.data;
 };
+
+export const getSatisfactionKpis = async (sessionId) => {
+    const res = await api.get(`/evaluation-a-chaud/session/${sessionId}/kpis`);
+    return res.data;
+};

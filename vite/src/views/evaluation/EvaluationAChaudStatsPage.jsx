@@ -4,18 +4,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Grid,
   LinearProgress, Button, Divider, Stack,
-  Tabs, Tab, Chip, Table, TableBody,
-  TableCell, TableHead, TableRow, TableContainer, Paper,
+  Chip, Table, TableBody, TableCell,
+  TableHead, TableRow, TableContainer,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { getEvaluationStats } from '../../api/evaluationApi';
+import { getEvaluationStats, getSatisfactionKpis } from '../../api/evaluationApi';
 
-// ── Same question/section definitions as the form ────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const SECTIONS = [
   { id: 1, label: 'Conditions de réalisation' },
@@ -39,20 +39,23 @@ const QUESTIONS = [
   { id: 13, sectionId: 3, label: "Amélioration des compétences" },
 ];
 
-const SCALE_LABELS = ['', 'Pas du tout', 'Peu', 'Moyen', 'Tout à fait'];
 const SCALE_COLORS = ['', '#ef5350', '#ff9800', '#42a5f5', '#66bb6a'];
 
-function formatJour(dateStr) {
-  if (!dateStr) return '';
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long'
-  });
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function scoreColor(value) {
+  if (value === 0)  return '#bdbdbd';
+  if (value >= 3.5) return '#66bb6a';
+  if (value >= 2.5) return '#42a5f5';
+  if (value >= 1.5) return '#ff9800';
+  return '#ef5350';
 }
 
+// ── ScoreBar ──────────────────────────────────────────────────────────────────
+
 function ScoreBar({ value, max = 4 }) {
-  const pct = (value / max) * 100;
-  const color = value >= 3.5 ? '#66bb6a' : value >= 2.5 ? '#42a5f5' : value >= 1.5 ? '#ff9800' : '#ef5350';
+  const pct   = (value / max) * 100;
+  const color = scoreColor(value);
   return (
     <Box display="flex" alignItems="center" gap={1}>
       <Box flex={1} sx={{ bgcolor: '#eee', borderRadius: 4, height: 8, overflow: 'hidden' }}>
@@ -65,19 +68,113 @@ function ScoreBar({ value, max = 4 }) {
   );
 }
 
-function JourPanel({ jour }) {
-  // Radar data — one point per section (average of questions in section)
+// ── SatisfactionGauge ─────────────────────────────────────────────────────────
+
+function SatisfactionGauge({ label, sublabel, score, totalReponses, isCurrent = false }) {
+  const pct   = (score / 4) * 100;
+  const color = scoreColor(score);
+
+  return (
+    <Card sx={{
+      height: '100%',
+      border: isCurrent ? `2px solid ${color}` : '1px solid transparent',
+      boxShadow: isCurrent ? `0 0 0 3px ${color}22` : undefined,
+      transition: 'box-shadow 0.2s',
+    }}>
+      <CardContent sx={{ textAlign: 'center', py: 3 }}>
+        <Box sx={{ position: 'relative', display: 'inline-flex', mb: 1.5 }}>
+          <svg width={100} height={100} viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#eeeeee" strokeWidth="10" />
+            <circle cx="50" cy="50" r="40" fill="none"
+              stroke={color} strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={`${(pct / 100) * 251.2} 251.2`}
+              transform="rotate(-90 50 50)"
+              style={{ transition: 'stroke-dasharray 0.6s ease' }}
+            />
+          </svg>
+          <Box sx={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Typography variant="h6" fontWeight={700} sx={{ color, lineHeight: 1 }}>
+              {score > 0 ? score.toFixed(1) : '—'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">/4</Typography>
+          </Box>
+        </Box>
+        <Typography variant="subtitle2" fontWeight={700} gutterBottom>{label}</Typography>
+        <Typography variant="caption" color="text.secondary" display="block">{sublabel}</Typography>
+        {totalReponses > 0 && (
+          <Chip
+            label={`${totalReponses} réponse${totalReponses > 1 ? 's' : ''}`}
+            size="small"
+            sx={{ mt: 1, bgcolor: `${color}18`, color }}
+          />
+        )}
+        {isCurrent && (
+          <Chip label="Session actuelle" size="small" color="primary" variant="outlined"
+            sx={{ mt: 0.5, display: 'block', mx: 'auto', width: 'fit-content' }} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── KPIBenchmarkPanel ─────────────────────────────────────────────────────────
+
+function KPIBenchmarkPanel({ sessionId, moduleFormation }) {
+  const [kpis, setKpis] = useState(null);
+
+  useEffect(() => {
+    getSatisfactionKpis(sessionId).then(setKpis);
+  }, [sessionId]);
+
+  if (!kpis) return null;
+
+  return (
+    <Box mb={4}>
+      <Typography variant="h6" fontWeight={700} mb={0.5}>Benchmarks de satisfaction</Typography>
+      <Typography variant="body2" color="text.secondary" mb={2}>
+        Comparaison de la session avec les niveaux formation, client et global S3M
+      </Typography>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <SatisfactionGauge label="Global S3M" sublabel="Toutes sessions confondues"
+            score={kpis.satisfactionGlobaleS3M} totalReponses={kpis.totalReponsesS3M} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <SatisfactionGauge label="Client" sublabel="Toutes formations du client"
+            score={kpis.satisfactionClientGlobale} totalReponses={kpis.totalReponsesClient} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <SatisfactionGauge label={moduleFormation} sublabel="Cette formation (client)"
+            score={kpis.satisfactionParFormation} totalReponses={kpis.totalReponsesFormation} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <SatisfactionGauge label="Session actuelle" sublabel="Cette session uniquement"
+            score={kpis.satisfactionSession} totalReponses={kpis.totalReponsesSession} isCurrent />
+        </Grid>
+      </Grid>
+    </Box>
+  );
+}
+
+// ── StatsPanel — flat view of all responses for a session ─────────────────────
+
+function StatsPanel({ stats }) {
+  const moyennesParQuestion = stats.moyennesParQuestion ?? {};
+
   const radarData = SECTIONS.map(section => {
     const qIds = QUESTIONS.filter(q => q.sectionId === section.id).map(q => q.id);
-    const avg = qIds.reduce((sum, id) => sum + (jour.moyennesParQuestion[id] ?? 0), 0) / qIds.length;
+    const avg  = qIds.reduce((sum, id) => sum + (moyennesParQuestion[id] ?? 0), 0) / qIds.length;
     return { section: section.label.split(' ')[0], moyenne: Math.round(avg * 10) / 10 };
   });
 
-  // Bar chart data — one bar per question
   const barData = QUESTIONS.map(q => ({
-    name: `Q${q.id}`,
-    moyenne: jour.moyennesParQuestion[q.id] ?? 0,
-    label: q.label,
+    name:    `Q${q.id}`,
+    moyenne: moyennesParQuestion[q.id] ?? 0,
+    label:   q.label,
   }));
 
   return (
@@ -85,15 +182,17 @@ function JourPanel({ jour }) {
 
       {/* Global score */}
       <Grid size={{ xs: 12, md: 3 }}>
-        <Card sx={{ textAlign: 'center', p: 3, height: '100%',
+        <Card sx={{
+          textAlign: 'center', p: 3, height: '100%',
           display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', alignItems: 'center' }}>
+          justifyContent: 'center', alignItems: 'center',
+        }}>
           <Typography variant="h2" fontWeight={700} color="primary">
-            {jour.moyenneGlobale}
+            {stats.moyenneGlobale}
           </Typography>
-          <Typography variant="body2" color="text.secondary">/4 — Moyenne du jour</Typography>
+          <Typography variant="body2" color="text.secondary">/4 — Moyenne globale</Typography>
           <Typography variant="caption" color="text.secondary" mt={1}>
-            {jour.totalReponses} réponse{jour.totalReponses > 1 ? 's' : ''}
+            {stats.totalReponses} réponse{stats.totalReponses > 1 ? 's' : ''}
           </Typography>
         </Card>
       </Grid>
@@ -102,9 +201,7 @@ function JourPanel({ jour }) {
       <Grid size={{ xs: 12, md: 4 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={600} mb={1}>
-              Vue par section
-            </Typography>
+            <Typography variant="subtitle1" fontWeight={600} mb={1}>Vue par section</Typography>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
                 <PolarGrid />
@@ -123,17 +220,13 @@ function JourPanel({ jour }) {
       <Grid size={{ xs: 12, md: 5 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent>
-            <Typography variant="subtitle1" fontWeight={600} mb={1}>
-              Score par question
-            </Typography>
+            <Typography variant="subtitle1" fontWeight={600} mb={1}>Score par question</Typography>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis domain={[0, 4]} tick={{ fontSize: 10 }} />
-                <Tooltip
-                  formatter={(v, _, props) => [`${v}/4`, props.payload.label]}
-                />
+                <Tooltip formatter={(v, _, props) => [`${v}/4`, props.payload.label]} />
                 <Bar dataKey="moyenne" fill="#1976d2" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -167,15 +260,15 @@ function JourPanel({ jour }) {
                             <Typography variant="body2">{q.label}</Typography>
                           </TableCell>
                           <TableCell>
-                            <ScoreBar value={jour.moyennesParQuestion[q.id] ?? 0} />
+                            <ScoreBar value={moyennesParQuestion[q.id] ?? 0} />
                           </TableCell>
                           <TableCell align="center">
                             <Chip
-                              label={`${jour.moyennesParQuestion[q.id] ?? 0}/4`}
+                              label={`${moyennesParQuestion[q.id] ?? 0}/4`}
                               size="small"
                               color={
-                                (jour.moyennesParQuestion[q.id] ?? 0) >= 3.5 ? 'success'
-                                : (jour.moyennesParQuestion[q.id] ?? 0) >= 2.5 ? 'primary'
+                                (moyennesParQuestion[q.id] ?? 0) >= 3.5 ? 'success'
+                                : (moyennesParQuestion[q.id] ?? 0) >= 2.5 ? 'primary'
                                 : 'warning'
                               }
                             />
@@ -196,9 +289,7 @@ function JourPanel({ jour }) {
         <Card>
           <CardContent sx={{ p: 0 }}>
             <Box px={2} py={1.5}>
-              <Typography variant="subtitle1" fontWeight={600}>
-                Détail par participant
-              </Typography>
+              <Typography variant="subtitle1" fontWeight={600}>Détail par participant</Typography>
             </Box>
             <TableContainer>
               <Table size="small">
@@ -214,31 +305,23 @@ function JourPanel({ jour }) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {jour.reponses.map(r => (
+                  {(stats.reponses ?? []).map(r => (
                     <TableRow key={r.idEvalChaud} hover>
                       <TableCell>
                         <Typography variant="body2" noWrap>{r.nomEmploye}</Typography>
                       </TableCell>
                       {QUESTIONS.map(q => {
-                        const rep = r.reponses?.find(rep => rep.idQuestion === q.id);
+                        const rep   = r.reponses?.find(rep => rep.idQuestion === q.id);
                         const score = rep?.score ?? null;
                         return (
                           <TableCell key={q.id} align="center" sx={{ px: 0.5 }}>
                             {score != null ? (
-                              <Box
-                                sx={{
-                                  width: 28, height: 28,
-                                  borderRadius: '50%',
-                                  bgcolor: SCALE_COLORS[score],
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  margin: 'auto',
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                }}
-                              >
+                              <Box sx={{
+                                width: 28, height: 28, borderRadius: '50%',
+                                bgcolor: SCALE_COLORS[score], color: 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                margin: 'auto', fontSize: 12, fontWeight: 700,
+                              }}>
                                 {score}
                               </Box>
                             ) : '—'}
@@ -259,20 +342,16 @@ function JourPanel({ jour }) {
         </Card>
       </Grid>
 
-      {/* Comments */}
-      {jour.reponses?.some(r => r.commentaire) && (
+      {/* Free comments */}
+      {(stats.reponses ?? []).some(r => r.commentaire) && (
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
-              <Typography variant="subtitle1" fontWeight={600} mb={2}>
-                Commentaires libres
-              </Typography>
+              <Typography variant="subtitle1" fontWeight={600} mb={2}>Commentaires libres</Typography>
               <Stack spacing={2} divider={<Divider />}>
-                {jour.reponses.filter(r => r.commentaire).map(r => (
+                {(stats.reponses ?? []).filter(r => r.commentaire).map(r => (
                   <Box key={r.idEvalChaud}>
-                    <Typography variant="caption" color="text.secondary">
-                      {r.nomEmploye}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">{r.nomEmploye}</Typography>
                     <Typography variant="body2" mt={0.5}>{r.commentaire}</Typography>
                   </Box>
                 ))}
@@ -285,12 +364,13 @@ function JourPanel({ jour }) {
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function EvaluationAChaudStatsPage() {
   const { sessionId } = useParams();
   const navigate      = useNavigate();
-  const [stats,    setStats]    = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [activeDay, setActiveDay] = useState(0);
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getEvaluationStats(sessionId)
@@ -318,33 +398,15 @@ export default function EvaluationAChaudStatsPage() {
         color="primary" sx={{ mb: 3 }}
       />
 
-      {stats.parJour.length > 0 ? (
-        <>
-          <Tabs
-            value={activeDay}
-            onChange={(_, v) => setActiveDay(v)}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-          >
-            {stats.parJour.map(j => (
-              <Tab
-                key={j.jour}
-                label={
-                  <Box textAlign="center">
-                    <Typography variant="caption" display="block" textTransform="capitalize">
-                      {formatJour(j.jour)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {j.totalReponses} rép.
-                    </Typography>
-                  </Box>
-                }
-              />
-            ))}
-          </Tabs>
-          <JourPanel jour={stats.parJour[activeDay]} />
-        </>
+      <KPIBenchmarkPanel
+        sessionId={sessionId}
+        moduleFormation={stats.moduleFormation}
+      />
+
+      <Divider sx={{ mb: 3 }} />
+
+      {stats.totalReponses > 0 ? (
+        <StatsPanel stats={stats} />
       ) : (
         <Typography color="text.secondary">
           Aucune évaluation reçue pour cette session.

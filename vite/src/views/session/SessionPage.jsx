@@ -164,8 +164,8 @@ const SessionPage = () => {
 
   // ── Columns ───────────────────────────────────────────────────────────────
   const baseColumns = [
-    { field: "referenceSession",    headerName: "Réf. session", flex: 1, minWidth: 100, maxWidth: 200 },
-    { field: "formation",           headerName: "Formation",    flex: 1, minWidth: 100, maxWidth: 500 },
+    { field: "referenceSession",    headerName: "Réf. session",  minWidth: 130, maxWidth: 200 },
+    { field: "formation",           headerName: "Formation",    flex: 2, minWidth: 100 },
     { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200 },
     { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200 },
     { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
@@ -173,7 +173,7 @@ const SessionPage = () => {
     { field: "dateFin",             headerName: "Fin",          width: 120 },
     { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
     { field: "dJours",              headerName: "Durée (j)",    width: 100 },
-    { field: "lieu",                headerName: "Lieu",         flex: 1, minWidth: 140 }, // ← new
+    { field: "lieu",                headerName: "Lieu",         minWidth: 140 }, // ← new
     { field: "statut",              headerName: "Statut",       width: 120 },
     {
       field: "participantsCount",
@@ -269,7 +269,7 @@ const SessionPage = () => {
               initialState={{
                 pagination: { paginationModel: { pageSize: 20 } },
                 columns: {
-                  columnVisibilityModel: { lieu: false, referenceSession: false }, // hidden by default, user can toggle
+                  columnVisibilityModel: { }, // hidden by default, user can toggle
                 },
               }}
             />

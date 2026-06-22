@@ -22,10 +22,6 @@ const router = createBrowserRouter(
       path: '/evaluation/session/:sessionId',
       element: <PublicEvaluationForm />,
     },
-    {
-      path: '/evaluation/session/:sessionId/jour/:jour',
-      element: <PublicEvaluationForm />,
-    },
     MainRoutes,
     AuthenticationRoutes,
     EquipmentManagerRoutes,

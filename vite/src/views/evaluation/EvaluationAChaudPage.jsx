@@ -10,7 +10,7 @@ import { getAllSessionsEvaluationSummary } from '../../api/evaluationApi';
 
 function MoyenneChip({ value }) {
   const color = value >= 4 ? 'success' : value >= 3 ? 'warning' : 'error';
-  return <Chip label={`${value}/5`} color={color} size="small" />;
+  return <Chip label={`${value}/4`} color={color} size="small" />;
 }
 
 export default function EvaluationAChaudPage() {
