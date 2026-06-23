@@ -27,6 +27,7 @@ export default function EvaluationAChaudPage() {
   const columns = [
     { field: 'referenceSession', headerName: 'Réf. session', width: 140 },
     { field: 'moduleFormation',  headerName: 'Formation',    flex: 1, minWidth: 180 },
+    { field: 'formateur',        headerName: 'Formateur',    flex: 1, minWidth: 160 },
     {
       field: 'totalReponses',
       headerName: 'Réponses',

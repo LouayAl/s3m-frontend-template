@@ -8,12 +8,17 @@ import {
   TableHead, TableRow, TableContainer,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
   PolarRadiusAxis, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { getEvaluationStats, getSatisfactionKpis } from '../../api/evaluationApi';
+import {
+  getEvaluationStats, getSatisfactionKpis,
+  exportEvaluationPdf, exportEvaluationExcel,
+} from '../../api/evaluationApi';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -371,6 +376,8 @@ export default function EvaluationAChaudStatsPage() {
   const navigate      = useNavigate();
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exportingPdf,   setExportingPdf]   = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
 
   useEffect(() => {
     getEvaluationStats(sessionId)
@@ -378,17 +385,65 @@ export default function EvaluationAChaudStatsPage() {
       .finally(() => setLoading(false));
   }, [sessionId]);
 
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await exportEvaluationPdf(sessionId);
+    } catch (err) {
+      console.error('Erreur export PDF', err);
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      await exportEvaluationExcel(sessionId);
+    } catch (err) {
+      console.error('Erreur export Excel', err);
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   if (loading) return <Box p={3}><LinearProgress /></Box>;
   if (!stats)  return <Box p={3}><Typography>Données non disponibles.</Typography></Box>;
 
   return (
     <Box p={3}>
-      <Button startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/evaluations-a-chaud')} sx={{ mb: 2 }}>
-        Retour
-      </Button>
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2} mb={2}>
+        <Button startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/evaluations-a-chaud')}>
+          Retour
+        </Button>
+
+        {stats.totalReponses > 0 && (
+          <Stack direction="row" spacing={1.5}>
+            <Button
+              variant="outlined"
+              startIcon={<TableChartIcon />}
+              onClick={handleExportExcel}
+              disabled={exportingExcel}
+            >
+              {exportingExcel ? 'Export en cours…' : 'Exporter Excel'}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<PictureAsPdfIcon />}
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+            >
+              {exportingPdf ? 'Export en cours…' : 'Exporter PDF'}
+            </Button>
+          </Stack>
+        )}
+      </Box>
 
       <Typography variant="h4" fontWeight={700} mb={0.5}>{stats.moduleFormation}</Typography>
+      <Typography color="text.secondary" mb={0.5}>
+        Formateur : {stats.formateur}
+      </Typography>
       <Typography color="text.secondary" mb={1}>
         {stats.totalReponses} réponse{stats.totalReponses > 1 ? 's' : ''} sur{' '}
         {stats.totalParticipants} participant{stats.totalParticipants > 1 ? 's' : ''}
