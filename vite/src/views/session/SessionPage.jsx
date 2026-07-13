@@ -33,6 +33,64 @@ const exportButtonSx = {
   "&:hover": { backgroundColor: "#43A047" },
 };
 
+// Status indicator palette — small colored dot + uppercase label, in the style
+// of modern SaaS dashboards (Linear/Vercel/GitHub-style status pills) rather
+// than a plain solid-colored chip. "En cours" gets a subtle pulse on its dot
+// to read as "happening right now" at a glance.
+const STATUS_STYLES = {
+  PLANIFIEE: { label: "Planifiée", bg: "#EFF6FF", color: "#1D4ED8", dot: "#3B82F6", border: "#BFDBFE" },
+  EN_COURS:  { label: "En cours",  bg: "#ECFDF5", color: "#047857", dot: "#10B981", border: "#A7F3D0", pulse: true },
+  TERMINEE:  { label: "Terminée", bg: "#F3F4F6", color: "#4B5563", dot: "#9CA3AF", border: "#E5E7EB" },
+  ANNULEE:   { label: "Annulée",  bg: "#FEF2F2", color: "#B91C1C", dot: "#EF4444", border: "#FECACA" },
+};
+
+const StatusChip = ({ status }) => {
+  const style = STATUS_STYLES[status] || {
+    label: status, bg: "#F3F4F6", color: "#4B5563", dot: "#9CA3AF", border: "#E5E7EB",
+  };
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "3px 10px",
+        borderRadius: "6px",
+        backgroundColor: style.bg,
+        color: style.color,
+        border: `1px solid ${style.border}`,
+        fontWeight: 600,
+        fontSize: "0.72rem",
+        letterSpacing: "0.3px",
+        textTransform: "uppercase",
+        lineHeight: 1.6,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          backgroundColor: style.dot,
+          flexShrink: 0,
+          ...(style.pulse && {
+            animation: "statusDotPulse 1.8s ease-out infinite",
+            "@keyframes statusDotPulse": {
+              "0%":   { boxShadow: `0 0 0 0 ${style.dot}66` },
+              "70%":  { boxShadow: `0 0 0 5px ${style.dot}00` },
+              "100%": { boxShadow: `0 0 0 0 ${style.dot}00` },
+            },
+          }),
+        }}
+      />
+      {style.label}
+    </Box>
+  );
+};
+
 const SessionPage = () => {
   const isVisitor = useIsVisitor();
   const { user }  = useAuth();
@@ -257,7 +315,12 @@ const SessionPage = () => {
     { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
     { field: "dJours",              headerName: "Durée (j)",    width: 100 },
     { field: "lieu",                headerName: "Lieu",         minWidth: 140 },
-    { field: "statut",              headerName: "Statut",       width: 120 },
+    {
+      field: "statut",
+      headerName: "Statut",
+      width: 145,
+      renderCell: (params) => <StatusChip status={params.value} />,
+    },
     {
       field: "participantsCount",
       headerName: "Participants",
