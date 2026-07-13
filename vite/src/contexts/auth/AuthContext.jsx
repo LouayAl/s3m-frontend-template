@@ -50,7 +50,7 @@ async function login(email, password) {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier: email, password }),
         credentials: "include", // cookie will be set by backend
       });
 

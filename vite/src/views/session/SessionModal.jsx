@@ -10,6 +10,7 @@ import {
   Stack,
   TextField,
   MenuItem,
+  Alert,
 } from "@mui/material";
 
 import FormationModal from "./FormationModal";
@@ -22,6 +23,7 @@ import {
   updateParticipants,
 } from "../../api/sessionApi";
 
+import { getFormationById } from "../../api/formationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 
 const SessionModal = ({
@@ -40,6 +42,9 @@ const SessionModal = ({
     referenceSession: "",
     idFormation: null,
     formation: "",
+    // The formation's OWN entreprise (from the formation catalogue) — used only to
+    // cross-check against idEntreprise below, never sent to the backend as-is.
+    formationEntrepriseId: null,
 
     idEntreprise: null,
     entreprise: "",
@@ -112,6 +117,7 @@ const SessionModal = ({
         idFournisseur: Number(initialData.idFournisseur),
         idFormateur: Number(initialData.idFormateur),
         participants: initialData.participants || [],
+        formationEntrepriseId: null, // filled in by the effect below once fetched
       });
 
       setCreatedSession(null);
@@ -121,6 +127,27 @@ const SessionModal = ({
       setCreatedSession(null);
     }
   }, [open, initialData]);
+
+  // ==========================
+  // ✅ EDIT MODE: fetch the pre-selected formation's OWN entreprise, so we can
+  // cross-check it against the session's entreprise even before the admin
+  // touches anything.
+  // ==========================
+  useEffect(() => {
+    if (!open || !isEdit || !initialData?.idFormation) return;
+
+    getFormationById(initialData.idFormation)
+      .then((f) => {
+        setFormData((prev) => ({
+          ...prev,
+          formationEntrepriseId: f?.entrepriseId ?? null,
+        }));
+      })
+      .catch(() => {
+        // Non-critical: if this fails we just skip the pre-check until the
+        // admin re-selects a formation manually.
+      });
+  }, [open, isEdit, initialData]);
 
   // ==========================
   // ✅ AUTO REFERENCE GENERATION
@@ -141,9 +168,29 @@ const SessionModal = ({
   }, [formData.idFormation, formData.formation]);
 
   // ==========================
+  // ✅ ENTREPRISE / FORMATION MISMATCH CHECK
+  // A formation can share the same name/module across several entreprises, so
+  // matching by id_formation alone isn't enough — the formation's own
+  // entreprise must match the session's entreprise.
+  // ==========================
+  const entrepriseMismatch =
+    Boolean(formData.idFormation) &&
+    Boolean(formData.idEntreprise) &&
+    formData.formationEntrepriseId != null &&
+    Number(formData.formationEntrepriseId) !== Number(formData.idEntreprise);
+
+  // ==========================
   // ✅ SAVE SESSION
   // ==========================
   const handleSave = async () => {
+    if (entrepriseMismatch) {
+      showSnackbar(
+        "La formation sélectionnée appartient à une autre entreprise que celle choisie pour la session. Changez la formation ou l'entreprise avant de continuer.",
+        "error"
+      );
+      return;
+    }
+
     // Validation only for CREATE
     if (!isEdit && !createdSession) {
       if (
@@ -212,7 +259,15 @@ const SessionModal = ({
       }
     } catch (err) {
       console.error(err);
-      showSnackbar("Erreur lors de l'enregistrement.", "error");
+      // Surface the backend's own message when available (e.g. the
+      // entreprise-mismatch guard on the server, or a duplicate reference).
+      const backendMessage = err?.response?.data?.message || err?.response?.data;
+      showSnackbar(
+        typeof backendMessage === "string" && backendMessage
+          ? backendMessage
+          : "Erreur lors de l'enregistrement.",
+        "error"
+      );
     } finally {
       setSaving(false);
     }
@@ -257,9 +312,20 @@ const SessionModal = ({
 
       <DialogContent>
         <Stack spacing={2} mt={2}>
+          {/* Mismatch warning */}
+          {entrepriseMismatch && (
+            <Alert severity="error">
+              La formation « {formData.formation} » appartient à une autre entreprise
+              que celle sélectionnée pour cette session. Choisissez une autre formation
+              (appartenant à la bonne entreprise) ou changez l'entreprise de la session.
+              La sauvegarde est bloquée tant que ce conflit n'est pas résolu.
+            </Alert>
+          )}
+
           {/* Formation */}
           <Button
             variant="outlined"
+            color={entrepriseMismatch ? "error" : "primary"}
             onClick={() => setOpenFormationModal(true)}
           >
             {formData.formation || "Choisir Formation"}
@@ -283,6 +349,7 @@ const SessionModal = ({
             select
             label="Entreprise"
             value={formData.idEntreprise || ""}
+            error={entrepriseMismatch}
             onChange={(e) =>
               setFormData((prev) => ({
                 ...prev,
@@ -417,6 +484,7 @@ const SessionModal = ({
               ...prev,
               idFormation: formation.id,
               formation: formation.module,
+              formationEntrepriseId: formation.entrepriseId ?? null,
               dHeures: formation.dureeHeures,
               dJours: formation.dureeJours,
             }));
@@ -430,6 +498,7 @@ const SessionModal = ({
           open={openParticipantsModal}
           onClose={() => setOpenParticipantsModal(false)}
           preSelectedParticipants={formData.participants}
+          sessionEntrepriseId={formData.idEntreprise}
           sessionId={
             isEdit
               ? initialData.idSession
@@ -450,7 +519,7 @@ const SessionModal = ({
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || (!isEdit && createdSession)}
+          disabled={saving || entrepriseMismatch || (!isEdit && createdSession)}
         >
           {isEdit ? "Mettre à jour" : "Créer"}
         </Button>

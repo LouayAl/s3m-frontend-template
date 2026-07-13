@@ -7,12 +7,49 @@ const BASE_URL = "/sessions";
 // SESSIONS
 // ==============================
 
-export const getAllSessions = async () => {
+export const getAllSessions = async (entrepriseId) => {
   try {
-    const res = await api.get(BASE_URL);
+    const params = entrepriseId == null ? {} : { entrepriseId };
+    const res = await api.get(BASE_URL, { params });
     return res.data;
   } catch (err) {
     console.error("Erreur lors du chargement des sessions :", err);
+    throw err;
+  }
+};
+
+// Get paginated sessions (used by SessionPage)
+// Returns: { content: [], totalElements, totalPages, number, size }
+export const getSessionsPaginated = async ({
+  page = 0,
+  size = 20,
+  search = "",
+  entrepriseId = null,
+  years = [],
+  sortBy = "idSession",
+  sortDir = "desc",
+} = {}) => {
+  try {
+    const params = { page, size, sortBy, sortDir };
+    if (search)        params.search       = search;
+    if (entrepriseId)  params.entrepriseId = entrepriseId;
+    if (years?.length) params.years        = years.join(",");
+    const res = await api.get(`${BASE_URL}/paginated`, { params });
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors du chargement paginé des sessions :", err);
+    throw err;
+  }
+};
+
+// Get the list of years that have sessions (for the year-filter dropdown)
+export const getSessionYears = async (entrepriseId) => {
+  try {
+    const params = entrepriseId == null ? {} : { entrepriseId };
+    const res = await api.get(`${BASE_URL}/years`, { params });
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors du chargement des années :", err);
     throw err;
   }
 };

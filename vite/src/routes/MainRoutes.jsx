@@ -12,6 +12,12 @@ import EmployesPage from '../views/employes/EmployesPage';
 
 import EvaluationAChaudPage      from '../views/evaluation/EvaluationAChaudPage';
 import EvaluationAChaudStatsPage from '../views/evaluation/EvaluationAChaudStatsPage';
+import QuizStatsPage from '../views/quiz/QuizStatsPage';
+import QuizPage from '../views/quiz/QuizPage';
+import QuizRoute from './QuizRoute';
+import BesoinsFormationPage from '../views/besoins/BesoinsFormationPage';
+
+
 
 
 // dashboard routing
@@ -90,6 +96,10 @@ const MainRoutes = {
       )
     },
     {
+      path: 'besoins-formation',
+      element: <ProtectedRoute><BesoinsFormationPage /></ProtectedRoute>,
+    },
+    {
       path: 'planification',
       element: <ProtectedRoute><PlanificationPage /></ProtectedRoute>,  // ← new
     },
@@ -101,6 +111,15 @@ const MainRoutes = {
       path: 'evaluations-a-chaud/:sessionId',
       element: <ProtectedRoute><EvaluationAChaudStatsPage /></ProtectedRoute>,
     },
+    {
+      path: 'quiz',
+      element: <QuizRoute><QuizPage /></QuizRoute>,
+    },
+    {
+      path: 'quiz/:sessionId',
+      element: <QuizRoute><QuizStatsPage /></QuizRoute>,
+    },
+
   ]
 };
 

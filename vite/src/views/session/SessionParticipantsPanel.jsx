@@ -240,6 +240,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
           open={openAddModal}
           onClose={() => setOpenAddModal(false)}
           employeesList={availableEmployees}
+          sessionEntrepriseId={session.idEntreprise}
           onSelectParticipants={handleAddParticipants}
         />
       )}

@@ -3,13 +3,25 @@ import api from "./axios"; // your axios instance
 
 const BASE_URL = "/formations"; // relative to api baseURL in axios.js
 
-// ✅ Get all formations
-export const getAllFormations = async () => {
+// ✅ Get all formations (optionally filtered by entreprise — ADMIN only, backend ignores it otherwise)
+export const getAllFormations = async (entrepriseId) => {
   try {
-    const res = await api.get(BASE_URL);
+    const params = entrepriseId == null ? {} : { entrepriseId };
+    const res = await api.get(BASE_URL, { params });
     return res.data;
   } catch (err) {
     console.error("Error loading formations:", err);
+    throw err;
+  }
+};
+
+// ✅ Get a single formation by id (used to check its entreprise when editing a session)
+export const getFormationById = async (id) => {
+  try {
+    const res = await api.get(`${BASE_URL}/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error loading formation:", err);
     throw err;
   }
 };

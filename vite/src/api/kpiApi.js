@@ -10,10 +10,10 @@ function buildYearsParams(years = []) {
 }
 
 export const getClientKpis = async (entrepriseId, years = []) => {
-  if (!entrepriseId) throw new Error("Entreprise ID is required");
   try {
     const params = buildYearsParams(years);
-    const response = await api.get(`/clients/${entrepriseId}/kpis`, { params });
+    const url = entrepriseId == null ? "/admin/kpis" : `/clients/${entrepriseId}/kpis`;
+    const response = await api.get(url, { params });
     return response.data;
   } catch (error) {
     console.error("Failed to fetch KPIs:", error);
@@ -22,9 +22,9 @@ export const getClientKpis = async (entrepriseId, years = []) => {
 };
 
 export const getAvailableYears = async (entrepriseId) => {
-  if (!entrepriseId) throw new Error("Entreprise ID is required");
   try {
-    const response = await api.get(`/clients/${entrepriseId}/kpis/years`);
+    const url = entrepriseId == null ? "/admin/kpis/years" : `/clients/${entrepriseId}/kpis/years`;
+    const response = await api.get(url);
     return (response.data ?? []).filter((y) => y != null);
   } catch (error) {
     console.error("Failed to fetch available years:", error);
@@ -45,7 +45,6 @@ export const getClientTotalGrowth = async (
   month = "",
   years = []
 ) => {
-  if (!entrepriseId) throw new Error("Entreprise ID is required");
   if (period === "daily" && !month) throw new Error("Month is required for daily period");
 
   try {
@@ -56,7 +55,10 @@ export const getClientTotalGrowth = async (
       years.filter((y) => y != null).forEach((y) => params.append("years", y));
     }
 
-    const response = await api.get(`/clients/${entrepriseId}/kpis/total-growth`, { params });
+    const url = entrepriseId == null
+      ? "/admin/kpis/total-growth"
+      : `/clients/${entrepriseId}/kpis/total-growth`;
+    const response = await api.get(url, { params });
     const data = response.data;
 
     if (data?.series) {

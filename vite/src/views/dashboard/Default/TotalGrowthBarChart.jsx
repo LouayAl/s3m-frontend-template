@@ -16,7 +16,6 @@ import useConfig from 'hooks/useConfig';
 import SkeletonTotalGrowthBarChart from 'ui-component/cards/Skeleton/TotalGrowthBarChart';
 import MainCard from 'ui-component/cards/MainCard';
 import { gridSpacing } from 'store/constant';
-import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientTotalGrowth } from 'api/kpiApi';
 
 function convertMonthLabelToParam(label) {
@@ -29,10 +28,9 @@ function convertMonthLabelToParam(label) {
   return monthMap[monthStr] ? `${yearStr}-${monthMap[monthStr]}` : '';
 }
 
-export default function TotalGrowthBarChart({ isLoading, selectedYears = [] }) {
+export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedYears = [] }) {
   const theme = useTheme();
   const { state: { fontFamily } } = useConfig();
-  const { user } = useAuth();
 
   const [chartData, setChartData]       = useState(null);
   const [period, setPeriod]             = useState('monthly');
@@ -48,7 +46,7 @@ export default function TotalGrowthBarChart({ isLoading, selectedYears = [] }) {
   const canDrilldown = period === 'monthly' && selectedYears.length <= 1 && !drilldownMonth;
 
   useEffect(() => {
-    if (!user?.entrepriseId) return;
+    if (entrepriseId === undefined) return;
 
     const fetchGrowth = async () => {
       setLoadingChart(true);
@@ -56,7 +54,7 @@ export default function TotalGrowthBarChart({ isLoading, selectedYears = [] }) {
         const effectivePeriod = drilldownMonth ? 'daily' : period;
         const monthParam      = drilldownMonth || '';
         const data = await getClientTotalGrowth(
-          user.entrepriseId,
+          entrepriseId,
           effectivePeriod,
           monthParam,
           selectedYears   // ← passed to backend
@@ -71,7 +69,7 @@ export default function TotalGrowthBarChart({ isLoading, selectedYears = [] }) {
     };
 
     fetchGrowth();
-  }, [user?.entrepriseId, period, drilldownMonth, selectedYears]);
+  }, [entrepriseId, period, drilldownMonth, selectedYears]);
 
   const safeCategories = useMemo(() => chartData?.categories || [], [chartData]);
   const safeSeries     = useMemo(() => chartData?.series     || [], [chartData]);
@@ -219,5 +217,6 @@ export default function TotalGrowthBarChart({ isLoading, selectedYears = [] }) {
 
 TotalGrowthBarChart.propTypes = {
   isLoading: PropTypes.bool,
+  entrepriseId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   selectedYears: PropTypes.arrayOf(PropTypes.number),
 };

@@ -1,10 +1,6 @@
-// frontend-template/vite/src/menu-items/session.js
-// assets
-import { IconEdit, IconStars } from '@tabler/icons-react'; // or any icon you like
+import { IconEdit, IconStars, IconShieldCheck } from '@tabler/icons-react';
 
-const icons = { IconEdit, IconStars };
-
-// ==============================|| SESSION MENU ITEMS ||============================= //
+const icons = { IconEdit, IconStars, IconShieldCheck };
 
 const session = {
   id: 'session',
@@ -17,17 +13,25 @@ const session = {
       type: 'item',
       url: '/sessions',
       icon: icons.IconEdit,
-      breadcrumbs: false
+      breadcrumbs: false,
     },
     {
       id: 'evaluations-a-chaud',
       title: 'Évaluations à chaud',
       type: 'item',
       url: '/evaluations-a-chaud',
-      icon: icons.IconStars ,
-      breadcrumbs: false
-    }
-  ]
+      icon: icons.IconStars,
+      breadcrumbs: false,
+    },
+    {
+      id: 'quiz-securite',
+      title: 'Quiz Sécurité',
+      type: 'item',
+      url: '/quiz',
+      icon: icons.IconShieldCheck,
+      breadcrumbs: false,
+    },
+  ],
 };
 
 export default session;

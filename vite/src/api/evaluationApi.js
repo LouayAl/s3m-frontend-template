@@ -95,3 +95,8 @@ export const exportEvaluationExcel = async (sessionId) => {
     await unwrapBlobError(err);
   }
 };
+
+export const getAllSessionsQuizSummary = async () => {
+  const res = await api.get('/quiz/summary');
+  return res.data;
+};

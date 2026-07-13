@@ -4,8 +4,10 @@ import api from "./axios";
 const BASE_URL = "/employes";
 
 // Get all employees (used by ParticipantsModal — do not paginate)
-export const getAllEmployes = async () => {
-  const res = await api.get(BASE_URL);
+// Optional entrepriseId — only honored for ADMIN, ignored for everyone else.
+export const getAllEmployes = async (entrepriseId) => {
+  const params = entrepriseId == null ? {} : { entrepriseId };
+  const res = await api.get(BASE_URL, { params });
   return res.data;
 };
 

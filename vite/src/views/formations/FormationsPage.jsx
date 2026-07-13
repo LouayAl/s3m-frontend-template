@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   Box, Typography, Card, CardContent,
-  TextField, Grid, Stack, IconButton,
+  TextField, Grid, Stack, IconButton, MenuItem,
   Snackbar, Alert, Dialog, DialogTitle,
   DialogContent, DialogContentText, DialogActions, Button,
 } from "@mui/material";
@@ -13,6 +13,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import FormationsModal from "./FormationsModal";
 import { getAllFormations, deleteFormation, importFormations } from "../../api/formationApi";
+import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
 const importButtonSx = { backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" } };
@@ -24,10 +25,15 @@ const CAN_MUTATE = new Set(["ADMIN", "MANAGER", "EQUIPMENT_MANAGER"]);
 const FormationsPage = () => {
   const { user } = useAuth();
   const canEdit = CAN_MUTATE.has(user?.role);   // false for VISITOR, TRAINER, etc.
+  const isAdmin = user?.role === "ADMIN";
 
   const [formations,        setFormations]        = useState([]);
   const [loading,           setLoading]           = useState(true);
   const [search,            setSearch]            = useState("");
+
+  // Admin-only: entreprise filter dropdown
+  const [entreprises,        setEntreprises]        = useState([]);
+  const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
 
   const [modalOpen,         setModalOpen]         = useState(false);
   const [editingFormation,  setEditingFormation]  = useState(null);
@@ -39,14 +45,23 @@ const FormationsPage = () => {
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
+  // ── Load entreprises for admin dropdown ──────────────────────────────────
+  useEffect(() => {
+    if (!isAdmin) return;
+    getAllEntreprises()
+      .then(setEntreprises)
+      .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
+  }, [isAdmin]);
+
   // ── Fetch ─────────────────────────────────────────────────────────────────
-  // Backend scopes to the user's entrepriseId via JWT automatically.
-  useEffect(() => { fetchFormations(); }, []);
+  // For non-admins: backend enforces their own entreprise via JWT — no param sent.
+  // For admins: pass filterEntrepriseId (null/'' = every formation in the DB).
+  useEffect(() => { fetchFormations(); }, [filterEntrepriseId, isAdmin]);
 
   const fetchFormations = async () => {
     try {
       setLoading(true);
-      const data = await getAllFormations();
+      const data = await getAllFormations(isAdmin ? (filterEntrepriseId || null) : undefined);
       setFormations(data);
     } catch {
       showSnackbar("Erreur lors du chargement des formations.", "error");
@@ -87,6 +102,7 @@ const FormationsPage = () => {
     if (!formations.length) { showSnackbar("Aucune formation à exporter.", "warning"); return; }
     const data = formations.map(f => ({
       "Module":          f.module,
+      "Entreprise":      f.entrepriseNom,
       "Famille":         f.familleFormation,
       "Type":            f.typeFormation,
       "Sous-famille":    f.sousFamille,
@@ -128,6 +144,8 @@ const FormationsPage = () => {
   // ── Columns ───────────────────────────────────────────────────────────────
   const baseColumns = [
     { field: "module",             headerName: "Module",          flex: 1, minWidth: 160 },
+    // Entreprise column only makes sense once an admin can see formations from several companies
+    ...(isAdmin ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 }] : []),
     { field: "familleFormation",   headerName: "Famille",         flex: 1, minWidth: 120 },
     { field: "typeFormation",      headerName: "Type",            flex: 1, minWidth: 120 },
     { field: "sousFamille",        headerName: "Sous-famille",    flex: 1, minWidth: 120 },
@@ -169,7 +187,7 @@ const FormationsPage = () => {
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: isAdmin ? 4 : 6 }}>
               <TextField
                 fullWidth
                 label="Rechercher par module"
@@ -178,7 +196,26 @@ const FormationsPage = () => {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}
+            {/* Entreprise dropdown — ADMIN only */}
+            {isAdmin && (
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  select fullWidth
+                  label="Filtrer par entreprise"
+                  value={filterEntrepriseId}
+                  onChange={e => setFilterEntrepriseId(e.target.value)}
+                >
+                  <MenuItem value=""><em>Toutes les entreprises</em></MenuItem>
+                  {entreprises.map(ent => (
+                    <MenuItem key={ent.idEntreprise} value={ent.idEntreprise}>
+                      {ent.nomEntreprise}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
+
+            <Grid size={{ xs: 12, md: isAdmin ? 5 : 6 }}
               sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
 
               {/* Create — mutators only */}

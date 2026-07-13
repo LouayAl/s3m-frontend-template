@@ -1,27 +1,4 @@
 // frontend-template/vite/src/views/pages/auth-forms/AuthLogin.jsx
-// Only 2 lines change from your current version — the handleSubmit function:
-
-// REPLACE this block in handleSubmit:
-//   const userData = await login(email, password);
-//   navigate('/dashboard', { replace: true });
-
-// WITH:
-//   const userData = await login(email, password);
-//   if (userData?.role === 'EQUIPMENT_MANAGER') {
-//     navigate('/em/dashboard', { replace: true });
-//   } else {
-//     navigate('/dashboard', { replace: true });
-//   }
-
-// Also update the useEffect redirect (for already-logged-in users):
-// REPLACE:
-//   navigate('/dashboard', { replace: true });
-// WITH:
-//   if (user?.role === 'EQUIPMENT_MANAGER') {
-//     navigate('/em/dashboard', { replace: true });
-//   } else {
-//     navigate('/dashboard', { replace: true });
-//   }
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +22,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 export default function AuthLogin() {
-  const [email, setEmail]               = useState('');
+  const [identifier, setIdentifier]     = useState('');
   const [password, setPassword]         = useState('');
   const [checked, setChecked]           = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -53,10 +30,10 @@ export default function AuthLogin() {
 
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
+
   const getDashboardPath = (role) =>
     role === 'EQUIPMENT_MANAGER' || role === 'TRAINER' ? '/em/dashboard' : '/dashboard';
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
       navigate(getDashboardPath(user.role), { replace: true });
@@ -69,27 +46,25 @@ export default function AuthLogin() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-
     try {
-      const userData = await login(email, password);
-
+      const userData = await login(identifier, password);
       navigate(getDashboardPath(userData?.role), { replace: true });
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
-      console.error('❌ Login error:', err);
+      setError(err.message || 'Identifiant ou mot de passe incorrect');
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <CustomFormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel htmlFor="email-login">Adresse e-mail / Nom d'utilisateur</InputLabel>
+        <InputLabel htmlFor="identifier-login">Email ou nom d'utilisateur</InputLabel>
         <OutlinedInput
-          id="email-login"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          name="email"
+          id="identifier-login"
+          type="text"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          name="identifier"
+          label="Email ou nom d'utilisateur"
         />
       </CustomFormControl>
 
@@ -100,6 +75,7 @@ export default function AuthLogin() {
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          label="Mot de passe"
           endAdornment={
             <InputAdornment position="end">
               <IconButton
@@ -113,7 +89,6 @@ export default function AuthLogin() {
               </IconButton>
             </InputAdornment>
           }
-          label="Password"
         />
       </CustomFormControl>
 
@@ -126,7 +101,14 @@ export default function AuthLogin() {
       <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Grid>
           <FormControlLabel
-            control={<Checkbox checked={checked} onChange={(e) => setChecked(e.target.checked)} name="checked" color="primary" />}
+            control={
+              <Checkbox
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+                name="checked"
+                color="primary"
+              />
+            }
             label="Rester connecté"
           />
         </Grid>
@@ -134,7 +116,8 @@ export default function AuthLogin() {
 
       <Box>
         <AnimateButton>
-          <Button color="secondary" fullWidth size="large" type="submit" variant="contained" sx={{ color: '#ffffffff' }}>
+          <Button color="secondary" fullWidth size="large" type="submit" variant="contained"
+            sx={{ color: '#ffffffff' }}>
             Se connecter
           </Button>
         </AnimateButton>

@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 // material-ui
 import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
 
 // project imports
 import TotalFormationHoursCard from './TotalFormationHoursCard';
@@ -15,47 +16,65 @@ import GenderPieChart from './GenderPieChart';
 import CspPieChart from './CspPieChart';
 import RemboursementPieChart from './RemboursementPieChart';
 import YearFilter from './YearFilter';
+import EntrepriseFilter from './EntrepriseFilter';
 
 import { gridSpacing } from 'store/constant';
 import { useAuth } from 'contexts/auth/AuthContext';
 import { getClientKpis, getAvailableYears } from 'api/kpiApi';
+import { getAllEntreprises } from 'api/entrepriseApi';
 import DashboardSkeleton from './DashboardSkeleton';
 import EmptyDashboardState from './EmptyDashboardState';
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const [isLoading, setLoading] = useState(true);
   const [kpis, setKpis] = useState(null);
+  const [entreprises, setEntreprises] = useState([]);
+  const [entreprisesLoading, setEntreprisesLoading] = useState(false);
+  const [selectedEntrepriseId, setSelectedEntrepriseId] = useState('');
 
   // Year-filter state
   const [availableYears, setAvailableYears] = useState([]);
   const [yearsLoading, setYearsLoading] = useState(true);
   const [selectedYears, setSelectedYears] = useState([]); // [] = "all years"
+  const effectiveEntrepriseId = isAdmin ? (selectedEntrepriseId || null) : user?.entrepriseId;
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    setEntreprisesLoading(true);
+    getAllEntreprises()
+      .then((data) => setEntreprises(Array.isArray(data) ? data : []))
+      .catch(() => setEntreprises([]))
+      .finally(() => setEntreprisesLoading(false));
+  }, [isAdmin]);
 
   // ── Fetch available years once ────────────────────────────────────────────
   useEffect(() => {
-    if (!user?.entrepriseId) return;
+    if (effectiveEntrepriseId === undefined) return;
 
-    getAvailableYears(user.entrepriseId)
+    setYearsLoading(true);
+    getAvailableYears(effectiveEntrepriseId)
       .then((years) => setAvailableYears(years))
       .catch(() => setAvailableYears([]))
       .finally(() => setYearsLoading(false));
-  }, [user?.entrepriseId]);
+  }, [effectiveEntrepriseId]);
 
   // ── Fetch KPIs whenever clientId or selectedYears changes ─────────────────
   const fetchKpis = useCallback(async () => {
-    if (!user?.entrepriseId) return;
+    if (effectiveEntrepriseId === undefined) return;
 
     try {
-      const data = await getClientKpis(user.entrepriseId, selectedYears);
+      const data = await getClientKpis(effectiveEntrepriseId, selectedYears);
       setKpis(data);
     } catch {
       setKpis(null);
     } finally {
       setLoading(false);
     }
-  }, [user?.entrepriseId, selectedYears]);
+  }, [effectiveEntrepriseId, selectedYears]);
 
   useEffect(() => {
     setLoading(true);
@@ -68,6 +87,11 @@ export default function Dashboard() {
   // ── Year change handler ───────────────────────────────────────────────────
   const handleYearsChange = (years) => {
     setSelectedYears(years);
+  };
+
+  const handleEntrepriseChange = (entrepriseId) => {
+    setSelectedEntrepriseId(entrepriseId);
+    setSelectedYears([]);
   };
 
   // ── Render guards ─────────────────────────────────────────────────────────
@@ -90,12 +114,22 @@ export default function Dashboard() {
 
       {/* ── Year filter bar ─────────────────────────────────────────────── */}
       <Grid size={12}>
-        <YearFilter
-          availableYears={availableYears}
-          selectedYears={selectedYears}
-          onChange={handleYearsChange}
-          loading={yearsLoading}
-        />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          {isAdmin && (
+            <EntrepriseFilter
+              entreprises={entreprises}
+              selectedEntrepriseId={selectedEntrepriseId}
+              onChange={handleEntrepriseChange}
+              loading={entreprisesLoading}
+            />
+          )}
+          <YearFilter
+            availableYears={availableYears}
+            selectedYears={selectedYears}
+            onChange={handleYearsChange}
+            loading={yearsLoading}
+          />
+        </Stack>
       </Grid>
 
       {/* ── Top KPI cards ────────────────────────────────────────────────── */}
@@ -133,7 +167,7 @@ export default function Dashboard() {
             */}
             <TotalGrowthBarChart
               isLoading={isLoading}
-              entrepriseId={user.entrepriseId}
+              entrepriseId={effectiveEntrepriseId}
               selectedYears={selectedYears}
             />
           </Grid>

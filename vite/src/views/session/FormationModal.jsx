@@ -11,12 +11,18 @@ import {
   Box,
   Stack,
   Typography,
-  CircularProgress
+  CircularProgress,
+  MenuItem,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { getAllFormations } from "../../api/formationApi";
+import { getAllEntreprises } from "../../api/entrepriseApi";
+import { useAuth } from "../../contexts/auth/AuthContext";
 
 const FormationModal = ({ open, onClose, onFormationSelected }) => {
+  const { user } = useAuth();
+  const isAdmin  = user?.role === "ADMIN";
+
   const [formations, setFormations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -28,14 +34,25 @@ const FormationModal = ({ open, onClose, onFormationSelected }) => {
     annee: ""
   });
 
+  // Admin-only: entreprise filter dropdown, so the admin knows exactly which
+  // company's formation catalogue they're picking from.
+  const [entreprises,        setEntreprises]        = useState([]);
+  const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
+
+  useEffect(() => {
+    if (!open || !isAdmin) return;
+    getAllEntreprises().then(setEntreprises).catch(() => {});
+  }, [open, isAdmin]);
+
   useEffect(() => {
     if (open) fetchFormations();
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, filterEntrepriseId]);
 
   const fetchFormations = async () => {
     try {
         setLoading(true);
-        const data = await getAllFormations();
+        const data = await getAllFormations(isAdmin ? (filterEntrepriseId || null) : undefined);
         setFormations(data);
     } catch {
       // Could add snackbar for errors
@@ -45,7 +62,7 @@ const FormationModal = ({ open, onClose, onFormationSelected }) => {
   };
 
   const handleSelect = (formation) => {
-    onFormationSelected(formation); // parent handles filling dHeures/dJours
+    onFormationSelected(formation); // parent handles filling dHeures/dJours + entreprise cross-check
     onClose();
   };
 
@@ -95,6 +112,8 @@ const filteredRows = formations.filter((f) => {
 
 const columns = [
   { field: "module", headerName: "Formation Module", flex: 1, minWidth: 160 },
+  // Entreprise column only makes sense once an admin can browse across companies
+  ...(isAdmin ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 }] : []),
   { field: "familleFormation", headerName: "Famille", flex: 1, minWidth: 120 },
   { field: "typeFormation", headerName: "Type", flex: 1, minWidth: 120 },
   { field: "sousFamille", headerName: "Sous-famille", flex: 1, minWidth: 120 },
@@ -109,8 +128,29 @@ const columns = [
       <DialogTitle>Choisir une Formation</DialogTitle>
       <DialogContent>
         <Box mb={2}>
+
+
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            {/* Entreprise dropdown — ADMIN only */}
+            {isAdmin && (
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField
+                  select fullWidth
+                  label="Filtrer par entreprise"
+                  value={filterEntrepriseId}
+                  onChange={(e) => setFilterEntrepriseId(e.target.value)}
+                >
+                  <MenuItem value=""><em>Toutes les entreprises</em></MenuItem>
+                  {entreprises.map((en) => (
+                    <MenuItem key={en.idEntreprise} value={en.idEntreprise}>
+                      {en.nomEntreprise}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
+
+            <Grid size={{ xs: 12, md: isAdmin ? 3 : 4 }}>
               <TextField
                 fullWidth
                 label="Rechercher par module"
@@ -118,6 +158,9 @@ const columns = [
                 onChange={(e) => setSearch(e.target.value)}
               />
             </Grid>
+
+            
+
             <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
@@ -134,14 +177,7 @@ const columns = [
                 onChange={(e) => setFilters((prev) => ({ ...prev, typeFormation: e.target.value }))}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
-              <TextField
-                fullWidth
-                label="Sous-famille"
-                value={filters.sousFamille}
-                onChange={(e) => setFilters((prev) => ({ ...prev, sousFamille: e.target.value }))}
-              />
-            </Grid>
+            
             <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth

@@ -8,6 +8,7 @@ import MinimalLayout from 'layout/MinimalLayout';
 // auth routing
 const LoginPage = Loadable(lazy(() => import('views/pages/authentication/Login')));
 const RegisterPage = Loadable(lazy(() => import('views/pages/authentication/Register')));
+const PublicQuizForm = Loadable(lazy(() => import('views/quiz/PublicQuizForm')));
 
 // ==============================|| AUTHENTICATION ROUTING ||============================== //
 
@@ -22,7 +23,8 @@ const AuthenticationRoutes = {
     {
       path: 'register',
       element: <RegisterPage />
-    }
+    },
+    { path: '/quiz/session/:sessionId', element: <PublicQuizForm /> }
   ]
 };
 
