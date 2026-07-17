@@ -1,5 +1,5 @@
 // frontend-template/vite/src/views/session/SessionPage.jsx
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   Box, Typography, Card, CardContent,
   TextField, Grid, Button, IconButton, MenuItem,
@@ -15,6 +15,7 @@ import { saveAs } from "file-saver";
 import {
   getSessionsPaginated, getSessionYears, deleteSession,
   addParticipantsToSession, removeParticipantsFromSession,
+  toggleSessionFacture,
 } from "../../api/sessionApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth }              from "../../contexts/auth/AuthContext";
@@ -91,10 +92,24 @@ const StatusChip = ({ status }) => {
   );
 };
 
+// ── Persistence keys (localStorage) ─────────────────────────────────────────
+const COLUMN_WIDTHS_KEY = "sessionGrid.columnWidths";
+const FILTER_MODEL_KEY  = "sessionGrid.filterModel";
+
+const readJson = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const SessionPage = () => {
   const isVisitor = useIsVisitor();
   const { user }  = useAuth();
   const isAdmin   = user?.role === "ADMIN";
+  const isAdminFinance = user?.role === "ADMIN_FINANCE"; // read-only sessions + invoicing toggle only
 
   const [sessions,      setSessions]      = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -102,11 +117,16 @@ const SessionPage = () => {
   const [selectedYears, setSelectedYears] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
 
+  // Finance-only filters
+  const [statutFilter, setStatutFilter]   = useState([]);     // [] = all statuts
+  const [factureFilter, setFactureFilter] = useState("");     // '', 'true', 'false'
+  const financeDefaultsApplied = useRef(false);
+
   const [sortModel, setSortModel] = useState([]); // e.g. [{ field: "dateDebut", sort: "desc" }]
   const [paginationModel, setPaginationModel] = useState({ pageSize: 20, page: 0 });
   const [totalSessions, setTotalSessions] = useState(0);
 
-  // Admin-only: entreprise filter dropdown
+  // Admin-only: entreprise filter dropdown (also usable by ADMIN_FINANCE)
   const [entreprises,        setEntreprises]        = useState([]);
   const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
 
@@ -131,20 +151,56 @@ const SessionPage = () => {
   const pendingPaginationRef = useRef(null);
   const pendingSortRef       = useRef(null);
 
-  // ── Load entreprises for admin dropdown ──────────────────────────────────
+  // ── Column width / filter persistence ────────────────────────────────────
+  // Widths and the DataGrid's own filter model used to reset on every refetch
+  // because the columns array was rebuilt fresh on every render (new object
+  // identity each time), so the grid had nothing stable to remember a
+  // user-dragged width against. Fix: control both explicitly via state that's
+  // persisted to localStorage, instead of relying on the grid's internal
+  // memory of column identity.
+  const [columnWidths, setColumnWidths] = useState(() => readJson(COLUMN_WIDTHS_KEY, {}));
+  const [filterModel,  setFilterModel]  = useState(() => readJson(FILTER_MODEL_KEY, { items: [] }));
+
+  const handleColumnWidthChange = useCallback((params) => {
+    setColumnWidths((prev) => {
+      const next = { ...prev, [params.colDef.field]: params.width };
+      localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const handleFilterModelChange = useCallback((newModel) => {
+    setFilterModel(newModel);
+    localStorage.setItem(FILTER_MODEL_KEY, JSON.stringify(newModel));
+  }, []);
+
+  // ── Finance defaults (applied once, as soon as we know the role) ────────
+  // Bahiya cares about sessions that are done or happening now (to invoice
+  // them), not everything scheduled months out — default to En cours/Terminée
+  // sorted by most recently finished first, so "yesterday's finished
+  // sessions" surface immediately without her having to filter manually.
   useEffect(() => {
-    if (!isAdmin) return;
+    if (isAdminFinance && !financeDefaultsApplied.current) {
+      setStatutFilter(["EN_COURS", "TERMINEE"]);
+      setSortModel([{ field: "dateFin", sort: "desc" }]);
+      financeDefaultsApplied.current = true;
+    }
+  }, [isAdminFinance]);
+
+  // ── Load entreprises for admin / finance dropdown ────────────────────────
+  useEffect(() => {
+    if (!isAdmin && !isAdminFinance) return;
     getAllEntreprises()
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
-  }, [isAdmin]);
+  }, [isAdmin, isAdminFinance]);
 
   // ── Load available years (server-side, scoped like sessions) ────────────
   useEffect(() => {
-    getSessionYears(isAdmin ? (filterEntrepriseId || null) : undefined)
+    getSessionYears((isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined)
       .then(setAvailableYears)
       .catch(() => {}); // non-critical — filter just won't show options if it fails
-  }, [isAdmin, filterEntrepriseId]);
+  }, [isAdmin, isAdminFinance, filterEntrepriseId]);
 
   // ── Fetch sessions (server-side pagination/sort/search/filter) ──────────
   const fetchSessions = useCallback(async (showSpinner = true) => {
@@ -159,8 +215,10 @@ const SessionPage = () => {
         sortBy,
         sortDir,
         years:        selectedYears,
-        // Only pass entrepriseId for ADMIN (scoping for others is done server-side via JWT)
-        entrepriseId: isAdmin ? (filterEntrepriseId || null) : undefined,
+        // Only pass entrepriseId for ADMIN/ADMIN_FINANCE (scoping for others is done server-side via JWT)
+        entrepriseId: (isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined,
+        statuts:      isAdminFinance ? statutFilter : undefined,
+        facture:      isAdminFinance && factureFilter !== "" ? factureFilter === "true" : undefined,
       });
       setSessions(data.content || []);
       setTotalSessions(data.totalElements || 0);
@@ -169,7 +227,7 @@ const SessionPage = () => {
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [paginationModel, sortModel, search, selectedYears, isAdmin, filterEntrepriseId]);
+  }, [paginationModel, sortModel, search, selectedYears, isAdmin, isAdminFinance, filterEntrepriseId, statutFilter, factureFilter]);
 
   useEffect(() => { fetchSessions(true); }, [fetchSessions]);
 
@@ -213,6 +271,17 @@ const SessionPage = () => {
     }
   };
 
+  // ── Facturation toggle (ADMIN_FINANCE only) ──────────────────────────────
+  const handleToggleFacture = async (sessionId) => {
+    try {
+      const updated = await toggleSessionFacture(sessionId);
+      setSessions((prev) => prev.map((s) => (s.idSession === updated.idSession ? updated : s)));
+      showSnackbar(updated.facture ? "Session marquée comme facturée." : "Session marquée comme non facturée.");
+    } catch {
+      showSnackbar("Erreur lors de la mise à jour du statut de facturation.", "error");
+    }
+  };
+
   // ── Export (pulls the FULL filtered dataset, not just the current page) ──
   const handleExportExcel = async () => {
     try {
@@ -224,7 +293,9 @@ const SessionPage = () => {
         search: search.trim(),
         sortBy, sortDir,
         years: selectedYears,
-        entrepriseId: isAdmin ? (filterEntrepriseId || null) : undefined,
+        entrepriseId: (isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined,
+        statuts:      isAdminFinance ? statutFilter : undefined,
+        facture:      isAdminFinance && factureFilter !== "" ? factureFilter === "true" : undefined,
       });
       const rows = allData.content || [];
       if (!rows.length) { showSnackbar("Aucune session à exporter.", "warning"); return; }
@@ -243,6 +314,7 @@ const SessionPage = () => {
         "Lieu":                s.lieu || "",
         "Statut":              s.statut,
         "Nombre participants": s.participants?.length || 0,
+        ...(isAdminFinance ? { "Facturé": s.facture ? "Oui" : "Non" } : {}),
       }));
 
       const participantsData = [];
@@ -304,38 +376,52 @@ const SessionPage = () => {
   const resetToFirstPage = () => setPaginationModel(prev => ({ ...prev, page: 0 }));
 
   // ── Columns ───────────────────────────────────────────────────────────────
-  const baseColumns = [
-    { field: "referenceSession",    headerName: "Réf. session",  minWidth: 130, maxWidth: 200 },
-    { field: "formation",           headerName: "Formation",    flex: 2, minWidth: 100 },
-    { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
-    { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
-    { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
-    { field: "dateDebut",           headerName: "Début",        width: 120 },
-    { field: "dateFin",             headerName: "Fin",          width: 120 },
-    { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
-    { field: "dJours",              headerName: "Durée (j)",    width: 100 },
-    { field: "lieu",                headerName: "Lieu",         minWidth: 140 },
-    {
-      field: "statut",
-      headerName: "Statut",
-      width: 145,
-      renderCell: (params) => <StatusChip status={params.value} />,
-    },
-    {
-      field: "participantsCount",
-      headerName: "Participants",
-      width: 130,
-      sortable: false,
-      renderCell: (params) => (
-        <Button variant="outlined" size="small" onClick={() => {
-          setEditingParticipantsSession(params.row);
-          setOpenParticipantsPanel(true);
-        }}>
-          {params.row.participants?.length || 0}
-        </Button>
-      ),
-    },
-  ];
+  // Base column defs, with any user-resized width (from localStorage) applied
+  // on top. Width now comes from our own controlled state rather than the
+  // grid's internal memory, so it survives refetches/re-renders regardless of
+  // column-array identity.
+  const baseColumns = useMemo(() => {
+    const defs = [
+      { field: "referenceSession",    headerName: "Réf. session",  minWidth: 130, maxWidth: 200 },
+      { field: "formation",           headerName: "Formation",    flex: 2, minWidth: 100 },
+      { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
+      { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
+      { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
+      { field: "dateDebut",           headerName: "Début",        width: 120 },
+      { field: "dateFin",             headerName: "Fin",          width: 120 },
+      { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
+      { field: "dJours",              headerName: "Durée (j)",    width: 100 },
+      { field: "lieu",                headerName: "Lieu",         minWidth: 140 },
+      {
+        field: "statut",
+        headerName: "Statut",
+        width: 145,
+        renderCell: (params) => <StatusChip status={params.value} />,
+      },
+      {
+        field: "participantsCount",
+        headerName: "Participants",
+        width: 130,
+        sortable: false,
+        renderCell: (params) => (
+          <Button variant="outlined" size="small" onClick={() => {
+            setEditingParticipantsSession(params.row);
+            setOpenParticipantsPanel(true);
+          }}>
+            {params.row.participants?.length || 0}
+          </Button>
+        ),
+      },
+    ];
+
+    // Apply any persisted width on top of the defaults, clearing flex so the
+    // explicit width actually takes effect instead of being overridden.
+    return defs.map((col) =>
+      columnWidths[col.field]
+        ? { ...col, width: columnWidths[col.field], flex: undefined, minWidth: undefined, maxWidth: undefined }
+        : col
+    );
+  }, [columnWidths]);
 
   const actionsColumn = {
     field: "actions",
@@ -378,17 +464,47 @@ const SessionPage = () => {
     ),
   };
 
-  const columns = isVisitor ? baseColumns : [...baseColumns, actionsColumn];
+  // Facturation column — ADMIN_FINANCE only. A button rather than a plain
+  // chip since it's also the toggle control; color reflects current state.
+  const factureColumn = {
+    field: "facture",
+    headerName: "Facturation",
+    width: 160,
+    sortable: false,
+    renderCell: (params) => (
+      <Button
+        size="small"
+        variant={params.row.facture ? "contained" : "outlined"}
+        color={params.row.facture ? "success" : "inherit"}
+        onClick={(e) => { e.stopPropagation(); handleToggleFacture(params.row.idSession); }}
+      >
+        {params.row.facture ? "Facturé" : "Non facturé"}
+      </Button>
+    ),
+  };
+
+  const columns = useMemo(() => {
+    if (isAdminFinance) return [...baseColumns, factureColumn];
+    if (isVisitor) return baseColumns;
+    return [...baseColumns, actionsColumn];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseColumns, isAdminFinance, isVisitor]);
+
+  // Row highlight for invoiced sessions, finance view only.
+  const getRowClassName = (params) =>
+    isAdminFinance && params.row.facture ? "row-facture-done" : "";
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box p={3}>
-      <Typography variant="h4" fontWeight="bold" mb={2}>Sessions de Formation</Typography>
+      <Typography variant="h4" fontWeight="bold" mb={2}>
+        {isAdminFinance ? "Facturation des Sessions" : "Sessions de Formation"}
+      </Typography>
 
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid size={{ xs: 12, md: isAdmin ? 2.5 : 3 }}>
+            <Grid size={{ xs: 12, md: (isAdmin || isAdminFinance) ? 2.5 : 3 }}>
               <TextField
                 fullWidth
                 label="Rechercher par formation ou référence"
@@ -397,8 +513,8 @@ const SessionPage = () => {
               />
             </Grid>
 
-            {/* Entreprise dropdown — ADMIN only */}
-            {isAdmin && (
+            {/* Entreprise dropdown — ADMIN / ADMIN_FINANCE only */}
+            {(isAdmin || isAdminFinance) && (
               <Grid size={{ xs: 12, md: 2.5 }}>
                 <TextField
                   select fullWidth
@@ -416,8 +532,42 @@ const SessionPage = () => {
               </Grid>
             )}
 
+            {/* Statut quick-filter — ADMIN_FINANCE only */}
+            {isAdminFinance && (
+              <Grid size={{ xs: 12, md: 2.5 }}>
+                <TextField
+                  select fullWidth
+                  label="Statut"
+                  value={statutFilter.length === 2 ? "recent" : "all"}
+                  onChange={(e) => {
+                    setStatutFilter(e.target.value === "recent" ? ["EN_COURS", "TERMINEE"] : []);
+                    resetToFirstPage();
+                  }}
+                >
+                  <MenuItem value="recent">En cours / Terminées</MenuItem>
+                  <MenuItem value="all">Toutes les sessions</MenuItem>
+                </TextField>
+              </Grid>
+            )}
+
+            {/* Facturation filter — ADMIN_FINANCE only */}
+            {isAdminFinance && (
+              <Grid size={{ xs: 12, md: 2 }}>
+                <TextField
+                  select fullWidth
+                  label="Facturation"
+                  value={factureFilter}
+                  onChange={(e) => { setFactureFilter(e.target.value); resetToFirstPage(); }}
+                >
+                  <MenuItem value=""><em>Toutes</em></MenuItem>
+                  <MenuItem value="true">Facturé</MenuItem>
+                  <MenuItem value="false">Non facturé</MenuItem>
+                </TextField>
+              </Grid>
+            )}
+
             <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {!isVisitor && (
+              {!isVisitor && !isAdminFinance && (
                 <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
                   Créer session
                 </Button>
@@ -452,9 +602,19 @@ const SessionPage = () => {
               rowCount={totalSessions}
               paginationMode="server"
               sortingMode="server"
+              filterModel={filterModel}
+              onFilterModelChange={handleFilterModelChange}
+              onColumnWidthChange={handleColumnWidthChange}
+              getRowClassName={getRowClassName}
               initialState={{
                 columns: {
                   columnVisibilityModel: { },
+                },
+              }}
+              sx={{
+                "& .row-facture-done": {
+                  backgroundColor: "#F0FDF4",
+                  "&:hover": { backgroundColor: "#DCFCE7 !important" },
                 },
               }}
             />
@@ -473,7 +633,7 @@ const SessionPage = () => {
       </Dialog>
 
       {/* Session modal */}
-      {!isVisitor && (
+      {!isVisitor && !isAdminFinance && (
         <SessionModal
           open={openSessionModal}
           onClose={() => setOpenSessionModal(false)}
@@ -485,7 +645,7 @@ const SessionPage = () => {
       )}
 
       {/* Participants modal */}
-      {!isVisitor && editingParticipantsSession && (
+      {!isVisitor && !isAdminFinance && editingParticipantsSession && (
         <ParticipantsModal
           open={openParticipantsModal}
           onClose={() => setOpenParticipantsModal(false)}
@@ -509,7 +669,7 @@ const SessionPage = () => {
         />
       )}
 
-      {/* Participants panel */}
+      {/* Participants panel — read-only for visitors and finance */}
       <Dialog open={openParticipantsPanel} onClose={() => setOpenParticipantsPanel(false)} maxWidth="lg" fullWidth>
         <DialogContent>
           {editingParticipantsSession && (
@@ -518,7 +678,7 @@ const SessionPage = () => {
               onClose={() => setOpenParticipantsPanel(false)}
               onUpdated={() => fetchSessions(false)}
               showSnackbar={showSnackbar}
-              readOnly={isVisitor}
+              readOnly={isVisitor || isAdminFinance}
             />
           )}
         </DialogContent>

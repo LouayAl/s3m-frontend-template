@@ -26,14 +26,18 @@ export const getSessionsPaginated = async ({
   search = "",
   entrepriseId = null,
   years = [],
+  statuts = [],     // ✅ new — finance view: ["EN_COURS", "TERMINEE"]
+  facture = null,   // ✅ new — finance view: true | false | null (don't filter)
   sortBy = "idSession",
   sortDir = "desc",
 } = {}) => {
   try {
     const params = { page, size, sortBy, sortDir };
-    if (search)        params.search       = search;
-    if (entrepriseId)  params.entrepriseId = entrepriseId;
-    if (years?.length) params.years        = years.join(",");
+    if (search)         params.search       = search;
+    if (entrepriseId)   params.entrepriseId = entrepriseId;
+    if (years?.length)  params.years        = years.join(",");
+    if (statuts?.length) params.statuts     = statuts.join(",");
+    if (facture !== null && facture !== undefined) params.facture = facture;
     const res = await api.get(`${BASE_URL}/paginated`, { params });
     return res.data;
   } catch (err) {
@@ -100,6 +104,22 @@ export const deleteSession = async (id) => {
     return res.data;
   } catch (err) {
     console.error("Erreur lors de la suppression de la session :", err);
+    throw err;
+  }
+};
+
+// ==============================
+// FACTURATION — ADMIN_FINANCE only
+// Backend enforces the role via @PreAuthorize regardless of what the
+// frontend does; this is just wiring the call.
+// ==============================
+
+export const toggleSessionFacture = async (sessionId) => {
+  try {
+    const res = await api.patch(`${BASE_URL}/${sessionId}/facture`);
+    return res.data;
+  } catch (err) {
+    console.error("Erreur lors de la mise à jour du statut de facturation :", err);
     throw err;
   }
 };
