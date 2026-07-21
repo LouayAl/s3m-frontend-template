@@ -1,5 +1,5 @@
 // frontend-template/vite/src/views/evaluation/EvaluationAChaudStatsPage.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Grid,
@@ -54,6 +54,34 @@ function scoreColor(value) {
   if (value >= 2.5) return '#42a5f5';
   if (value >= 1.5) return '#ff9800';
   return '#ef5350';
+}
+
+// Serializes an inline <svg> element to a PNG data URL, then returns just the
+// base64 payload (no "data:image/png;base64," prefix) so it can be sent as-is
+// in the export PDF request body.
+function svgToPngBase64(svgElement, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const { width, height } = svgElement.getBoundingClientRect();
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; // opaque background — PDFs don't handle transparency well
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      const dataUrl = canvas.toDataURL('image/png');
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 }
 
 // ── ScoreBar ──────────────────────────────────────────────────────────────────
@@ -167,7 +195,7 @@ function KPIBenchmarkPanel({ sessionId, moduleFormation }) {
 
 // ── StatsPanel — flat view of all responses for a session ─────────────────────
 
-function StatsPanel({ stats }) {
+function StatsPanel({ stats, barChartWrapperRef }) {
   const moyennesParQuestion = stats.moyennesParQuestion ?? {};
 
   const radarData = SECTIONS.map(section => {
@@ -221,20 +249,22 @@ function StatsPanel({ stats }) {
         </Card>
       </Grid>
 
-      {/* Bar chart by question */}
+      {/* Bar chart by question — wrapped in a ref so it can be exported as PNG for the PDF */}
       <Grid size={{ xs: 12, md: 5 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight={600} mb={1}>Score par question</Typography>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis domain={[0, 4]} tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v, _, props) => [`${v}/4`, props.payload.label]} />
-                <Bar dataKey="moyenne" fill="#1976d2" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div ref={barChartWrapperRef}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={barData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 4]} tick={{ fontSize: 10 }} />
+                  <Tooltip formatter={(v, _, props) => [`${v}/4`, props.payload.label]} />
+                  <Bar dataKey="moyenne" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </Grid>
@@ -379,6 +409,10 @@ export default function EvaluationAChaudStatsPage() {
   const [exportingPdf,   setExportingPdf]   = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
 
+  // Points at the <div> wrapping the "Score par question" bar chart, so we can
+  // grab its <svg> and rasterize it for the PDF export.
+  const barChartWrapperRef = useRef(null);
+
   useEffect(() => {
     getEvaluationStats(sessionId)
       .then(setStats)
@@ -388,7 +422,9 @@ export default function EvaluationAChaudStatsPage() {
   const handleExportPdf = async () => {
     setExportingPdf(true);
     try {
-      await exportEvaluationPdf(sessionId);
+      const svgEl = barChartWrapperRef.current?.querySelector('svg');
+      const barChartImage = svgEl ? await svgToPngBase64(svgEl) : null;
+      await exportEvaluationPdf(sessionId, barChartImage);
     } catch (err) {
       console.error('Erreur export PDF', err);
     } finally {
@@ -461,7 +497,7 @@ export default function EvaluationAChaudStatsPage() {
       <Divider sx={{ mb: 3 }} />
 
       {stats.totalReponses > 0 ? (
-        <StatsPanel stats={stats} />
+        <StatsPanel stats={stats} barChartWrapperRef={barChartWrapperRef} />
       ) : (
         <Typography color="text.secondary">
           Aucune évaluation reçue pour cette session.

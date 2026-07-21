@@ -72,11 +72,13 @@ async function unwrapBlobError(err) {
   throw err;
 }
 
-export const exportEvaluationPdf = async (sessionId) => {
+export const exportEvaluationPdf = async (sessionId, barChartImage) => {
   try {
-    const res = await api.get(`/evaluation-a-chaud/session/${sessionId}/export/pdf`, {
-      responseType: 'blob',
-    });
+    const res = await api.post(
+      `/evaluation-a-chaud/session/${sessionId}/export/pdf`,
+      { barChartImage },
+      { responseType: 'blob' }
+    );
     const filename = extractFilename(res.headers['content-disposition'], `evaluation_session_${sessionId}.pdf`);
     downloadBlob(res.data, filename);
   } catch (err) {
