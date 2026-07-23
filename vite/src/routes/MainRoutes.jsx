@@ -32,6 +32,9 @@ const UtilsShadow = Loadable(lazy(() => import('views/utilities/Shadow')));
 const SamplePage = Loadable(lazy(() => import('views/sample-page')));
 
 const PlanificationPage  = Loadable(lazy(() => import('views/planification/PlanificationPage')));
+
+const FormateursPage = Loadable(lazy(() => import('views/formateurs/FormateursPage')));
+
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -92,6 +95,14 @@ const MainRoutes = {
       element: (
         <ProtectedRoute>
           <EmployesPage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: 'formateurs',
+      element: (
+        <ProtectedRoute>
+          <FormateursPage />
         </ProtectedRoute>
       )
     },

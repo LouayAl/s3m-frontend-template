@@ -25,6 +25,9 @@ import { getAllEntreprises } from 'api/entrepriseApi';
 import DashboardSkeleton from './DashboardSkeleton';
 import EmptyDashboardState from './EmptyDashboardState';
 
+import VisibiliteSection from './VisibiliteSection';
+
+
 export default function Dashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -38,7 +41,7 @@ export default function Dashboard() {
   // Year-filter state
   const [availableYears, setAvailableYears] = useState([]);
   const [yearsLoading, setYearsLoading] = useState(true);
-  const [selectedYears, setSelectedYears] = useState([]); // [] = "all years"
+  const [selectedYears, setSelectedYears] = useState([2026]); // [] = "all years"
   const effectiveEntrepriseId = isAdmin ? (selectedEntrepriseId || null) : user?.entrepriseId;
 
   useEffect(() => {
@@ -57,7 +60,12 @@ export default function Dashboard() {
 
     setYearsLoading(true);
     getAvailableYears(effectiveEntrepriseId)
-      .then((years) => setAvailableYears(years))
+      .then((years) => {
+        setAvailableYears(years);
+        if (!years.includes(2026)) {
+          setSelectedYears([]); // no 2026 data for this client — show all years instead
+        }
+      })
       .catch(() => setAvailableYears([]))
       .finally(() => setYearsLoading(false));
   }, [effectiveEntrepriseId]);
@@ -91,7 +99,7 @@ export default function Dashboard() {
 
   const handleEntrepriseChange = (entrepriseId) => {
     setSelectedEntrepriseId(entrepriseId);
-    setSelectedYears([]);
+    setSelectedYears([2026]);
   };
 
   // ── Render guards ─────────────────────────────────────────────────────────
@@ -131,6 +139,8 @@ export default function Dashboard() {
           />
         </Stack>
       </Grid>
+
+      <VisibiliteSection entrepriseId={effectiveEntrepriseId} />
 
       {/* ── Top KPI cards ────────────────────────────────────────────────── */}
       <Grid size={12}>

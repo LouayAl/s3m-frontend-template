@@ -79,3 +79,18 @@ export const getClientTotalGrowth = async (
     throw error;
   }
 };
+
+
+export const getVisibiliteKpis = async (clientId, start, end) => {
+  const path = clientId ? `/clients/${clientId}/kpis/visibilite` : `/admin/kpis/visibilite`;
+  const res = await api.get(path, { params: { start, end } });
+  return res.data;
+};
+
+export const getVisibiliteSessions = async (clientId, start, end) => {
+  const path = clientId ? `/clients/${clientId}/kpis/visibilite/sessions` : `/admin/kpis/visibilite/sessions`;
+  const res = await api.get(path, { params: { start, end } });
+  return res.data;
+};
+
+
