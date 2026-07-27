@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Stack,
+  Stack,  
   TextField,
   MenuItem,
   Alert,
@@ -71,7 +71,7 @@ const SessionModal = ({
 
   const [entreprises, setEntreprises] = useState([]);
   const [formateurs, setFormateurs] = useState([]);
-
+  const [fournisseurs, setFournisseurs] = useState([]);
   const [openFormationModal, setOpenFormationModal] = useState(false);
   const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
 
@@ -86,18 +86,18 @@ const SessionModal = ({
   useEffect(() => {
     const fetchLists = async () => {
       try {
-        const [e, f] = await Promise.all([
+        const [clients, all, f] = await Promise.all([
+          getAllEntreprises('CLIENT'),
           getAllEntreprises(),
           getAllFormateurs(),
         ]);
-
-        setEntreprises(e);
+        setEntreprises(clients);
+        setFournisseurs(all);
         setFormateurs(f);
       } catch (err) {
         console.error(err);
       }
     };
-
     fetchLists();
   }, []);
 
@@ -365,18 +365,14 @@ const SessionModal = ({
           </TextField>
 
           {/* Fournisseur */}
+          {/* Fournisseur */}
           <TextField
             select
             label="Fournisseur"
             value={formData.idFournisseur || ""}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                idFournisseur: Number(e.target.value),
-              }))
-            }
+            onChange={(e) => setFormData((prev) => ({ ...prev, idFournisseur: Number(e.target.value) }))}
           >
-            {entreprises.map((en) => (
+            {fournisseurs.map((en) => (   // was entreprises.map
               <MenuItem key={en.idEntreprise} value={en.idEntreprise}>
                 {en.nomEntreprise}
               </MenuItem>

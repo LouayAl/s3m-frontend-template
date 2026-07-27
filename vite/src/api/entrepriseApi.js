@@ -3,10 +3,11 @@ import api from "./axios";
 
 const BASE_URL = "/entreprises";
 
-// ✅ Get all entreprises
-export const getAllEntreprises = async () => {
+// ✅ Get all entreprises (optionally filtered by type: 'CLIENT' | 'FOURNISSEUR' | 'AUTRE')
+export const getAllEntreprises = async (type) => {
   try {
-    const res = await api.get(BASE_URL);
+    const params = type ? { type } : {};
+    const res = await api.get(BASE_URL, { params });
     return res.data;
   } catch (err) {
     console.error("Error loading entreprises:", err);

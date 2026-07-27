@@ -13,6 +13,7 @@ import BesoinFormationModal from "./BesoinFormationModal";
 import { getAllBesoins, deleteBesoin } from "../../api/besoinFormationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
+import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 
 // Only ADMIN can create/edit/delete training-needs entries
 const CAN_MUTATE = new Set(["ADMIN"]);
@@ -34,8 +35,7 @@ const BesoinsFormationPage = () => {
 
   // Admin-only: entreprise filter dropdown
   const [entreprises,        setEntreprises]        = useState([]);
-  const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
-
+  const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId } = useGlobalFilter();
   const [modalOpen,     setModalOpen]     = useState(false);
   const [editingBesoin, setEditingBesoin] = useState(null);
 
@@ -49,7 +49,7 @@ const BesoinsFormationPage = () => {
   // ── Load entreprises for admin dropdown ──────────────────────────────────
   useEffect(() => {
     if (!isAdmin) return;
-    getAllEntreprises()
+    getAllEntreprises('CLIENT')
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
   }, [isAdmin]);

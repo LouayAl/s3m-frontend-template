@@ -24,6 +24,7 @@ import { getClientKpis, getAvailableYears } from 'api/kpiApi';
 import { getAllEntreprises } from 'api/entrepriseApi';
 import DashboardSkeleton from './DashboardSkeleton';
 import EmptyDashboardState from './EmptyDashboardState';
+import { useGlobalFilter } from 'contexts/filters/GlobalFilterContext';
 
 import VisibiliteSection from './VisibiliteSection';
 
@@ -36,19 +37,18 @@ export default function Dashboard() {
   const [kpis, setKpis] = useState(null);
   const [entreprises, setEntreprises] = useState([]);
   const [entreprisesLoading, setEntreprisesLoading] = useState(false);
-  const [selectedEntrepriseId, setSelectedEntrepriseId] = useState('');
 
-  // Year-filter state
+  const { selectedEntrepriseId, setSelectedEntrepriseId, selectedYears, setSelectedYears } = useGlobalFilter();
   const [availableYears, setAvailableYears] = useState([]);
   const [yearsLoading, setYearsLoading] = useState(true);
-  const [selectedYears, setSelectedYears] = useState([2026]); // [] = "all years"
   const effectiveEntrepriseId = isAdmin ? (selectedEntrepriseId || null) : user?.entrepriseId;
+
 
   useEffect(() => {
     if (!isAdmin) return;
 
     setEntreprisesLoading(true);
-    getAllEntreprises()
+    getAllEntreprises('CLIENT')
       .then((data) => setEntreprises(Array.isArray(data) ? data : []))
       .catch(() => setEntreprises([]))
       .finally(() => setEntreprisesLoading(false));

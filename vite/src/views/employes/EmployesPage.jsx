@@ -18,6 +18,7 @@ import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
 import { useIsVisitor } from '../../hooks/useIsVisitor';
+import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 
 
 const importButtonSx = { backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" } };
@@ -37,8 +38,7 @@ const EmployesPage = () => {
 
   // Admin-only: entreprise filter dropdown
   const [entreprises,        setEntreprises]        = useState([]);
-  const [filterEntrepriseId, setFilterEntrepriseId] = useState('');  // '' = all
-
+  const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId } = useGlobalFilter();
   const [modalOpen,      setModalOpen]      = useState(false);
   const [editingEmploye, setEditingEmploye] = useState(null);
 
@@ -56,7 +56,7 @@ const EmployesPage = () => {
   // ── Load entreprises for admin dropdown ──────────────────────────────────
   useEffect(() => {
     if (!isAdmin) return;
-    getAllEntreprises()
+    getAllEntreprises('CLIENT')
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
   }, [isAdmin]);

@@ -15,6 +15,7 @@ import FormationsModal from "./FormationsModal";
 import { getAllFormations, deleteFormation, importFormations } from "../../api/formationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
+import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 
 const importButtonSx = { backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#43A047" } };
 const exportButtonSx = { backgroundColor: "#ff5e00", "&:hover": { backgroundColor: "#ff3c00" } };
@@ -33,8 +34,7 @@ const FormationsPage = () => {
 
   // Admin-only: entreprise filter dropdown
   const [entreprises,        setEntreprises]        = useState([]);
-  const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
-
+  const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId } = useGlobalFilter();
   const [modalOpen,         setModalOpen]         = useState(false);
   const [editingFormation,  setEditingFormation]  = useState(null);
 
@@ -48,7 +48,7 @@ const FormationsPage = () => {
   // ── Load entreprises for admin dropdown ──────────────────────────────────
   useEffect(() => {
     if (!isAdmin) return;
-    getAllEntreprises()
+    getAllEntreprises('CLIENT')
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
   }, [isAdmin]);

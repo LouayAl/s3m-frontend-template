@@ -6,11 +6,11 @@ import { useAuth } from 'contexts/auth/AuthContext';
 import NavigationScroll from 'layout/NavigationScroll';
 import ThemeCustomization from 'themes';
 import router from 'routes';
+import { GlobalFilterProvider } from 'contexts/filters/GlobalFilterContext';
 
 export default function App() {
   const { loading } = useAuth();
 
-  // Block rendering of the router until auth state is fully loaded
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -21,9 +21,11 @@ export default function App() {
 
   return (
     <ThemeCustomization>
-      <NavigationScroll>
-        <RouterProvider router={router} />
-      </NavigationScroll>
+      <GlobalFilterProvider>
+        <NavigationScroll>
+          <RouterProvider router={router} />
+        </NavigationScroll>
+      </GlobalFilterProvider>
     </ThemeCustomization>
   );
 }

@@ -27,6 +27,7 @@ import { useIsVisitor }         from "../../hooks/useIsVisitor";
 import QRCodeDialog from './QRCodeDialog';
 import QuizDialog from './QuizDialog';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
+import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 
 
 const exportButtonSx = {
@@ -114,7 +115,7 @@ const SessionPage = () => {
   const [sessions,      setSessions]      = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState("");
-  const [selectedYears, setSelectedYears] = useState([]);
+  // const [selectedYears, setSelectedYears] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
 
   // Finance-only filters
@@ -128,8 +129,8 @@ const SessionPage = () => {
 
   // Admin-only: entreprise filter dropdown (also usable by ADMIN_FINANCE)
   const [entreprises,        setEntreprises]        = useState([]);
-  const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
-
+  // const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
+  const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId, selectedYears, setSelectedYears, } = useGlobalFilter();
   const [openSessionModal,  setOpenSessionModal]  = useState(false);
   const [editingSession,    setEditingSession]    = useState(null);
 
@@ -190,7 +191,7 @@ const SessionPage = () => {
   // ── Load entreprises for admin / finance dropdown ────────────────────────
   useEffect(() => {
     if (!isAdmin && !isAdminFinance) return;
-    getAllEntreprises()
+    getAllEntreprises('CLIENT')   // was getAllEntreprises()
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
   }, [isAdmin, isAdminFinance]);

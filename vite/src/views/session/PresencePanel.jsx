@@ -9,7 +9,9 @@ import {
 import CheckCircleIcon  from "@mui/icons-material/CheckCircle";
 import CancelIcon       from "@mui/icons-material/Cancel";
 import SaveIcon         from "@mui/icons-material/Save";
+import DownloadIcon     from "@mui/icons-material/Download";
 import HelpOutlineIcon  from "@mui/icons-material/HelpOutline";
+import * as XLSX from "xlsx";
 import { getSessionDays, getRecordedDays, getPresenceForDay, savePresence } from "../../api/presenceApi";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -18,6 +20,12 @@ function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   return d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" });
+}
+
+// Shorter, spreadsheet-friendly date format for column headers (e.g. "24/07/2025")
+function formatDateShort(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("fr-FR");
 }
 
 function statusIcon(present) {
@@ -77,6 +85,7 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
   const [loadingDays,  setLoadingDays]  = useState(true);
   const [loadingGrid,  setLoadingGrid]  = useState(false);
   const [saving,       setSaving]       = useState(false);
+  const [exporting,    setExporting]    = useState(false);
   const [edits,        setEdits]        = useState({});
 
   // ── Load days on mount ────────────────────────────────────────────────────
@@ -151,6 +160,76 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
     }
   };
 
+  // ── Export presence (all days, one sheet) ────────────────────────────────
+  // There's no bulk endpoint, so fetch every day in parallel and pivot the
+  // results into participants-as-rows / days-as-columns.
+  const handleExportPresence = async () => {
+    if (!sessionDays.length) {
+      showSnackbar?.("Aucun jour à exporter.", "warning");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const dayResults = await Promise.all(
+        sessionDays.map(day => getPresenceForDay(session.idSession, day).catch(() => null))
+      );
+
+      // participationId -> { nom, prenom, cin, matricule }
+      const participantsInfo = new Map();
+      // day -> Map(participationId -> present)
+      const presenceByDay = {};
+
+      sessionDays.forEach((day, idx) => {
+        const dayMap = new Map();
+        (dayResults[idx]?.participants || []).forEach(p => {
+          if (!participantsInfo.has(p.participationId)) {
+            participantsInfo.set(p.participationId, {
+              nom: p.nom, prenom: p.prenom, cin: p.cin, matricule: p.matricule,
+            });
+          }
+          dayMap.set(p.participationId, p.present);
+        });
+        presenceByDay[day] = dayMap;
+      });
+
+      if (participantsInfo.size === 0) {
+        showSnackbar?.("Aucune donnée de présence à exporter.", "warning");
+        return;
+      }
+
+      const dayHeaders = sessionDays.map(formatDateShort);
+      const presentLabel = (val) => (val === true ? "Présent" : val === false ? "Absent" : "");
+
+      const rows = [...participantsInfo.entries()].map(([participationId, info]) => {
+        const row = {
+          "Nom":       info.nom,
+          "Prénom":    info.prenom,
+          "CIN":       info.cin || "",
+          "Matricule": info.matricule || "",
+        };
+        let totalPresent = 0;
+        sessionDays.forEach((day, idx) => {
+          const val = presenceByDay[day].get(participationId);
+          if (val === true) totalPresent++;
+          row[dayHeaders[idx]] = presentLabel(val);
+        });
+        row["Total Présent"] = totalPresent;
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Présence");
+      XLSX.writeFile(wb, `presence_${session.referenceSession}.xlsx`);
+      showSnackbar?.("Export présence réussi !", "success");
+    } catch {
+      showSnackbar?.("Erreur lors de l'export de la présence.", "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ── Derived stats ─────────────────────────────────────────────────────────
   const total    = presenceData?.participants?.length ?? 0;
   const presents = presenceData?.participants?.filter(p => edits[p.participationId] === true).length  ?? 0;
@@ -172,7 +251,7 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
       {loadingDays ? (
         <DayChipsSkeleton />
       ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 3 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
           {sessionDays.map(day => {
             const isRecorded = recordedDays.includes(day);
             const isSelected = day === selectedDay;
@@ -189,6 +268,25 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
               />
             );
           })}
+        </Box>
+      )}
+
+      {/* Export — all days, regardless of which one is currently selected */}
+      {!loadingDays && sessionDays.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Tooltip title="Exporter la présence de tous les jours dans un seul fichier Excel">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={exporting ? <CircularProgress size={14} color="inherit" /> : <DownloadIcon />}
+                onClick={handleExportPresence}
+                disabled={exporting}
+              >
+                Exporter présence
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       )}
 
