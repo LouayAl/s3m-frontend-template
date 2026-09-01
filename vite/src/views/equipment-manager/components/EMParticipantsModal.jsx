@@ -168,10 +168,10 @@ const EMParticipantsModal = ({
         />
       ),
     },
-    { field: 'nom',       headerName: 'Nom',       flex: 1, minWidth: 120, headerAlign: 'center', align: 'center' },
-    { field: 'prenom',    headerName: 'Prénom',    flex: 1, minWidth: 120, headerAlign: 'center', align: 'center' },
-    { field: 'cin',       headerName: 'CIN',       width: 120, headerAlign: 'center', align: 'center' },
-    { field: 'matricule', headerName: 'Matricule', width: 130, headerAlign: 'center', align: 'center' },
+    { field: 'nom',       headerName: 'Name',       flex: 1, minWidth: 120, headerAlign: 'center', align: 'center' },
+    { field: 'prenom',    headerName: 'First Name',    flex: 1, minWidth: 120, headerAlign: 'center', align: 'center' },
+    { field: 'cin',       headerName: 'National ID',       width: 120, headerAlign: 'center', align: 'center' },
+    { field: 'matricule', headerName: 'Employee ID', width: 130, headerAlign: 'center', align: 'center' },
   ], [allVisibleSel, someVisibleSel, selectedIds]);
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -179,11 +179,11 @@ const EMParticipantsModal = ({
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-          <span>Choisir des Participants</span>
+          <span>Choose Participants</span>
           <Stack direction="row" spacing={1} alignItems="center">
             {selectedCount > 0 && (
               <Chip
-                label={`${selectedCount} sélectionné(s)`}
+                label={`${selectedCount} selected`}
                 color="primary"
                 size="small"
                 onDelete={() => setSelectedIds([])}
@@ -196,7 +196,7 @@ const EMParticipantsModal = ({
               style={{ display: 'none' }}
               onChange={handleImportExcel}
             />
-            <Tooltip title="Importer des CIN depuis un fichier Excel. Les participants correspondants seront auto-sélectionnés.">
+            <Tooltip title="Import national identity card numbers from an Excel file. Matching participants will be automatically selected.">
               <Button
                 size="small"
                 variant="outlined"
@@ -204,7 +204,7 @@ const EMParticipantsModal = ({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading}
               >
-                Importer Excel
+                Import Excel
               </Button>
             </Tooltip>
           </Stack>
@@ -215,20 +215,20 @@ const EMParticipantsModal = ({
         {/* Import warnings */}
         {importWarnings.length > 0 && (
           <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setImportWarnings([])}>
-            CIN non trouvés : <strong>{importWarnings.join(', ')}</strong>
+            National identity card numbers not found : <strong>{importWarnings.join(', ')}</strong>
           </Alert>
         )}
 
         <Box mb={2}>
           <TextField
             fullWidth
-            label="Rechercher par nom, prénom, CIN ou matricule"
+            label="Search by name, first name, national identity card number or employee ID"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
           {search && selectedCount > 0 && (
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-              {selectedCount} participant(s) sélectionné(s) au total, même hors de la recherche.
+              {selectedCount} participant(s) selected in total, even outside the search.
             </Typography>
           )}
         </Box>
@@ -249,14 +249,14 @@ const EMParticipantsModal = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Annuler</Button>
+        <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
           color="primary"
           onClick={handleConfirm}
           disabled={selectedCount === 0}
         >
-          Confirmer ({selectedCount})
+          Confirm ({selectedCount})
         </Button>
       </DialogActions>
     </Dialog>

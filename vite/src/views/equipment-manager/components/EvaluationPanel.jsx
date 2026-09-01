@@ -138,29 +138,29 @@ export default function EvaluationPanel({
         <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', mb:2, flexWrap:'wrap', gap:1 }}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              Évaluation — Jour {activeDay}
+              Evaluation — Day {activeDay}
             </Typography>
             {criteres.length === 0 && (
               <Typography variant="caption" color="warning.main">
-                Aucun critère défini pour ce jour. Veuillez les configurer.
+                No criteria defined for this day. Please configure them.
               </Typography>
             )}
           </Box>
           <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
             {onOpenCriteres && (
               <Button variant="outlined" size="small" color="warning" onClick={onOpenCriteres}>
-                Gérer les critères
+                Manage criteria
               </Button>
             )}
             <Button variant="outlined" size="small" onClick={onOpenHistory}>
-              Voir les évaluations existantes
+              View existing evaluations
             </Button>
           </Box>
         </Box>
 
         {/* Participant chips */}
         <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
-          Sélectionner un participant
+          Select a participant
         </Typography>
         <Box sx={{ display:'flex', gap:1, flexWrap:'wrap', mb:2 }}>
           {participants.map((p) => {
@@ -183,7 +183,7 @@ export default function EvaluationPanel({
         {!selectedParticipant && (
           <Box sx={{ py:3, textAlign:'center', color:'text.secondary' }}>
             <Typography variant="body2">
-              Sélectionnez un participant pour commencer l'évaluation.
+              Select a participant to begin the evaluation.
             </Typography>
           </Box>
         )}
@@ -193,7 +193,7 @@ export default function EvaluationPanel({
           <>
             <Divider sx={{ mb:2 }} />
             <Typography variant="subtitle2" fontWeight={600} mb={1.5}>
-              {selectedParticipant.prenom} {selectedParticipant.nom} — Jour {activeDay}
+              {selectedParticipant.prenom} {selectedParticipant.nom} — Day {activeDay}
             </Typography>
 
             {/* Rating grid */}
@@ -203,7 +203,7 @@ export default function EvaluationPanel({
                   {/* Header */}
                   <Box sx={{ display:'flex', gap:1, mb:1, alignItems:'center' }}>
                     <Typography variant="caption" color="text.secondary" sx={{ flex:1, fontWeight:600 }}>
-                      Critère d'évaluation
+                      Evaluation criterion
                     </Typography>
                     {[1,2,3,4].map(v => (
                       <Box key={v} sx={{ width:36, textAlign:'center' }}>
@@ -284,7 +284,7 @@ export default function EvaluationPanel({
             ) : (
               <Box sx={{ py:2, mb:2, textAlign:'center', bgcolor:'background.default', borderRadius:1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Aucun critère d'évaluation défini pour le jour {activeDay}.
+                  No evaluation criteria defined for the day {activeDay}.
                 </Typography>
               </Box>
             )}
@@ -292,7 +292,7 @@ export default function EvaluationPanel({
             {/* Presence */}
             <Box sx={{ mb:2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
-                Présence
+                Presence
               </Typography>
               <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
                 {PRESENCE_OPTIONS.map(opt => (
@@ -310,7 +310,7 @@ export default function EvaluationPanel({
             {/* ── Hours + Minutes picker ───────────────────────────────────── */}
             <Box sx={{ mb:2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
-                Durée de présence
+                Duration of presence
               </Typography>
               <HoursMinutesPicker
                 value={currentEval.dureeHeures ?? null}
@@ -321,13 +321,13 @@ export default function EvaluationPanel({
             {/* Remarks */}
             <Box sx={{ mb:2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
-                Remarques du formateur
+                Trainer's remarks
               </Typography>
               <Box
                 component="textarea"
                 value={currentEval.remarks}
                 onChange={e => updateEval(evalKey, { remarks: e.target.value })}
-                placeholder="Observations, points d'amélioration..."
+                placeholder="Observations, points for improvement..."
                 sx={{
                   width:'100%', minHeight:80, p:1.5, borderRadius:1,
                   border:'1px solid', borderColor:'divider', fontFamily:'inherit',
@@ -342,10 +342,10 @@ export default function EvaluationPanel({
             <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
               <Button variant="contained" color="primary" onClick={handleSave} disabled={saving}
                 startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}>
-                {saving ? 'Enregistrement...' : "Enregistrer l'évaluation"}
+                {saving ? 'Saving...' : "Save Evaluation"}
               </Button>
               <Button variant="outlined" onClick={() => setSelectedParticipant(null)} disabled={saving}>
-                Annuler
+                Cancel
               </Button>
             </Box>
           </>

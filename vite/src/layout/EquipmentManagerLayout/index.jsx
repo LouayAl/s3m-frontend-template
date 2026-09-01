@@ -28,20 +28,20 @@ const NAV = [
   {
     section: 'Formations',
     items: [
-      { label: 'Formations',  icon: <SchoolOutlinedIcon    sx={{ fontSize: 18 }} />, path: '/em/formations' },
+      { label: 'Training',  icon: <SchoolOutlinedIcon    sx={{ fontSize: 18 }} />, path: '/em/formations' },
       { label: 'Sessions',    icon: <EventNoteOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/sessions'   },
     ],
   },
   {
     section: 'Employés',
     items: [
-      { label: 'Employés',    icon: <PeopleOutlinedIcon    sx={{ fontSize: 18 }} />, path: '/em/employes'   },
+      { label: 'Employees',    icon: <PeopleOutlinedIcon    sx={{ fontSize: 18 }} />, path: '/em/employes'   },
     ],
   },
   {
     section: 'Évaluations',
     items: [
-      { label: 'Évaluations', icon: <FactCheckOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/evaluations' },
+      { label: 'Evaluations', icon: <FactCheckOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/evaluations' },
     ],
   },
 ];
@@ -120,7 +120,7 @@ export default function EquipmentManagerLayout() {
             </Typography>
             <Typography variant="caption" color="text.secondary">Equipment Manager</Typography>
           </Box>
-          <Tooltip title="Se déconnecter">
+          <Tooltip title="Log out">
             <IconButton size="small" onClick={handleLogout} color="inherit">
               <LogoutOutlinedIcon sx={{ fontSize: 18 }} />
             </IconButton>

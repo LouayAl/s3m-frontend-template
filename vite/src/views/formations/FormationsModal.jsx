@@ -16,7 +16,10 @@ import { createFormation, updateFormation } from "../../api/formationApi";
 
 const INTERNE_EXTERNE_OPTIONS = ["Interne", "Externe"];
 
-const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
+const FormationsModal = ({
+  open, onClose, onSave, showSnackbar, initialData,
+  entreprises = [], allowEntrepriseSelection = false,
+}) => {
   const [formData, setFormData] = useState({
     module: "",
     typeFormation: "",
@@ -29,6 +32,7 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
     dureeJours: "",
     prixHeureMad: "",
     prixJourMad: "",
+    entrepriseId: "",
   });
 
   useEffect(() => {
@@ -45,6 +49,7 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
         dureeJours: initialData.dureeJours || "",
         prixHeureMad: initialData.prixHeureMad || "",
         prixJourMad: initialData.prixJourMad || "",
+        entrepriseId: initialData.entrepriseId || "",
       });
     } else {
       setFormData({
@@ -59,6 +64,7 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
         dureeJours: "",
         prixHeureMad: "",
         prixJourMad: "",
+        entrepriseId: "",
       });
     }
   }, [initialData, open]);
@@ -81,6 +87,7 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
   const validateForm = () => {
     const requiredFields = [
       { field: "module", label: "Module" },
+      ...(allowEntrepriseSelection ? [{ field: "entrepriseId", label: "une entreprise" }] : []),
     ];
 
     for (let rf of requiredFields) {
@@ -100,7 +107,11 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
       const payload = {
         ...formData,
         annee: formData.annee ? formData.annee.getFullYear() : null,
+        ...(allowEntrepriseSelection
+          ? { entreprise: { idEntreprise: Number(formData.entrepriseId) } }
+          : {}),
       };
+      delete payload.entrepriseId;
 
       let savedFormation;
       if (initialData) {
@@ -113,7 +124,7 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
       showSnackbar(initialData ? "Formation mise à jour !" : "Formation créée avec succès !");
       onClose();
     } catch (err) {
-      const message = err.response?.data?.message || "Erreur lors de l'enregistrement de la formation.";
+      const message = err.response?.data?.detail || err.response?.data?.message || "Erreur lors de l'enregistrement de la formation.";
       showSnackbar(message, "error");
       console.error("FormationsModal error:", err);
     }
@@ -124,6 +135,21 @@ const FormationsModal = ({ open, onClose, onSave, showSnackbar, initialData }) =
       <DialogTitle>{initialData ? "Modifier une formation" : "Créer une formation"}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={1}>
+          {allowEntrepriseSelection && (
+            <TextField
+              select
+              label="Entreprise *"
+              fullWidth
+              value={formData.entrepriseId}
+              onChange={(e) => handleChange("entrepriseId", e.target.value)}
+            >
+              {entreprises.map((entreprise) => (
+                <MenuItem key={entreprise.idEntreprise} value={entreprise.idEntreprise}>
+                  {entreprise.nomEntreprise}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
           <TextField
             label="Module *"
             fullWidth

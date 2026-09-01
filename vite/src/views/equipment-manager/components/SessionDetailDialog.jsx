@@ -14,9 +14,9 @@ import ParticipantProgressDialog from './ParticipantProgressDialog';
 import { getSessionStats }     from '../../../api/emApi';
 
 const STATUS_CONFIG = {
-  EN_COURS:  { label: 'En cours',  color: 'success' },
-  PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-  TERMINEE:  { label: 'Terminée',  color: 'error'   },
+  EN_COURS:  { label: 'In Progress',  color: 'success' },
+  PLANIFIEE: { label: 'Scheduled', color: 'warning' },
+  TERMINEE:  { label: 'Completed',  color: 'error'   },
 };
 
 export default function SessionDetailDialog({ open, onClose, session }) {
@@ -63,7 +63,7 @@ export default function SessionDetailDialog({ open, onClose, session }) {
             {session.formation}
           </Typography>
           <Typography variant="caption" sx={{ opacity:0.85 }}>
-            {session.referenceSession} · {session.dateDebut} → {session.dateFin} · {duree} jours
+            {session.referenceSession} · {session.dateDebut} → {session.dateFin} · {duree} days
           </Typography>
         </DialogTitle>
 
@@ -72,9 +72,9 @@ export default function SessionDetailDialog({ open, onClose, session }) {
           <Grid container spacing={2} mb={2}>
             {[
               { label:'Participants',   value: participants.length,                     icon:<GroupOutlinedIcon/>,         color:'#1a5276' },
-              { label:'Jours atteints', value: `${joursAtteint}/${duree}`,              icon:<CalendarTodayOutlinedIcon/>, color:'#f5821f' },
-              { label:'Progression',    value: `${pct}%`,                               icon:<TrendingUpIcon/>,            color:'#2e7d32' },
-              { label:'Statut',         value: STATUS_CONFIG[session.statut]?.label,    icon:<AssessmentOutlinedIcon/>,    color:'#7b1fa2' },
+              { label:'Days Achieved', value: `${joursAtteint}/${duree}`,              icon:<CalendarTodayOutlinedIcon/>, color:'#f5821f' },
+              { label:'Progress',    value: `${pct}%`,                               icon:<TrendingUpIcon/>,            color:'#2e7d32' },
+              { label:'Status',         value: STATUS_CONFIG[session.statut]?.label,    icon:<AssessmentOutlinedIcon/>,    color:'#7b1fa2' },
             ].map(k => (
               <Grid key={k.label} item xs={6} sm={3}>
                 <Box sx={{

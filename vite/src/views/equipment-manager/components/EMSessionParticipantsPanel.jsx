@@ -49,7 +49,7 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
       const data = await getSessionParticipants(session.idSession);
       setParticipants(data);
     } catch {
-      showSnackbar?.('Impossible de charger les participants.', 'error');
+      showSnackbar?.('Unable to load participants.', 'error');
     } finally {
       setLoading(false);
     }
@@ -61,12 +61,12 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
       const idsToAdd = selected.map(p => p.idEmploye);
       if (idsToAdd.length === 0) return;
       await addParticipantsToSession(session.idSession, idsToAdd);
-      showSnackbar?.(`${selected.length} participant(s) ajouté(s) avec succès !`, 'success');
+      showSnackbar?.(`${selected.length} participant(s) added successfully !`, 'success');
       setOpenAddModal(false);
       fetchParticipants();
       onUpdated?.();
     } catch {
-      showSnackbar?.('Erreur lors de l\'ajout des participants.', 'error');
+      showSnackbar?.('Error adding participants.', 'error');
     }
   };
 
@@ -75,13 +75,13 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     if (!participantToDelete) return;
     try {
       await removeParticipantsFromSession(session.idSession, [participantToDelete.idEmploye]);
-      showSnackbar?.('Participant supprimé avec succès !', 'success');
+      showSnackbar?.('Participant deleted successfully !', 'success');
       setConfirmDeleteOpen(false);
       setParticipantToDelete(null);
       fetchParticipants();
       onUpdated?.();
     } catch {
-      showSnackbar?.('Erreur suppression participant.', 'error');
+      showSnackbar?.('Error deleting participant.', 'error');
     }
   };
 
@@ -89,12 +89,12 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
   const handleRemoveAll = async () => {
     try {
       await removeParticipantsFromSession(session.idSession, participants.map(p => p.idEmploye));
-      showSnackbar?.('Tous les participants ont été supprimés.', 'success');
+      showSnackbar?.('All participants have been removed.', 'success');
       setConfirmRemoveAllOpen(false);
       fetchParticipants();
       onUpdated?.();
     } catch {
-      showSnackbar?.('Erreur suppression globale.', 'error');
+      showSnackbar?.('Error deleting global data.', 'error');
     }
   };
 
@@ -106,18 +106,18 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Participants');
     XLSX.writeFile(wb, `participants_${session.referenceSession}.xlsx`);
-    showSnackbar?.('Export Excel réussi !', 'success');
+    showSnackbar?.('Export Excel successful !', 'success');
   };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.text(`Participants - Session ${session.referenceSession}`, 10, 10);
     autoTable(doc, {
-      head: [['Nom', 'Prénom', 'CIN', 'Matricule']],
+      head: [['Last Name', 'First Name', 'Employee ID', 'Registration Number']],
       body: participants.map(p => [p.nom, p.prenom, p.cin || '', p.matricule || '']),
     });
     doc.save(`participants_${session.referenceSession}.pdf`);
-    showSnackbar?.('Export PDF réussi !', 'success');
+    showSnackbar?.('Export PDF successful !', 'success');
   };
 
   // ── Filter ────────────────────────────────────────────────────────────────
@@ -133,12 +133,12 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
 
   // ── Columns ───────────────────────────────────────────────────────────────
   const columns = [
-    { field: 'nom',       headerName: 'Nom',       flex: 1 },
-    { field: 'prenom',    headerName: 'Prénom',    flex: 1 },
-    { field: 'cin',       headerName: 'CIN',       flex: 1 },
-    { field: 'matricule', headerName: 'Matricule', flex: 1 },
+    { field: 'nom',       headerName: 'Last Name',       flex: 1 },
+    { field: 'prenom',    headerName: 'First Name',    flex: 1 },
+    { field: 'cin',       headerName: 'Employee ID',       flex: 1 },
+    { field: 'matricule', headerName: 'Registration Number', flex: 1 },
     {
-      field: 'actions', headerName: 'Actions', width: 80, sortable: false,
+      field: 'actions', headerName: 'Actions', width: 120, sortable: false,
       renderCell: (params) => (
         <IconButton color="error" size="small"
           onClick={() => { setParticipantToDelete(params.row); setConfirmDeleteOpen(true); }}
@@ -164,11 +164,11 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
 
       <Stack direction={isMobile ? 'column' : 'row'} spacing={1} mb={1}>
         <Button variant="contained" onClick={() => setOpenAddModal(true)}>
-          Ajouter des participants
+          Add participants
         </Button>
         <Button variant="outlined" color="error" startIcon={<GroupRemoveIcon />}
           onClick={() => setConfirmRemoveAllOpen(true)}>
-          Tout supprimer
+          Remove all
         </Button>
         <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel}>Excel</Button>
         <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={exportToPDF}>PDF</Button>
@@ -195,23 +195,23 @@ const EMSessionParticipantsPanel = ({ session, onUpdated, showSnackbar }) => {
 
       {/* Delete one */}
       <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-        <DialogTitle>Supprimer participant ?</DialogTitle>
+        <DialogTitle>Remove participant ?</DialogTitle>
         <DialogContent>
-          Supprimer {participantToDelete?.prenom} {participantToDelete?.nom} de cette session ?
+          Remove {participantToDelete?.prenom} {participantToDelete?.nom} from this session ?
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDeleteOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>Supprimer</Button>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>Remove</Button>
         </DialogActions>
       </Dialog>
 
       {/* Remove all */}
       <Dialog open={confirmRemoveAllOpen} onClose={() => setConfirmRemoveAllOpen(false)}>
-        <DialogTitle>Supprimer tous ?</DialogTitle>
-        <DialogContent>Retirer tous les participants de cette session ?</DialogContent>
+        <DialogTitle>Remove all participants ?</DialogTitle>
+        <DialogContent>Remove all participants from this session ?</DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmRemoveAllOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleRemoveAll}>Oui, supprimer</Button>
+          <Button onClick={() => setConfirmRemoveAllOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleRemoveAll}>Yes, remove all</Button>
         </DialogActions>
       </Dialog>
     </Box>

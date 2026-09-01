@@ -6,7 +6,7 @@ export default function DayTracker({ duree, activeDay, participants, isEvaluated
     <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider', mb: 2 }}>
       <CardContent>
         <Typography variant="subtitle2" fontWeight={600} mb={1.5}>
-          Jours de formation — cliquer sur un jour pour évaluer
+          Days of the training course — click on a day to evaluate
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {Array.from({ length: duree }, (_, i) => i + 1).map((d) => {
@@ -15,7 +15,7 @@ export default function DayTracker({ duree, activeDay, participants, isEvaluated
               participants.every(p => isEvaluated(p.idEmploye, d));
 
             return (
-              <Tooltip key={d} title={`Jour ${d}`} arrow>
+              <Tooltip key={d} title={`Day ${d}`} arrow>
                 <Box
                   onClick={() => onDayChange(d)}
                   sx={{
@@ -34,7 +34,7 @@ export default function DayTracker({ duree, activeDay, participants, isEvaluated
                     fontWeight={isActive ? 700 : 500}
                     color={isActive ? 'primary.main' : allEvaluated ? 'success.main' : 'text.secondary'}
                   >
-                    J{d}
+                    Day {d}
                   </Typography>
                   {allEvaluated && (
                     <CheckCircleOutlinedIcon

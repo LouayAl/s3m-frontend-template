@@ -12,9 +12,9 @@ import AddEvaluationModal from './components/AddEvaluationModal';
 import { useAuth } from '../../contexts/auth/AuthContext';
 
 const STATUS_CONFIG = {
-  EN_COURS:  { label: 'En cours',  color: 'success' },
-  PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-  TERMINEE:  { label: 'Terminée',  color: 'error'   },
+  EN_COURS:  { label: 'In Progress',  color: 'success' },
+  PLANIFIEE: { label: 'Scheduled', color: 'warning' },
+  TERMINEE:  { label: 'Completed',  color: 'error'   },
 };
 
 export default function EMEvaluationsPage() {
@@ -53,24 +53,24 @@ export default function EMEvaluationsPage() {
     <Box>
       <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', mb:3, flexWrap:'wrap', gap:1 }}>
         <Box>
-          <Typography variant="h4" fontWeight={700}>Évaluations</Typography>
+          <Typography variant="h4" fontWeight={700}>Evaluations</Typography>
           <Typography variant="body2" color="text.secondary">
-            Cliquez sur une session pour voir le détail des participants et leur progression.
+            Click on a session to view the details of participants and their progress.
           </Typography>
         </Box>
         {!isTrainer && (
           <Button variant="contained" onClick={() => setOpenModal(true)}>
-            Ajouter une évaluation
+            Add Evaluation
           </Button>
         )}
       </Box>
 
       <Grid container spacing={2} mb={3}>
         {[
-          { label:'Sessions totales',   value: sessions.length,     color:'primary.main', bg:'primary.light' },
-          { label:'En cours',           value: enCours,             color:'success.main', bg:'success.light' },
-          { label:'Terminées',          value: terminees,           color:'error.main',   bg:'error.light'   },
-          { label:'Participants total', value: totalParticipants,   color:'#7b1fa2',      bg:'#f3e5f5'       },
+          { label:'Total Sessions',   value: sessions.length,     color:'primary.main', bg:'primary.light' },
+          { label:'In Progress',           value: enCours,             color:'success.main', bg:'success.light' },
+          { label:'Completed',          value: terminees,           color:'error.main',   bg:'error.light'   },
+          { label:'Total Participants', value: totalParticipants,   color:'#7b1fa2',      bg:'#f3e5f5'       },
         ].map(k => (
           <Grid key={k.label} item xs={6} sm={3}>
             <Card sx={{
@@ -94,17 +94,17 @@ export default function EMEvaluationsPage() {
                 <InputLabel>Formation</InputLabel>
                 <Select value={filterFormation} label="Formation" sx={{ minWidth:140 }}
                   onChange={e => setFilterFormation(e.target.value)}>
-                  <MenuItem value="">Toutes</MenuItem>
+                  <MenuItem value="">All</MenuItem>
                   {formations.map(f => <MenuItem key={f} value={f}>{f}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">
-                <InputLabel>Statut</InputLabel>
-                <Select value={filterStatut} label="Statut" sx={{ minWidth:140 }}
+                <InputLabel>Status</InputLabel>
+                <Select value={filterStatut} label="Status" sx={{ minWidth:140 }}
                   onChange={e => setFilterStatut(e.target.value)}>
-                  <MenuItem value="">Tous</MenuItem>
+                  <MenuItem value="">All</MenuItem>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                     <MenuItem key={k} value={k}>{v.label}</MenuItem>
                   ))}
@@ -114,7 +114,7 @@ export default function EMEvaluationsPage() {
             <Grid item xs={12} sm={4}>
               <Button variant="outlined" size="small" sx={{ minWidth:140 }}
                 onClick={() => { setFilterFormation(''); setFilterStatut(''); }}>
-                Réinitialiser
+                Reset
               </Button>
             </Grid>
           </Grid>
@@ -131,12 +131,12 @@ export default function EMEvaluationsPage() {
             <Table>
               <TableHead sx={{ bgcolor:'background.default' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight:700 }}>Formation</TableCell>
-                  <TableCell sx={{ fontWeight:700 }}>Référence</TableCell>
+                  <TableCell sx={{ fontWeight:700 }}>Training Course</TableCell>
+                  <TableCell sx={{ fontWeight:700 }}>Reference</TableCell>
                   <TableCell sx={{ fontWeight:700 }}>Dates</TableCell>
                   <TableCell sx={{ fontWeight:700 }} align="center">Participants</TableCell>
-                  <TableCell sx={{ fontWeight:700 }} align="center">Statut</TableCell>
-                  <TableCell sx={{ fontWeight:700 }} align="center">Progression</TableCell>
+                  <TableCell sx={{ fontWeight:700 }} align="center">Status</TableCell>
+                  <TableCell sx={{ fontWeight:700 }} align="center">Progress</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -191,7 +191,7 @@ export default function EMEvaluationsPage() {
                 {filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py:5, color:'text.secondary' }}>
-                      Aucune session trouvée.
+                      No session found.
                     </TableCell>
                   </TableRow>
                 )}

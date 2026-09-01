@@ -4,7 +4,7 @@ import AddIcon      from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import RatingBadge  from './RatingBadge';
 
-const PRESENCE_LABELS = { PRESENT: 'Présent', ABSENT: 'Absent', RETARD: 'Retard' };
+const PRESENCE_LABELS = { PRESENT: 'Present', ABSENT: 'Absent', RETARD: 'Late' };
 
 export default function ParticipantDayView({
   activeDay, activeDayData, activeCriteres,
@@ -25,11 +25,11 @@ export default function ParticipantDayView({
         borderRadius: 2, border: '1px dashed', borderColor: 'divider',
       }}>
         <Typography variant="body2" color="text.secondary" mb={2}>
-          Aucun critère d'évaluation défini pour le jour {activeDay}.
+          No evaluation criteria defined for day {activeDay}.
         </Typography>
         {isEM && (
           <Button variant="outlined" startIcon={<SettingsIcon />} onClick={onConfigureCriteres}>
-            Configurer les critères
+            Configure Criteria
           </Button>
         )}
       </Box>
@@ -44,10 +44,10 @@ export default function ParticipantDayView({
         borderRadius: 2, border: '1px dashed', borderColor: 'divider',
       }}>
         <Typography variant="body2" color="text.secondary" mb={2}>
-          Aucune évaluation saisie pour le jour {activeDay}.
+          No evaluation found for day {activeDay}.
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
-          Ajouter une évaluation
+          Add an evaluation
         </Button>
       </Box>
     );
@@ -60,7 +60,7 @@ export default function ParticipantDayView({
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: 'background.default' }}>
-              <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Compétence</TableCell>
+              <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Competency</TableCell>
               <TableCell align="center" sx={{ fontWeight: 700 }}>Score</TableCell>
             </TableRow>
           </TableHead>
@@ -93,7 +93,7 @@ export default function ParticipantDayView({
               );
             })}
             <TableRow sx={{ bgcolor: 'background.default' }}>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Moyenne du jour</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Average for the day</TableCell>
               <TableCell align="center"><RatingBadge value={activeDayAvg} /></TableCell>
             </TableRow>
           </TableBody>
@@ -103,7 +103,7 @@ export default function ParticipantDayView({
       {activeDayData.dureeHeures && (
         <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="caption" color="text.secondary" fontWeight={600}>
-            Durée du jour:
+            Duration of the day:
           </Typography>
           <Chip
             label={`${activeDayData.dureeHeures}h`}
@@ -121,7 +121,7 @@ export default function ParticipantDayView({
           borderLeft: '3px solid', borderColor: 'primary.main',
         }}>
           <Typography variant="caption" fontWeight={700} color="primary.main">
-            Remarques — Jour {activeDay}
+            Remarks — Day {activeDay}
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.25 }}>{activeDayData.remarks}</Typography>
         </Box>
@@ -130,7 +130,7 @@ export default function ParticipantDayView({
       {/* Edit button */}
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="outlined" startIcon={<EditIcon />} onClick={onEdit}>
-          Modifier l'évaluation
+          Modify the evaluation
         </Button>
       </Box>
     </>

@@ -19,7 +19,7 @@ import EMSessionParticipantsPanel from './components/EMSessionParticipantsPanel'
 import { deleteSession, addParticipantsToSession, removeParticipantsFromSession } from '../../api/sessionApi';
 import { getEmSessions } from '../../api/emApi';
 
-const STATUT_LABELS = { EN_COURS:'En cours', PLANIFIEE:'Planifiée', TERMINEE:'Terminée', ANNULEE:'Annulée' };
+const STATUT_LABELS = { EN_COURS:'In progress', PLANIFIEE:'Scheduled', TERMINEE:'Completed', ANNULEE:'Cancelled' };
 const STATUT_COLORS = { EN_COURS:'success',  PLANIFIEE:'warning',   TERMINEE:'default',  ANNULEE:'error'  };
 
 function StatutChip({ value }) {
@@ -59,7 +59,7 @@ export default function EMSessionsPage() {
       const data = await getEmSessions();
       setSessions(data.sort((a, b) => b.idSession - a.idSession));
     } catch {
-      showSnackbar('Erreur lors du chargement des sessions.', 'error');
+      showSnackbar('Error loading sessions.', 'error');
     } finally {
       if (showSpinner) setLoading(false);
     }
@@ -87,10 +87,10 @@ export default function EMSessionsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await deleteSession(deletingId);
-      showSnackbar('Session supprimée avec succès !');
+      showSnackbar('Session deleted successfully !');
       fetchSessions(false);
     } catch {
-      showSnackbar('Impossible de supprimer cette session.', 'error');
+      showSnackbar('Unable to delete this session.', 'error');
     } finally {
       setDeleteOpen(false);
       setDeletingId(null);
@@ -108,7 +108,7 @@ export default function EMSessionsPage() {
       showSnackbar(`${selected.length} participants mis à jour !`);
       fetchSessions(false);
     } catch {
-      showSnackbar('Erreur lors de la mise à jour des participants.', 'error');
+      showSnackbar('Error updating participants.', 'error');
     } finally {
       setParticipantsModalOpen(false);
     }
@@ -123,15 +123,15 @@ export default function EMSessionsPage() {
 
   // ─── Columns ───────────────────────────────────────────────────────────────
   const columns = [
-    { field:'referenceSession',    headerName:'Référence',    flex:1, minWidth:120 },
+    { field:'referenceSession',    headerName:'Reference',    flex:1, minWidth:120 },
     { field:'formation',           headerName:'Formation',    flex:2, minWidth:160 },
-    { field:'entrepriseNom',       headerName:'Entreprise',   flex:1.5, minWidth:130 },
-    { field:'formateurNomComplet', headerName:'Formateur',    flex:1.5, minWidth:130 },
-    { field:'dateDebut',           headerName:'Début',        flex:1, minWidth:110 },
-    { field:'dateFin',             headerName:'Fin',          flex:1, minWidth:110 },
-    { field:'dJours',              headerName:'Durée (j)',    flex:0.8, minWidth:80, type:'number' },
+    { field:'entrepriseNom',       headerName:'Enterprise',   flex:1.5, minWidth:130 },
+    { field:'formateurNomComplet', headerName:'Trainer',      flex:1.5, minWidth:130 },
+    { field:'dateDebut',           headerName:'Start',        flex:1, minWidth:110 },
+    { field:'dateFin',             headerName:'End',          flex:1, minWidth:110 },
+    { field:'dJours',              headerName:'Duration (days)',    flex:0.8, minWidth:80, type:'number' },
     {
-      field: 'statut', headerName: 'Statut', flex:1, minWidth:110,
+      field: 'statut', headerName: 'Status', flex:1, minWidth:110,
       renderCell: (params) => <StatutChip value={params.value} />,
     },
     {
@@ -150,7 +150,7 @@ export default function EMSessionsPage() {
       ),
     },
     {
-      field: 'actions', headerName: 'Actions', flex:0.8, minWidth:90, sortable: false,
+      field: 'actions', headerName: 'Actions', flex:0.8, minWidth:120, sortable: false,
       renderCell: (params) => (
         <Box sx={{ display:'flex', gap:0.5 }}>
           <IconButton size="small" color="primary"
@@ -172,14 +172,14 @@ export default function EMSessionsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} mb={3}>Sessions de Formation</Typography>
+      <Typography variant="h4" fontWeight={700} mb={3}>Training Sessions</Typography>
 
       <Card sx={{ borderRadius:2, boxShadow:'none', border:'1px solid', borderColor:'divider' }}>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
-              <TextField fullWidth size="small"
-                label="Rechercher par formation, référence, entreprise..."
+              <TextField sx={{ width: 330 }} size="small"
+                label="Search by training course, reference, enterprise..."
                 value={search} onChange={e => setSearch(e.target.value)}
               />
             </Grid>
@@ -189,7 +189,7 @@ export default function EMSessionsPage() {
               <Button variant="contained" startIcon={<AddIcon />}
                 onClick={() => { setEditingSession(null); setSessionModalOpen(true); }}
               >
-                Créer une session
+                Create a session
               </Button>
             </Grid>
           </Grid>
@@ -222,16 +222,16 @@ export default function EMSessionsPage() {
 
       {/* Delete confirm */}
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
-        <DialogTitle>Confirmation de suppression</DialogTitle>
-        <DialogContent>Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.</DialogContent>
+        <DialogTitle>Confirmation of deletion</DialogTitle>
+        <DialogContent>Are you sure you want to delete this session? This action is irreversible.</DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteOpen(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleDeleteConfirm}>Supprimer</Button>
+          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleDeleteConfirm}>Delete</Button>
         </DialogActions>
       </Dialog>
 
       {/* Participants panel — uses GET /api/em/employes (scoped) */}
-      <Dialog open={participantsPanelOpen} onClose={() => setParticipantsPanelOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={participantsPanelOpen} onClose={() => setParticipantsPanelOpen(false)} maxWidth="md" fullWidth>
         <DialogContent sx={{ p:0 }}>
           {editingParticipantsSession && (
             <EMSessionParticipantsPanel

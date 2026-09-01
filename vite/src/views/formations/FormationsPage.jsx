@@ -74,12 +74,9 @@ const FormationsPage = () => {
   const handleModalOpen  = (formation = null) => { setEditingFormation(formation); setModalOpen(true); };
   const handleModalClose = () => { setEditingFormation(null); setModalOpen(false); };
 
-  const handleSave = (savedFormation) => {
-    if (editingFormation) {
-      setFormations(prev => prev.map(f => f.id === savedFormation.id ? savedFormation : f));
-    } else {
-      setFormations(prev => [savedFormation, ...prev]);
-    }
+  const handleSave = async () => {
+    // Reload because an admin may have moved the formation outside the active company filter.
+    await fetchFormations();
     handleModalClose();
   };
 
@@ -261,6 +258,8 @@ const FormationsPage = () => {
           onSave={handleSave}
           showSnackbar={showSnackbar}
           initialData={editingFormation}
+          entreprises={entreprises}
+          allowEntrepriseSelection={isAdmin}
         />
       )}
 

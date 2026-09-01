@@ -88,7 +88,7 @@ const FormateursPage = () => {
     { field: "telephone", headerName: "Téléphone", flex: 1, minWidth: 140 },
     { field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 160 },
     {
-      field: "actif", headerName: "Statut", width: 110,
+      field: "actif", headerName: "Status", width: 110,
       renderCell: (params) => (
         <Chip label={params.value ? "Actif" : "Inactif"} color={params.value ? "success" : "default"} size="small" />
       ),

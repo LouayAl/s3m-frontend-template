@@ -31,6 +31,20 @@ export default function EMSessionsProgressPage() {
     saveEval, reloadCriteres,
   } = useSessionProgress(sessionId);
 
+  const STATUS_LABELS = {
+    PLANIFIEE: "Scheduled",
+    EN_COURS: "In Progress",
+    TERMINEE: "Completed",
+    ANNULEE: "Cancelled",
+  };
+
+  const STATUS_COLORS = {
+    PLANIFIEE: "warning",
+    EN_COURS: "primary",
+    TERMINEE: "success",
+    ANNULEE: "error",
+  };
+
   const [histOpen,         setHistOpen]         = useState(false);
   const [critereModalOpen, setCritereModalOpen] = useState(false);
 
@@ -79,17 +93,17 @@ export default function EMSessionsProgressPage() {
           onClick={() => navigate('/em/sessions')}
           size="small"
         >
-          {isMobile ? 'Retour' : 'Retour aux sessions'}
+          {isMobile ? 'Retour' : 'Back to sessions'}
         </Button>
       </Box>
 
       <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700} mb={0.5}>
-        Suivi de progression
+        Progress tracking
       </Typography>
 
       <Chip
-        label={`${session.statut} · Jour ${activeDay} / ${duree}`}
-        color="success"
+        label={`${STATUS_LABELS[session.statut] ?? session.statut} · Day ${activeDay} / ${duree}`}
+        color={STATUS_COLORS[session.statut] ?? "default"}
         size="small"
         sx={{ fontWeight: 600, mb: 2 }}
       />

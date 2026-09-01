@@ -61,7 +61,7 @@ export default function Step4Participants({
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 2 }}>
         <CircularProgress size={32} />
-        <Typography variant="caption" color="text.secondary">Chargement des employés...</Typography>
+        <Typography variant="caption" color="text.secondary">Loading employees...</Typography>
       </Box>
     );
   }
@@ -71,11 +71,11 @@ export default function Step4Participants({
       {/* Header count */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
         <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-          {employes.length} employé{employes.length !== 1 ? 's' : ''} disponible{employes.length !== 1 ? 's' : ''}
+          {employes.length} employee{employes.length !== 1 ? 's' : ''} available
         </Typography>
         {selectedParticipants.length > 0 && (
           <Chip
-            label={`${selectedParticipants.length} sélectionné${selectedParticipants.length !== 1 ? 's' : ''}`}
+            label={`${selectedParticipants.length} selected`}
             color="primary"
             size="small"
             sx={{ fontWeight: 700 }}
@@ -87,7 +87,7 @@ export default function Step4Participants({
       {/* Search */}
       <TextField
         fullWidth size="small"
-        placeholder="Rechercher par nom, prénom, matricule, CIN..."
+        placeholder="Search by last name, first name, employee number, ID number..."
         value={search}
         onChange={e => setSearch(e.target.value)}
         InputProps={{
@@ -108,7 +108,7 @@ export default function Step4Participants({
             onClick={() => navigate('/em/employes')}
             sx={{ fontSize: 12 }}
         >
-            Créer un nouvel employé
+            Create a new employee
         </Button>
     </Box>
 
@@ -133,7 +133,7 @@ export default function Step4Participants({
             onClick={e => e.stopPropagation()}
           />
           <Typography variant="caption" fontWeight={600} color="text.secondary">
-            {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'} ({filtered.length})
+            {allSelected ? 'Deselect all' : 'Select all'} ({filtered.length})
           </Typography>
         </Box>
       )}
@@ -142,7 +142,7 @@ export default function Step4Participants({
       <Box sx={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5, pr: 0.5 }}>
         {filtered.length === 0 && (
           <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
-            Aucun employé trouvé.
+            No employee found.
           </Typography>
         )}
         {filtered.map(emp => {
@@ -186,7 +186,7 @@ export default function Step4Participants({
 
       {employes.length === 0 && (
         <Alert severity="info" sx={{ mt: 1 }}>
-          Aucun employé trouvé pour votre entreprise. Vous pourrez ajouter des participants plus tard.
+          No employee found for your company. You can add participants later.
         </Alert>
       )}
     </Box>

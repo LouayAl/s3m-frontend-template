@@ -3,7 +3,7 @@ import {
   DialogContent, DialogTitle, Typography,
 } from '@mui/material';
 
-const PRESENCE_LABELS = { PRESENT: 'Présent', ABSENT: 'Absent', RETARD: 'Retard' };
+const PRESENCE_LABELS = { PRESENT: 'Present', ABSENT: 'Absent', RETARD: 'Late' };
 const PRESENCE_COLORS = { PRESENT: 'success', ABSENT: 'error', RETARD: 'warning' };
 
 /**
@@ -30,11 +30,11 @@ export default function EvaluationsHistoryDialog({ open, onClose, evaluations, p
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle fontWeight={700}>Évaluations existantes</DialogTitle>
+      <DialogTitle fontWeight={700}>Existing Evaluations</DialogTitle>
       <DialogContent dividers>
         {allEvals.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            Aucune évaluation saisie pour cette session.
+            No evaluations found for this session.
           </Typography>
         ) : (
           allEvals.map((ev, i) => (
@@ -44,7 +44,7 @@ export default function EvaluationsHistoryDialog({ open, onClose, evaluations, p
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                 <Typography variant="body2" fontWeight={600}>
-                  {ev.participant?.prenom} {ev.participant?.nom} · Jour {ev.day}
+                  {ev.participant?.prenom} {ev.participant?.nom} · Day {ev.day}
                 </Typography>
                 <Chip
                   label={PRESENCE_LABELS[ev.presence]}
@@ -53,7 +53,7 @@ export default function EvaluationsHistoryDialog({ open, onClose, evaluations, p
                 />
               </Box>
               <Typography variant="caption" color="text.secondary">
-                Note moy.: {ev.avgRating}/4
+                AVG rating: {ev.avgRating}/4
                 {ev.remarks && ` · ${ev.remarks}`}
               </Typography>
             </Box>
@@ -61,7 +61,7 @@ export default function EvaluationsHistoryDialog({ open, onClose, evaluations, p
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Fermer</Button>
+        <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
   );

@@ -13,7 +13,7 @@ import EvaluationStep  from './addEval/EvaluationStep';
 import { getEmSessions } from '../../../api/emApi';
 import { getSessionCriteres, saveEvaluation } from '../../../api/emApi';
 
-const STEPS = ['Session', 'Participant & Jour', 'Évaluation'];
+const STEPS = ['Session', 'Participant & Day', 'Evaluation'];
 
 export default function AddEvaluationModal({ open, onClose, onSubmit }) {
   const theme      = useTheme();
@@ -169,9 +169,9 @@ export default function AddEvaluationModal({ open, onClose, onSubmit }) {
       {/* Header */}
       <DialogTitle sx={{ bgcolor: 'primary.main', color: '#fff', pb: 1.5 }}>
         <Typography component="span" display="block" fontWeight={800} fontSize="1rem">
-          Ajouter une évaluation
+          Add an evaluation
         </Typography>
-        <Typography component="span" display="block" variant="caption" sx={{ opacity: 0.85, mt: 0.25 }}>
+        <Typography component="span" display="block" color='inherit' variant="caption" sx={{ opacity: 0.85, mt: 0.25 }}>
           {STEPS[step]}
         </Typography>
       </DialogTitle>
@@ -210,14 +210,14 @@ export default function AddEvaluationModal({ open, onClose, onSubmit }) {
       {/* Actions */}
       <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: 2, gap: 1 }}>
         {step === 0 ? (
-          <Button onClick={onClose} sx={{ mr: 'auto' }}>Annuler</Button>
+          <Button onClick={onClose} sx={{ mr: 'auto' }}>Cancel</Button>
         ) : (
           <Button
             onClick={handleBack}
             disabled={saving}
             startIcon={<KeyboardArrowLeftIcon />}
           >
-            Retour
+            Back
           </Button>
         )}
 
@@ -231,7 +231,7 @@ export default function AddEvaluationModal({ open, onClose, onSubmit }) {
             endIcon={<KeyboardArrowRightIcon />}
             sx={{ minWidth: 120 }}
           >
-            Suivant
+            Next
           </Button>
         ) : (
           <Button
@@ -245,7 +245,7 @@ export default function AddEvaluationModal({ open, onClose, onSubmit }) {
             }
             sx={{ minWidth: 140 }}
           >
-            {saving ? 'Enregistrement...' : 'Soumettre'}
+            {saving ? 'Saving...' : 'Submit'}
           </Button>
         )}
       </DialogActions>

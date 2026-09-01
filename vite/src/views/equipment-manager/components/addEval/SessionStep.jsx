@@ -8,9 +8,9 @@ import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
 
 const STATUS_CONFIG = {
-  EN_COURS:  { label: 'En cours',  color: 'success' },
-  PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-  TERMINEE:  { label: 'Terminée',  color: 'default' },
+  EN_COURS:  { label: 'In progress',  color: 'success' },
+  PLANIFIEE: { label: 'Planified', color: 'warning' },
+  TERMINEE:  { label: 'Completed',  color: 'default' },
 };
 
 export default function SessionStep({ sessions, loading, selectedSession, onSelect }) {
@@ -32,7 +32,7 @@ export default function SessionStep({ sessions, loading, selectedSession, onSele
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 2 }}>
         <CircularProgress size={32} />
         <Typography variant="caption" color="text.secondary">
-          Chargement des sessions...
+          Loading sessions...
         </Typography>
       </Box>
     );
@@ -44,7 +44,7 @@ export default function SessionStep({ sessions, loading, selectedSession, onSele
       <TextField
         fullWidth
         size="small"
-        placeholder="Rechercher par formation, référence, entreprise..."
+        placeholder="Search by formation, reference, company..."
         value={search}
         onChange={e => setSearch(e.target.value)}
         InputProps={{
@@ -66,7 +66,7 @@ export default function SessionStep({ sessions, loading, selectedSession, onSele
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: 420, overflowY: 'auto', pr: 0.5 }}>
         {filtered.length === 0 && (
           <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
-            Aucune session trouvée.
+            No session found.
           </Typography>
         )}
         {filtered.map(s => {

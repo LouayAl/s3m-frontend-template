@@ -78,7 +78,7 @@ export default function ParticipantEditForm({
       {/* Presence */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
-          Présence
+          Presence
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {PRESENCE_OPTIONS.map(opt => (

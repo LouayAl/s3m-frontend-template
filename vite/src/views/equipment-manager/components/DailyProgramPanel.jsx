@@ -45,7 +45,7 @@ function ActivityRow({ row, index, canEdit, onUpdate, onDelete }) {
       {/* Row number + delete */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="caption" color="text.secondary" fontWeight={700}>
-          Activité {index + 1}
+          Activity {index + 1}
         </Typography>
         {canEdit && (
           <IconButton color="error" size="small" onClick={() => onDelete(index)}>
@@ -58,11 +58,11 @@ function ActivityRow({ row, index, canEdit, onUpdate, onDelete }) {
       <TextField
         size="small"
         fullWidth
-        label="Activité"
+        label="Activity"
         value={row.activite}
         onChange={e => onUpdate(index, 'activite', e.target.value)}
         disabled={!canEdit}
-        placeholder="Décrivez l'activité..."
+        placeholder="Describe the activity..."
       />
 
       {/* Date début + fin — side by side on sm+, stacked on xs */}
@@ -71,7 +71,7 @@ function ActivityRow({ row, index, canEdit, onUpdate, onDelete }) {
           type="datetime-local"
           size="small"
           fullWidth
-          label="Début"
+          label="Start"
           InputLabelProps={{ shrink: true }}
           value={row.dateDebut}
           onChange={e => onUpdate(index, 'dateDebut', e.target.value)}
@@ -81,7 +81,7 @@ function ActivityRow({ row, index, canEdit, onUpdate, onDelete }) {
           type="datetime-local"
           size="small"
           fullWidth
-          label="Fin"
+          label="End"
           InputLabelProps={{ shrink: true }}
           value={row.dateFin}
           onChange={e => onUpdate(index, 'dateFin', e.target.value)}
@@ -114,7 +114,7 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
         })));
         setCommentaire(data.commentaire ?? '');
       })
-      .catch(() => setMessage({ severity: 'error', text: 'Impossible de charger le programme du jour.' }))
+      .catch(() => setMessage({ severity: 'error', text: 'Impossible to load the daily program.' }))
       .finally(() => setLoading(false));
   }, [sessionId, activeDay]);
 
@@ -157,9 +157,9 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
         activite:  entry.activite ?? '',
       })));
       setCommentaire(saved.commentaire ?? '');
-      setMessage({ severity: 'success', text: 'Programme du jour enregistré.' });
+      setMessage({ severity: 'success', text: 'Daily program saved.' });
     } catch {
-      setMessage({ severity: 'error', text: "Erreur lors de l'enregistrement du programme." });
+      setMessage({ severity: 'error', text: "Error occurred while saving the program." });
     } finally {
       setSaving(false);
     }
@@ -172,15 +172,15 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              Programme journalier — Jour {activeDay}
+              Daily Schedule — Day {activeDay}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Activités et remarques propres à ce jour.
+              Activities and remarks specific to this day.
             </Typography>
           </Box>
           {canEdit && (
             <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleAddRow}>
-              Ajouter
+              Add
             </Button>
           )}
         </Box>
@@ -196,9 +196,9 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
             {/* Activity rows — stacked cards instead of a table */}
             {rows.length === 0 ? (
               <Box sx={{ py: 3, textAlign: 'center', color: 'text.secondary', mb: 2 }}>
-                <Typography variant="body2">Aucun programme défini pour ce jour.</Typography>
+                <Typography variant="body2">No daily program defined for this day.</Typography>
                 {canEdit && (
-                  <Typography variant="caption">Cliquez sur «Ajouter» pour commencer.</Typography>
+                  <Typography variant="caption">Click on «Add» to get started.</Typography>
                 )}
               </Box>
             ) : (
@@ -218,7 +218,7 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
 
             {/* Commentaire */}
             <TextField
-              label="Commentaire"
+              label="Comment"
               value={commentaire}
               onChange={e => setCommentaire(e.target.value)}
               disabled={!canEdit}
@@ -236,7 +236,7 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? 'Enregistrement...' : 'Enregistrer le programme'}
+                  {saving ? 'Saving...' : 'Save Daily Program'}
                 </Button>
               </Box>
             )}

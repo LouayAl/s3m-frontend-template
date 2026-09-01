@@ -138,23 +138,23 @@ export default function CritereManagerModal({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ pb:1 }}>
         <Typography component="span" display="block" fontWeight={700}>
-          Gérer les critères — Jour {jour}
+          Manage criteria — Day {jour}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Définissez les compétences évaluées pour ce jour de formation.
+          Define the skills evaluated for this training day.
         </Typography>
       </DialogTitle>
 
       <DialogContent dividers>
         <Alert severity="info" sx={{ mb:2 }}>
-          Les critères enregistrés ici seront appliqués à tous les jours de cette session.
-          Les catégories servent uniquement à organiser l'affichage.
+          The criteria saved here will be applied to all days of this session.
+          Categories are only used to organize the display.
         </Alert>
 
         {hasEvaluations && (
           <Alert severity="warning" icon={<WarningAmberIcon />} sx={{ mb:2 }}>
-            Des évaluations existent déjà pour ce jour. Modifier les critères recalculera
-            les scores existants selon le nouvel ordre.
+            Existing evaluations are already defined for this day. Modifying the criteria will recalculate
+            the existing scores according to the new order.
           </Alert>
         )}
 
@@ -168,7 +168,7 @@ export default function CritereManagerModal({
           <Box>
             {items.length === 0 && (
               <Typography variant="body2" color="text.secondary" textAlign="center" py={2}>
-                Aucun critère défini. Cliquez sur "Ajouter" pour commencer.
+                No criteria defined. Click "Add" to get started.
               </Typography>
             )}
 
@@ -184,24 +184,24 @@ export default function CritereManagerModal({
                   <LabelOutlinedIcon sx={{ color:'warning.main', fontSize:18, flexShrink:0 }} />
                   <TextField
                     fullWidth size="small"
-                    placeholder="Nom de la catégorie..."
+                    placeholder="Category name..."
                     value={item.libelle}
                     onChange={e => handleChange(idx, 'libelle', e.target.value)}
                     sx={{ '& .MuiInputBase-input':{ fontWeight:700, fontSize:13 } }}
                   />
-                  <Chip label="Catégorie" size="small" color="warning" variant="outlined"
+                  <Chip label="Category" size="small" color="warning" variant="outlined"
                     sx={{ flexShrink:0, fontSize:10 }} />
-                  <Tooltip title="Monter"><span>
+                  <Tooltip title="Bring up"><span>
                     <IconButton size="small" onClick={() => handleMoveUp(idx)} disabled={idx === 0}>
                       <ArrowUpwardIcon fontSize="small" />
                     </IconButton>
                   </span></Tooltip>
-                  <Tooltip title="Descendre"><span>
+                  <Tooltip title="Pull down"><span>
                     <IconButton size="small" onClick={() => handleMoveDown(idx)} disabled={idx === items.length - 1}>
                       <ArrowDownwardIcon fontSize="small" />
                     </IconButton>
                   </span></Tooltip>
-                  <Tooltip title="Supprimer la catégorie">
+                  <Tooltip title="Delete category ">
                     <IconButton size="small" color="error" onClick={() => handleDelete(idx)}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -227,22 +227,23 @@ export default function CritereManagerModal({
 
                   <TextField
                     fullWidth size="small"
-                    placeholder="Critère..."
+                    placeholder="Criterion..."
                     value={item.libelle}
                     onChange={e => handleChange(idx, 'libelle', e.target.value)}
                   />
 
-                  <Tooltip title="Monter"><span>
+                  <Tooltip title="Bring up"><span>
                     <IconButton size="small" onClick={() => handleMoveUp(idx)} disabled={idx === 0}>
                       <ArrowUpwardIcon fontSize="small" />
                     </IconButton>
                   </span></Tooltip>
-                  <Tooltip title="Descendre"><span>
+                  <Tooltip title="Pull down"><span>
                     <IconButton size="small" onClick={() => handleMoveDown(idx)} disabled={idx === items.length - 1}>
                       <ArrowDownwardIcon fontSize="small" />
                     </IconButton>
                   </span></Tooltip>
-                  <Tooltip title="Supprimer">
+                  <Tooltip title="Delete criterion">
+
                     <IconButton size="small" color="error" onClick={() => handleDelete(idx)}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -256,11 +257,11 @@ export default function CritereManagerModal({
             <Box sx={{ display:'flex', gap:1 }}>
               <Button startIcon={<AddIcon />} variant="outlined" size="small"
                 onClick={handleAddCritere} sx={{ flex:1 }}>
-                Ajouter un critère
+                Add criterion
               </Button>
               <Button startIcon={<LabelOutlinedIcon />} variant="outlined" size="small"
                 color="warning" onClick={handleAddCategory} sx={{ flex:1 }}>
-                Ajouter une catégorie
+                Add category
               </Button>
             </Box>
           </Box>
@@ -268,14 +269,14 @@ export default function CritereManagerModal({
       </DialogContent>
 
       <DialogActions sx={{ px:3, py:2 }}>
-        <Button onClick={handleClose} disabled={saving}>Annuler</Button>
+        <Button onClick={handleClose} disabled={saving}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSave}
           disabled={saving || loading || critereCount === 0}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {saving ? 'Sauvegarde...' : `Enregistrer (${critereCount} critère${critereCount > 1 ? 's' : ''})`}
+          {saving ? 'Saving...' : `Save (${critereCount} criterion${critereCount > 1 ? 's' : ''})`}
         </Button>
       </DialogActions>
     </Dialog>

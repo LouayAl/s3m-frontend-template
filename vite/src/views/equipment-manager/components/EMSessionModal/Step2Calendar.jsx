@@ -42,18 +42,18 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
         minHeight: 44,
       }}>
         <Chip
-          label={`${count} jour${count !== 1 ? 's' : ''} sélectionné${count !== 1 ? 's' : ''}`}
+          label={`${count} day${count !== 1 ? 's' : ''} selected`}
           color={count > 0 ? 'primary' : 'default'}
           size="small" sx={{ fontWeight: 700 }}
         />
         {count > 0 && (
           <>
             <Typography variant="caption" color="text.secondary">
-              Du {fmt(dateDebut)} au {fmt(dateFin)}
+              From {fmt(dateDebut)} to {fmt(dateFin)}
             </Typography>
             <Button size="small" color="error" onClick={handleClear}
               sx={{ ml:'auto', fontSize:11 }}>
-              Effacer
+              Erase
             </Button>
           </>
         )}
@@ -84,7 +84,6 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
           mode="multiple"
           selected={selectedDays}
           onDayClick={handleDayClick}
-          locale={fr}
           showOutsideDays
           numberOfMonths={1}
           styles={{
@@ -99,8 +98,8 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
       {count === 0 && (
         <Typography variant="caption" color="text.secondary"
           display="block" textAlign="center" mt={1}>
-          Cliquez sur les jours de formation pour les sélectionner.
-          Les week-ends peuvent être inclus si nécessaire.
+          Click on the training days to select them.
+Weekends can be included if necessary.
         </Typography>
       )}
     </Box>

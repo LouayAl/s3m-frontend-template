@@ -23,7 +23,7 @@ export default function Step1Formation({ formations, loading, selectedFormation,
     return (
       <Box sx={{ display:'flex', flexDirection:'column', alignItems:'center', py:6, gap:2 }}>
         <CircularProgress size={32} />
-        <Typography variant="caption" color="text.secondary">Chargement des formations...</Typography>
+        <Typography variant="caption" color="text.secondary">Loading Training Courses...</Typography>
       </Box>
     );
   }
@@ -32,7 +32,7 @@ export default function Step1Formation({ formations, loading, selectedFormation,
     <Box>
       <TextField
         fullWidth size="small"
-        placeholder="Rechercher par module, famille, type..."
+        placeholder="Search by module, family, type..."
         value={search}
         onChange={e => setSearch(e.target.value)}
         InputProps={{
@@ -46,13 +46,13 @@ export default function Step1Formation({ formations, loading, selectedFormation,
       />
 
       <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
-        {filtered.length} formation{filtered.length !== 1 ? 's' : ''}
+        {filtered.length} Training{filtered.length !== 1 ? 's' : ''}
       </Typography>
 
       <Box sx={{ display:'flex', flexDirection:'column', gap:1, maxHeight:400, overflowY:'auto', pr:0.5 }}>
         {filtered.length === 0 && (
           <Typography variant="body2" color="text.secondary" textAlign="center" py={4}>
-            Aucune formation trouvée.
+            No training courses found.
           </Typography>
         )}
         {filtered.map(f => {

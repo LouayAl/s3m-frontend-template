@@ -33,7 +33,7 @@ export default function EMEmployesPage() {
       const data = await getEmEmployes();
       setEmployes(data);
     } catch {
-      showSnackbar('Erreur lors du chargement des employés', 'error');
+      showSnackbar('Error occurred while loading employees', 'error');
     } finally {
       setLoading(false);
     }
@@ -42,31 +42,31 @@ export default function EMEmployesPage() {
   useEffect(() => { fetchEmployes(); }, [fetchEmployes]);
 
   const handleExport = () => {
-    if (!employes.length) { showSnackbar('Aucun employé à exporter.', 'warning'); return; }
+    if (!employes.length) { showSnackbar('No employees to export.', 'warning'); return; }
     const data = employes.map(e => ({
-      'Entreprise': e.entrepriseNom, 'Département': e.departementNom,
-      'Nom': e.nom, 'Prénom': e.prenom, 'Matricule': e.matricule,
-      'CSP': e.csp, 'Genre': e.f_h, 'CIN': e.cin, 'CNSS': e.cnss,
+      'Company': e.entrepriseNom, 'Department': e.departementNom,
+      'Last Name': e.nom, 'First Name': e.prenom, 'Employee ID': e.matricule,
+      'Job Title': e.csp, 'Gender': e.f_h, 'National ID': e.cin, 'Social Security': e.cnss,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Employés');
+    XLSX.utils.book_append_sheet(wb, ws, 'Employees');
     const today = new Date().toISOString().split('T')[0];
     saveAs(new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })],
       { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
-      `Export_Employes_${today}.xlsx`);
+      `Export_Employees_${today}.xlsx`);
   };
 
   const columns = [
-    { field: 'entrepriseNom',  headerName: 'Entreprise',   flex: 1, minWidth: 140 },
-    { field: 'departementNom', headerName: 'Département',  flex: 1, minWidth: 140 },
-    { field: 'nom',            headerName: 'Nom',          flex: 1, minWidth: 130 },
-    { field: 'prenom',         headerName: 'Prénom',       flex: 1, minWidth: 130 },
-    { field: 'matricule',      headerName: 'Matricule',    flex: 1, minWidth: 110 },
-    { field: 'csp',            headerName: 'CSP',          flex: 0.8, minWidth: 80 },
-    { field: 'f_h',            headerName: 'Genre',        flex: 0.6, minWidth: 70 },
-    { field: 'typeContrat',    headerName: 'Type Contrat', flex: 1, minWidth: 120 },
-    { field: 'fonction',       headerName: 'Fonction',     flex: 1, minWidth: 130 },
+    { field: 'entrepriseNom',  headerName: 'Company',   flex: 1, minWidth: 140 },
+    { field: 'departementNom', headerName: 'Department',  flex: 1, minWidth: 140 },
+    { field: 'nom',            headerName: 'Last Name',          flex: 1, minWidth: 130 },
+    { field: 'prenom',         headerName: 'First Name',       flex: 1, minWidth: 130 },
+    { field: 'matricule',      headerName: 'Registration Number',    flex: 1, minWidth: 110 },
+    { field: 'csp',            headerName: 'Job Title',          flex: 0.8, minWidth: 80 },
+    { field: 'f_h',            headerName: 'Gender',        flex: 0.6, minWidth: 70 },
+    { field: 'typeContrat',    headerName: 'Contract Type', flex: 1, minWidth: 120 },
+    { field: 'fonction',       headerName: 'Function',     flex: 1, minWidth: 130 },
   ];
 
   const filteredRows = useMemo(() => employes.filter(e =>
@@ -78,15 +78,22 @@ export default function EMEmployesPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} mb={3}>Liste des Employés</Typography>
+      <Typography variant="h4" fontWeight={700} mb={3}>List of Employees</Typography>
       <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Rechercher par nom, prénom, CIN ou matricule"
+                label="Search by name, first name, CIN or employee number"
                 value={search}
+                sx={{
+                  width: {
+                    xs: '100%',
+                    md: 200,
+                    lg: 380,
+                  },
+                }}
                 onChange={e => setSearch(e.target.value)}
               />
             </Grid>
@@ -97,7 +104,7 @@ export default function EMEmployesPage() {
                   startIcon={<AddIcon />}
                   onClick={() => { setEditingEmploye(null); setModalOpen(true); }}
                 >
-                  Créer un employé
+                  Create Employee
                 </Button>
               )}
               <Button variant="contained" sx={exportButtonSx} onClick={handleExport}>

@@ -80,9 +80,9 @@ function KpiCard({ label, value, icon, color = 'primary' }) {
 // ─── Status pill ──────────────────────────────────────────────────────────────
 function StatusChip({ statut }) {
   const map = {
-    EN_COURS:  { label: 'En cours',  color: 'success' },
-    PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-    TERMINEE:  { label: 'Terminée',  color: 'error' },
+    EN_COURS:  { label: 'in progress',  color: 'success' },
+    PLANIFIEE: { label: 'Planified', color: 'warning' },
+    TERMINEE:  { label: 'Completed',  color: 'error' },
   };
   const s = map[statut] ?? { label: statut, color: 'default' };
   return <Chip label={s.label} color={s.color} size="small" sx={{ fontWeight: 600, fontSize: 11 }} />;
@@ -156,26 +156,26 @@ export default function EMDashboard() {
       {/* KPI row 1 — colored cards */}
       <Grid container spacing={2} mb={2}>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <KpiCard label="Formations en cours" value={enCours} icon={<SchoolOutlinedIcon />} color="primary" />
+          <KpiCard label="Current training courses" value={enCours} icon={<SchoolOutlinedIcon />} color="primary" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <KpiCard label="Formations terminées" value={terminees} icon={<CheckCircleOutlinedIcon />} color="blue" />
+          <KpiCard label="Completed trainings" value={terminees} icon={<CheckCircleOutlinedIcon />} color="blue" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <KpiCard label="Total des participants" value={totalParticipants.toLocaleString()} icon={<PeopleOutlinedIcon />} color="white" />
+          <KpiCard label="Total number of participants" value={totalParticipants.toLocaleString()} icon={<PeopleOutlinedIcon />} color="white" />
         </Grid>
       </Grid>
 
       {/* KPI row 2 — white cards */}
       <Grid container spacing={2} mb={3}>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <KpiCard label="Participants en direct" value={liveParticipants} icon={<FlashOnOutlinedIcon />} color="white" />
+          <KpiCard label="Live participants" value={liveParticipants} icon={<FlashOnOutlinedIcon />} color="white" />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <KpiCard label="Sessions planifiées" value={planifiees} icon={<CalendarTodayOutlinedIcon />} color="white" />
+          <KpiCard label="Scheduled sessions" value={planifiees} icon={<CalendarTodayOutlinedIcon />} color="white" />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <KpiCard label="Total employés" value={totalEmployes.toLocaleString()} icon={<AssignmentOutlinedIcon />} color="white" />
+          <KpiCard label="Total employees" value={totalEmployes.toLocaleString()} icon={<AssignmentOutlinedIcon />} color="white" />
         </Grid>
       </Grid>
 
@@ -185,7 +185,7 @@ export default function EMDashboard() {
         <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
             <CardContent>
-              <Typography variant="subtitle1" fontWeight={600} mb={2}>Formations récentes</Typography>
+              <Typography variant="subtitle1" fontWeight={600} mb={2}>Recent training</Typography>
               {sessions.slice(0, 5).map((s, i) => (
                 <Box key={s.idSession}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
@@ -217,7 +217,7 @@ export default function EMDashboard() {
           >
             <CardContent>
               <Typography variant="subtitle1" fontWeight={600} mb={2}>
-                Sessions planifiées
+                Planned sessions
               </Typography>
 
               <Box sx={{ height: 450 }}>
@@ -232,17 +232,17 @@ export default function EMDashboard() {
                   selectable
                   style={{ height: '100%' }}
                   messages={{
-                    next: 'Suivant',
-                    previous: 'Précédent',
-                    today: "Aujourd'hui",
-                    month: 'Mois',
-                    week: 'Semaine',
-                    day: 'Jour',
+                    next: 'Next',
+                    previous: 'Previous',
+                    today: "Today",
+                    month: 'Month',
+                    week: 'Week',
+                    day: 'Day',
                     agenda: 'Agenda',
                     date: 'Date',
-                    time: 'Heure',
+                    time: 'Time',
                     event: 'Session',
-                    noEventsInRange: 'Aucune session',
+                    noEventsInRange: 'No events in range',
                   }}
                   onSelectEvent={(event) => {
                     navigate(`/em/sessions/${event.sessionId}`);

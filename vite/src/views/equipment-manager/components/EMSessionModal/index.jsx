@@ -22,7 +22,7 @@ import { getEmFormations }                                    from '../../../../
 import { getAllFormateurs, createSession, updateParticipants, updateSession } from '../../../../api/sessionApi';
 import { getEmEmployes }                                      from '../../../../api/employeApi';  // ← scoped
 import { getAllEntreprises } from '../../../../api/entrepriseApi';
-const STEPS = ['Formation', 'Jours', 'Détails', 'Participants'];
+const STEPS = ['Training Course', 'Days', 'Details', 'Participants'];
 
 function toLocalDateStr(d) {
   const year  = d.getFullYear();
@@ -171,7 +171,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       onCreated?.();
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Erreur lors de la création.');
+      setError(err.response?.data?.message ?? 'Error during creation.');
     } finally {
       setSaving(false);
     }
@@ -198,11 +198,11 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
         statut:        initialData.statut,
       });
 
-      showSnackbar?.('Session mise à jour avec succès !');
+      showSnackbar?.('Session successfully updated!');
       onCreated?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Erreur lors de la mise à jour.');
+      setError(err.response?.data?.message ?? 'Error during update.');
     } finally {
       setSaving(false);
     }
@@ -218,14 +218,14 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
           createdSession.idSession,
           selectedParticipants.map(p => p.idEmploye)
         );
-        showSnackbar?.(`Session créée avec ${selectedParticipants.length} participant(s) !`);
+        showSnackbar?.(`Session created with ${selectedParticipants.length} participant(s) !`);
       } else {
-        showSnackbar?.('Session créée avec succès !');
+        showSnackbar?.('Session created successfully !');
       }
       onCreated?.();
       onClose();
     } catch {
-      setError("Erreur lors de l'ajout des participants.");
+      setError("Error during participant addition.");
     } finally {
       setSaving(false);
     }
@@ -274,9 +274,9 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
     >
       <DialogTitle sx={{ bgcolor:'primary.main', color:'#fff', pb:1.5 }}>
         <Typography component="span" display="block" fontWeight={800} fontSize="1rem">
-          {isEdit ? 'Modifier la session' : 'Créer une session'}
+          {isEdit ? 'Edit session' : 'Create a new session'}
         </Typography>
-        <Typography component="span" display="block" variant="caption" sx={{ opacity:0.85, mt:0.25 }}>
+        <Typography component="span" display="block" color='#fff' variant="caption" sx={{ opacity:0.85, mt:0.25 }}>
           {STEPS[step]}
         </Typography>
       </DialogTitle>
@@ -304,19 +304,19 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
         {error && <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>}
         {step === 3 && createdSession && (
           <Alert severity="success" sx={{ mb:2 }}>
-            Session <strong>{createdSession.referenceSession}</strong> créée !
-            Ajoutez des participants ci-dessous puis enregistrez.
+            Session <strong>{createdSession.referenceSession}</strong> created !
+            Add participants below then save.
           </Alert>
         )}
         {stepContent[step]}
       </DialogContent>
 
       <DialogActions sx={{ px:{ xs:2, sm:3 }, py:2, flexWrap:'wrap', gap:1 }}>
-        {step === 0 && <Button onClick={onClose}>Annuler</Button>}
+        {step === 0 && <Button onClick={onClose}>Cancel</Button>}
         {step > 0 && step < 3 && (
           <Button onClick={() => setStep(p => p - 1)} disabled={saving}
             startIcon={<KeyboardArrowLeftIcon />}>
-            Retour
+            Back
           </Button>
         )}
 
@@ -326,7 +326,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
           <Button variant="contained" disabled={!canGoNext}
             onClick={() => setStep(p => p + 1)}
             endIcon={<KeyboardArrowRightIcon />} sx={{ minWidth:120 }}>
-            Suivant
+            Next
           </Button>
         )}
 
@@ -337,8 +337,8 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
             sx={{ minWidth:140 }}>
             {saving
-              ? (isEdit ? 'Mise à jour...' : 'Création...')
-              : (isEdit ? 'Mettre à jour'  : 'Créer la session')}
+              ? (isEdit ? 'Updating...' : 'Creating...')
+              : (isEdit ? 'Update'  : 'Create session')}
           </Button>
         )}
 
@@ -346,11 +346,11 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
           <>
             <Button variant="outlined" onClick={handleSaveParticipants} disabled={saving}
               startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}>
-              {saving ? 'Enregistrement...' : 'Terminer'}
+              {saving ? 'Saving...' : 'Finish'}
             </Button>
             <Button variant="contained" color="primary" onClick={handleGoToCriteres}
               disabled={saving} startIcon={<AssignmentIcon />} sx={{ minWidth:180 }}>
-              Terminer &amp; configurer critères
+              Finish &amp; configure criteria
             </Button>
           </>
         )}

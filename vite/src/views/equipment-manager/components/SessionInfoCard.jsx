@@ -30,8 +30,8 @@ export default function SessionInfoCard({ session, activeDay }) {
         </Grid>
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant="caption" color="text.secondary">Progression globale</Typography>
-          <Typography variant="caption" fontWeight={600}>{activeDay} / {duree} jours</Typography>
+          <Typography variant="caption" color="text.secondary">Global Progress</Typography>
+          <Typography variant="caption" fontWeight={600}>{activeDay} / {duree} days</Typography>
         </Box>
         <LinearProgress
           variant="determinate"
@@ -39,7 +39,7 @@ export default function SessionInfoCard({ session, activeDay }) {
           sx={{ height: 8, borderRadius: 4 }}
           color="primary"
         />
-        <Typography variant="caption" color="text.secondary">{progressPct}% complété</Typography>
+        <Typography variant="caption" color="text.secondary">{progressPct}% completed</Typography>
       </CardContent>
     </Card>
   );

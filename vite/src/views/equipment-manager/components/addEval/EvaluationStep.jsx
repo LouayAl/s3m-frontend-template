@@ -2,9 +2,9 @@ import { Box, Typography, Table, TableHead, TableBody, TableRow, TableCell,
   LinearProgress, Alert, CircularProgress, TextField, Chip } from '@mui/material';
 
 const PRESENCE_OPTIONS = [
-  { value: 'PRESENT', label: 'Présent', color: 'success' },
+  { value: 'PRESENT', label: 'Present', color: 'success' },
   { value: 'ABSENT',  label: 'Absent',  color: 'error'   },
-  { value: 'RETARD',  label: 'Retard',  color: 'warning' },
+  { value: 'RETARD',  label: 'Late',  color: 'warning' },
 ];
 
 export default function EvaluationStep({
@@ -64,15 +64,15 @@ export default function EvaluationStep({
         </Box>
       ) : criteres.length === 0 ? (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Aucun critère défini pour le jour {selectedDay}.
-          Veuillez d'abord configurer les critères depuis la page de suivi de session.
+          No criteria defined for the day {selectedDay}.
+          Please configure the criteria from the session tracking page.
         </Alert>
       ) : (
         <Box sx={{ overflowX: 'auto', mb: 2 }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: 'background.default' }}>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Compétence</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Competence</TableCell>
                 {[1, 2, 3, 4].map(v => (
                   <TableCell key={v} align="center" sx={{ fontWeight: 700, width: 44, fontSize: 12 }}>
                     {v}
@@ -129,7 +129,7 @@ export default function EvaluationStep({
       {/* Remarks */}
       <TextField
         fullWidth multiline rows={3}
-        label="Remarques du formateur"
+        label="Trainer's comments"
         value={remarks}
         onChange={e => onRemarksChange(e.target.value)}
         placeholder="Observations, points d'amélioration..."

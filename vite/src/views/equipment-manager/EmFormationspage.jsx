@@ -16,9 +16,9 @@ import { useAuth }                          from '../../contexts/auth/AuthContex
 
 
 const STATUS_CONFIG = {
-  EN_COURS:  { label: 'En cours',  color: 'success' },
-  PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-  TERMINEE:  { label: 'Terminée',  color: 'error'   },
+  EN_COURS:  { label: 'In Progress',  color: 'success' },
+  PLANIFIEE: { label: 'Scheduled', color: 'warning' },
+  TERMINEE:  { label: 'Completed',  color: 'error'   },
 };
 
 const STATUS_COLORS = {
@@ -101,7 +101,7 @@ export default function EMFormationsPage() {
       setFormations(Object.values(map));
     } catch (err) {
       console.error(err);
-      showSnackbar('Erreur lors du chargement des formations.', 'error');
+      showSnackbar('Error loading training materials.', 'error');
     } finally {
       setLoading(false);
     }
@@ -132,9 +132,9 @@ export default function EMFormationsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} mb={1}>Formations</Typography>
+      <Typography variant="h4" fontWeight={700} mb={1}>Training</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        Cliquez sur une formation pour voir ses sessions. Cliquez sur une session pour accéder au suivi journalier.
+        Click on a Training course to view its sessions. Click on a session to access the daily progress tracking.
       </Typography>
 
       {!isTrainer && (
@@ -144,7 +144,7 @@ export default function EMFormationsPage() {
           onClick={() => setOpenModal(true)}
           sx={{ mb: 3 }}
         >
-          Créer une formation
+          Create a Training course
         </Button>
       )}
 
@@ -176,16 +176,16 @@ export default function EMFormationsPage() {
                       ))
                     ) : (
                       <Typography variant="caption" color="text.secondary">
-                        Aucune session planifiée
+                        No scheduled session
                       </Typography>
                     )}
                   </Stack>
 
                   {/* Status legend */}
                   <Stack direction="row" spacing={2} mb={1.5} flexWrap="wrap">
-                    {enCours  > 0 && <Typography variant="caption" sx={{ color:'#4caf50', fontWeight:600 }}>● En cours: {enCours}</Typography>}
-                    {planifie > 0 && <Typography variant="caption" sx={{ color:'#ff9800', fontWeight:600 }}>● Planifiées: {planifie}</Typography>}
-                    {termine  > 0 && <Typography variant="caption" sx={{ color:'#f44336', fontWeight:600 }}>● Terminées: {termine}</Typography>}
+                    {enCours  > 0 && <Typography variant="caption" sx={{ color:'#4caf50', fontWeight:600 }}>● In Progress: {enCours}</Typography>}
+                    {planifie > 0 && <Typography variant="caption" sx={{ color:'#ff9800', fontWeight:600 }}>● Scheduled: {planifie}</Typography>}
+                    {termine  > 0 && <Typography variant="caption" sx={{ color:'#f44336', fontWeight:600 }}>● Completed: {termine}</Typography>}
                   </Stack>
 
                   <Divider sx={{ mb:2 }} />
@@ -206,7 +206,7 @@ export default function EMFormationsPage() {
                       <Typography variant="h6" fontWeight={700} color={enCours > 0 ? 'success.main' : 'text.secondary'}>
                         {enCours}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">En cours</Typography>
+                      <Typography variant="caption" color="text.secondary">In Progress</Typography>
                     </Box>
                   </Stack>
                 </CardContent>
@@ -227,18 +227,18 @@ export default function EMFormationsPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight:600 }}>Référence</TableCell>
+                    <TableCell sx={{ fontWeight:600 }}>Reference</TableCell>
                     <TableCell sx={{ fontWeight:600 }}>Dates</TableCell>
                     <TableCell sx={{ fontWeight:600 }}>Participants</TableCell>
-                    <TableCell sx={{ fontWeight:600 }}>Progression</TableCell>
-                    <TableCell sx={{ fontWeight:600 }}>Statut</TableCell>
+                    <TableCell sx={{ fontWeight:600 }}>Progress</TableCell>
+                    <TableCell sx={{ fontWeight:600 }}>Status</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {selectedFormation.sessions.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                        Aucune session n'est encore rattachée à cette formation.
+                        No sessions are currently linked to this training course.
                       </TableCell>
                     </TableRow>
                   )}
@@ -270,7 +270,7 @@ export default function EMFormationsPage() {
                             sx={{ height:6, borderRadius:3 }}
                           />
                           <Typography variant="caption" color="text.secondary">
-                            {joursAtteint}/{duree} jours
+                            {joursAtteint}/{duree} days
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -287,7 +287,7 @@ export default function EMFormationsPage() {
               </Table>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setSelectedFormation(null)}>Fermer</Button>
+              <Button onClick={() => setSelectedFormation(null)}>Close</Button>
             </DialogActions>
           </>
         )}

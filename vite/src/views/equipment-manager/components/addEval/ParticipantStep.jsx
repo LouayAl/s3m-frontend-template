@@ -2,15 +2,15 @@ import { Box, Typography, Avatar, Chip } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const STATUS_CONFIG = {
-  EN_COURS:  { label: 'En cours',  color: 'success' },
-  PLANIFIEE: { label: 'Planifiée', color: 'warning' },
-  TERMINEE:  { label: 'Terminée',  color: 'default' },
+  EN_COURS:  { label: 'In progress',  color: 'success' },
+  PLANIFIEE: { label: 'Planified', color: 'warning' },
+  TERMINEE:  { label: 'Completed',  color: 'default' },
 };
 
 const PRESENCE_OPTIONS = [
-  { value: 'PRESENT', label: 'Présent', color: 'success' },
+  { value: 'PRESENT', label: 'Present', color: 'success' },
   { value: 'ABSENT',  label: 'Absent',  color: 'error'   },
-  { value: 'RETARD',  label: 'Retard',  color: 'warning' },
+  { value: 'RETARD',  label: 'Late',  color: 'warning' },
 ];
 
 export default function ParticipantStep({
@@ -47,7 +47,7 @@ export default function ParticipantStep({
 
       {/* Participant list */}
       <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
-        Sélectionner un participant
+        Select a participant
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3, maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
         {participants.map(p => {
@@ -94,7 +94,7 @@ export default function ParticipantStep({
 
       {/* Day selector */}
       <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
-        Sélectionner le jour
+        Select the day
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
         {dayOptions.map(d => {
@@ -126,7 +126,7 @@ export default function ParticipantStep({
 
       {/* Presence */}
       <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
-        Présence
+        Presence
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         {PRESENCE_OPTIONS.map(opt => (

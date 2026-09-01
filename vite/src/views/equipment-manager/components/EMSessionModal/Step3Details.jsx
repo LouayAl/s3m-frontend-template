@@ -23,18 +23,18 @@ export default function Step3Details({
 
       {/* ── Session summary ──────────────────────────────────────────────── */}
       <Box sx={{ p:2, borderRadius:2, bgcolor:'primary.main', color:'#fff' }}>
-        <Typography variant="caption" sx={{ opacity:0.8, fontWeight:600, letterSpacing:'0.05em' }}>
-          RÉSUMÉ DE LA SESSION
+        <Typography variant="caption" color="inherit" sx={{ opacity:0.8, fontWeight:600, letterSpacing:'0.05em' }}>
+          SESSION SUMMARY
         </Typography>
         <Box sx={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1.5, mt:1.5 }}>
           {[
-            { label:'Formation', value: selectedFormation?.module ?? '—' },
-            { label:'Jours',     value: `${count} jour${count !== 1 ? 's' : ''}` },
-            { label:'Début',     value: fmt(dateDebut) },
-            { label:'Fin',       value: fmt(dateFin) },
+            { label:'Training course', value: selectedFormation?.module ?? '—' },
+            { label:'Days',     value: `${count} day${count !== 1 ? 's' : ''}` },
+            { label:'Start',     value: fmt(dateDebut) },
+            { label:'End',       value: fmt(dateFin) },
           ].map(item => (
             <Box key={item.label}>
-              <Typography variant="caption" sx={{ opacity:0.7, display:'block' }}>{item.label}</Typography>
+              <Typography variant="caption" sx={{color: '#fff', opacity:0.7, display:'block' }}>{item.label}</Typography>
               <Typography variant="body2" fontWeight={700} sx={{
                 overflow:'hidden', display:'-webkit-box',
                 WebkitLineClamp:2, WebkitBoxOrient:'vertical',
@@ -55,13 +55,13 @@ export default function Step3Details({
         <LockOutlinedIcon sx={{ fontSize:18, color:'text.disabled' }} />
         <Box>
           <Typography variant="caption" color="text.secondary" display="block">
-            Entreprise cliente (pré-rempli automatiquement)
+            Client company (pre-filled automatically)
           </Typography>
           <Typography variant="body2" fontWeight={600}>
             {user?.nom ?? '—'}
           </Typography>
           <Typography variant="caption" color="text.disabled">
-            Non modifiable — lié à votre compte
+            Not modifiable — linked to your account
           </Typography>
         </Box>
       </Box>
@@ -73,11 +73,11 @@ export default function Step3Details({
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Référence session"
+            label="Session Reference"
             value={formData.referenceSession}
             onChange={e => onChange('referenceSession', e.target.value)}
             placeholder="Ex: RTG-2026-001"
-            helperText="Modifiez si vous voulez une référence personnalisée."
+            helperText="Modify if you want a custom reference."
           />
         </Grid>
 
@@ -85,15 +85,15 @@ export default function Step3Details({
         <Grid item xs={12}>
           <TextField
             select fullWidth
-            label="Fournisseur"
+            label="Supplier"
             value={formData.idFournisseur ?? ''}
             onChange={e => onChange('idFournisseur', e.target.value ? Number(e.target.value) : null)}
             InputProps={{
               startAdornment: <BusinessOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
             }}
-            helperText="Optionnel — organisme prestataire de la formation."
+            helperText="Optional — training provider organization."
           >
-            <MenuItem value=""><em>Aucun</em></MenuItem>
+            <MenuItem value=""><em>None</em></MenuItem>
             {entreprises.map(e => (
               <MenuItem key={e.idEntreprise} value={e.idEntreprise}>
                 {e.nomEntreprise}
@@ -106,15 +106,15 @@ export default function Step3Details({
         <Grid item xs={12}>
           <TextField
             select fullWidth
-            label="Formateur"
+            label="Trainer"
             value={formData.idFormateur ?? ''}
             onChange={e => onChange('idFormateur', e.target.value ? Number(e.target.value) : null)}
             InputProps={{
               startAdornment: <PersonOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
             }}
-            helperText="Optionnel — peut être défini plus tard."
+            helperText="Optional — can be defined later."
           >
-            <MenuItem value=""><em>Aucun</em></MenuItem>
+            <MenuItem value=""><em>None</em></MenuItem>
             {formateurs.map(f => (
               <MenuItem key={f.idFormateur} value={f.idFormateur}>
                 {f.nom} {f.prenom}
@@ -127,7 +127,7 @@ export default function Step3Details({
         <Grid item xs={12}>
           <TextField
             fullWidth
-            label="Durée totale (heures)"
+            label="Total duration (hours)"
             type="number"
             value={formData.dHeures}
             onChange={e => onChange('dHeures', e.target.value)}
@@ -135,7 +135,7 @@ export default function Step3Details({
             InputProps={{
               startAdornment: <AccessTimeOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
             }}
-            helperText={`${count} jour${count !== 1 ? 's' : ''} sélectionné${count !== 1 ? 's' : ''}. Saisissez le total en heures.`}
+            helperText={`${count} day${count !== 1 ? 's' : ''} selected. Enter the total in hours.`}
           />
         </Grid>
       </Grid>
