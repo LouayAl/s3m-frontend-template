@@ -385,8 +385,8 @@ const SessionPage = () => {
     const defs = [
       { field: "referenceSession",    headerName: "Réf. session",  minWidth: 130, maxWidth: 200 },
       { field: "formation",           headerName: "Formation",    flex: 2, minWidth: 100 },
-      { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
-      { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200, sortable: false },
+      { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200},
+      { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200},
       { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
       { field: "dateDebut",           headerName: "Début",        width: 120 },
       { field: "dateFin",             headerName: "Fin",          width: 120 },
