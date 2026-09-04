@@ -30,6 +30,8 @@ export const getSessionsPaginated = async ({
   facture = null,   // ✅ new — finance view: true | false | null (don't filter)
   sortBy = "idSession",
   sortDir = "desc",
+  filterField = null,
+  filterValue = null,
 } = {}) => {
   try {
     const params = { page, size, sortBy, sortDir };
@@ -38,6 +40,10 @@ export const getSessionsPaginated = async ({
     if (years?.length)  params.years        = years.join(",");
     if (statuts?.length) params.statuts     = statuts.join(",");
     if (facture !== null && facture !== undefined) params.facture = facture;
+    if (filterField && filterValue)  {
+      params.filterField = filterField;
+      params.filterValue = filterValue;
+    }
     const res = await api.get(`${BASE_URL}/paginated`, { params });
     return res.data;
   } catch (err) {

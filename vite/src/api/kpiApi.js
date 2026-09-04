@@ -93,4 +93,12 @@ export const getVisibiliteSessions = async (clientId, start, end) => {
   return res.data;
 };
 
+export const getCalendarSessions = async (clientId, start, end) => {
+  const path = clientId
+    ? `/clients/${clientId}/kpis/visibilite/calendar-sessions`
+    : `/admin/kpis/visibilite/calendar-sessions`;
+  const res = await api.get(path, { params: { start, end } });
+  return res.data;
+};
+
 

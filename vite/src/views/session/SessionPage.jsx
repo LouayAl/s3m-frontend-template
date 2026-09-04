@@ -173,6 +173,7 @@ const SessionPage = () => {
   const handleFilterModelChange = useCallback((newModel) => {
     setFilterModel(newModel);
     localStorage.setItem(FILTER_MODEL_KEY, JSON.stringify(newModel));
+    setPaginationModel(prev => ({ ...prev, page: 0 }));
   }, []);
 
   // ── Finance defaults (applied once, as soon as we know the role) ────────
@@ -209,6 +210,9 @@ const SessionPage = () => {
       if (showSpinner) setLoading(true);
       const sortBy  = sortModel[0]?.field || "idSession";
       const sortDir = sortModel[0]?.sort === "asc" ? "asc" : "desc";
+      const activeFilter = filterModel.items?.find(
+        item => item.field && item.value != null && item.value !== ''
+      );
       const data = await getSessionsPaginated({
         page:         paginationModel.page,
         size:         paginationModel.pageSize,
@@ -220,6 +224,8 @@ const SessionPage = () => {
         entrepriseId: (isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined,
         statuts:      isAdminFinance ? statutFilter : undefined,
         facture:      isAdminFinance && factureFilter !== "" ? factureFilter === "true" : undefined,
+        filterField:  activeFilter?.field  ?? null,
+        filterValue:  activeFilter?.value  ?? null,
       });
       setSessions(data.content || []);
       setTotalSessions(data.totalElements || 0);
@@ -228,7 +234,7 @@ const SessionPage = () => {
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [paginationModel, sortModel, search, selectedYears, isAdmin, isAdminFinance, filterEntrepriseId, statutFilter, factureFilter]);
+  }, [paginationModel, sortModel, search, selectedYears, isAdmin, isAdminFinance, filterEntrepriseId, statutFilter, factureFilter, filterModel]);
 
   useEffect(() => { fetchSessions(true); }, [fetchSessions]);
 
@@ -524,6 +530,10 @@ const SessionPage = () => {
                   onChange={e => { setFilterEntrepriseId(e.target.value); resetToFirstPage(); }}
                 >
                   <MenuItem value=""><em>Toutes les entreprises</em></MenuItem>
+                  {/* Render a hidden item for the current value while the list loads */}
+                  {filterEntrepriseId && !entreprises.find(e => e.idEntreprise === filterEntrepriseId) && (
+                    <MenuItem value={filterEntrepriseId} sx={{ display: 'none' }} />
+                  )}
                   {entreprises.map(ent => (
                     <MenuItem key={ent.idEntreprise} value={ent.idEntreprise}>
                       {ent.nomEntreprise}
@@ -603,6 +613,7 @@ const SessionPage = () => {
               rowCount={totalSessions}
               paginationMode="server"
               sortingMode="server"
+              filterMode="server"
               filterModel={filterModel}
               onFilterModelChange={handleFilterModelChange}
               onColumnWidthChange={handleColumnWidthChange}

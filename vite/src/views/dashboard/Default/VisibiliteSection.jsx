@@ -6,6 +6,9 @@ import KPIBox from '../../../ui-component/cards/KPIBox';
 import PeriodFilter, { presetRange } from './PeriodFilter';
 import VisibiliteSessionsModal from './VisibiliteSessionsModal';
 import { getVisibiliteKpis, getVisibiliteSessions } from '../../../api/kpiApi';
+import PlanifiedSessionsCalendar from './PlanifiedSessionsCalendar';
+
+
 
 export default function VisibiliteSection({ entrepriseId }) {
   const [period, setPeriod] = useState(presetRange(7));
@@ -34,24 +37,29 @@ export default function VisibiliteSection({ entrepriseId }) {
           <PeriodFilter value={period} onChange={setPeriod} />
         </Stack>
 
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <div onClick={() => openModal('Sessions planifiées', sessions)} style={{ cursor: 'pointer' }}>
+        {/* Flat 4-column grid: all four cards are siblings with identical sizing,
+            so they're guaranteed equal widths — no nested grid, no width capping. */}
+        <Grid container spacing={2} alignItems="stretch">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <div onClick={() => openModal('Sessions planifiées', sessions)} style={{ cursor: 'pointer', height: '100%' }}>
               <KPIBox title="Sessions planifiées" value={kpis?.nbSessionsPlanifiees ?? '—'} color="#2381C0" />
             </div>
           </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <div onClick={() => openModal('Sessions planifiées', sessions)} style={{ cursor: 'pointer' }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <div onClick={() => openModal('Sessions planifiées', sessions)} style={{ cursor: 'pointer', height: '100%' }}>
               <KPIBox title="Moy. participants / session" value={kpis?.moyenneParticipantsParSession ?? '—'} color="#66bb6a" />
             </div>
           </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <div
               onClick={() => openModal('Sessions sans participant', sessions.filter((s) => s.nbParticipants === 0))}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', height: '100%' }}
             >
               <KPIBox title="Sessions à 0 participant" value={kpis?.nbSessionsZeroParticipant ?? '—'} color="#ff9800" />
             </div>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <PlanifiedSessionsCalendar entrepriseId={entrepriseId} />
           </Grid>
         </Grid>
       </Stack>

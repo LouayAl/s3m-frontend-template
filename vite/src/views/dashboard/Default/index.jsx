@@ -6,9 +6,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 
 // project imports
-import TotalFormationHoursCard from './TotalFormationHoursCard';
-import TotalSessionsCardDark from '../../../ui-component/cards/TotalSessionsDarkCard';
-import TotalParticipantsCard from '../../../ui-component/cards/TotalParticipantsCard';
+import StatusKpiCard from '../../../ui-component/cards/StatusKpiCard';
 import TotalGrowthBarChart from './TotalGrowthBarChart';
 import DepartmentBarChart from './DepartementBarChart';
 import FournisseurPieChart from './FournisseurPieChart';
@@ -115,6 +113,9 @@ export default function Dashboard() {
     remboursementByType,
     totalFormationHours,
     totalSessions,
+    realiseeKpi,
+    planifieeKpi,
+    autresKpi,
   } = kpis;
 
   return (
@@ -146,21 +147,33 @@ export default function Dashboard() {
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalFormationHoursCard
+            <StatusKpiCard
               isLoading={isLoading}
-              totalHours={totalFormationHours}
+              variant="realisee"
+              title="Sessions Réalisées"
+              totalHeures={realiseeKpi?.totalHeures}
+              totalSessions={realiseeKpi?.totalSessions}
+              totalParticipants={realiseeKpi?.totalParticipants}
             />
           </Grid>
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalSessionsCardDark
+            <StatusKpiCard
               isLoading={isLoading}
-              totalSessions={totalSessions}
+              variant="planifiee"
+              title="Sessions Planifiées"
+              totalHeures={planifieeKpi?.totalHeures}
+              totalSessions={planifieeKpi?.totalSessions}
+              totalParticipants={planifieeKpi?.totalParticipants}
             />
           </Grid>
           <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
-            <TotalParticipantsCard
+            <StatusKpiCard
               isLoading={isLoading}
-              totalParticipants={population?.totalParticipants || 0}
+              variant="autres"
+              title="Autres Sessions"
+              totalHeures={autresKpi?.totalHeures}
+              totalSessions={autresKpi?.totalSessions}
+              totalParticipants={autresKpi?.totalParticipants}
             />
           </Grid>
         </Grid>
