@@ -20,20 +20,17 @@ export default function FournisseurBarChart({ isLoading = false, data = [] }) {
   const [chartOptions, setChartOptions] = useState({});
   const [series, setSeries] = useState([]);
 
-  // Define a fixed palette similar to other charts
   const palette = ['#2196f3', '#1565c0', '#ff9800', '#4caf50', '#64b5f6', '#1976d2', '#ffa726', '#81c784'];
 
   useEffect(() => {
     if (Array.isArray(data) && data.length > 0) {
       const categories = data.map((d) => d.fournisseur || 'Unknown');
       const values = data.map((d) => d.totalHeures || 0);
-
-      // Assign colors based on palette, cycling if more bars than colors
       const colors = categories.map((_, index) => palette[index % palette.length]);
 
       setSeries([
         {
-          name: 'Heures',
+          name: 'Heures-Participants',
           data: values
         }
       ]);
@@ -47,10 +44,10 @@ export default function FournisseurBarChart({ isLoading = false, data = [] }) {
         yaxis: {
           labels: { style: { colors: theme.palette.text.primary } }
         },
-        colors, // each bar gets its corresponding color
+        colors,
         plotOptions: {
           bar: {
-            distributed: true, // enables per-bar colors
+            distributed: true,
             dataLabels: {
               position: 'top'
             }
@@ -59,13 +56,34 @@ export default function FournisseurBarChart({ isLoading = false, data = [] }) {
         dataLabels: {
           enabled: true,
           style: {
-            colors: ['#000000'] // black color for values on top of bars
+            colors: ['#000000']
           },
           formatter: function (val) {
-            return val; // show value
+            return val;
           }
         },
-        tooltip: { theme: 'light' },
+        tooltip: {
+          theme: 'light',
+          custom: function ({ dataPointIndex }) {
+            const d = data[dataPointIndex] || {};
+            const total = d.totalHeures ?? 0;
+            const hasBreakdown = d.sessionHeures != null && d.nbParticipants != null;
+
+            return `
+              <div style="padding:8px 12px;">
+                <div style="font-weight:600;margin-bottom:4px;">${d.fournisseur || 'Unknown'}</div>
+                <div>${total.toLocaleString()} heures-participants</div>
+                ${
+                  hasBreakdown
+                    ? `<div style="font-size:11px;opacity:0.75;margin-top:2px;">
+                        ${d.sessionHeures.toLocaleString()} h de session × ${d.nbParticipants.toLocaleString()} participants
+                       </div>`
+                    : ''
+                }
+              </div>
+            `;
+          }
+        },
         grid: { borderColor: theme.palette.divider }
       });
     } else {
@@ -79,7 +97,12 @@ export default function FournisseurBarChart({ isLoading = false, data = [] }) {
   ) : (
     <MainCard>
       <Stack spacing={gridSpacing}>
-        <Typography variant="h6">Heures par fournisseur</Typography>
+        <Box>
+          <Typography variant="h6">Heures-Participants par fournisseur</Typography>
+          <Typography variant="caption" color="textSecondary">
+            Heures de formation × nombre de participants
+          </Typography>
+        </Box>
         <Box>
           {series.length > 0 ? (
             <Chart options={chartOptions} series={series} type="bar" height={400} />
@@ -99,7 +122,9 @@ FournisseurBarChart.propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       fournisseur: PropTypes.string,
-      totalHeures: PropTypes.number
+      totalHeures: PropTypes.number,
+      sessionHeures: PropTypes.number,
+      nbParticipants: PropTypes.number
     })
   )
 };

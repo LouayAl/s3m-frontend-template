@@ -18,7 +18,7 @@ import Step3Details      from './Step3Details';
 import Step4Participants from './Step4Participants';
 
 import { useAuth } from '../../../../contexts/auth/AuthContext';
-import { getEmFormations }                                    from '../../../../api/emApi';       // ← scoped
+import { getEmFormations, cloneCriteresFromTemplate }          from '../../../../api/emApi';       // ← scoped + template clone
 import { getAllFormateurs, createSession, updateParticipants, updateSession } from '../../../../api/sessionApi';
 import { getEmEmployes }                                      from '../../../../api/employeApi';  // ← scoped
 import { getAllEntreprises } from '../../../../api/entrepriseApi';
@@ -62,8 +62,9 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
   const [createdSession,       setCreatedSession]       = useState(null);
   const [formData,             setFormData]             = useState({
     referenceSession: '',
-    idFormateur:      null,   // entreprise/fournisseur removed — taken from auth
+    idFormateur:      null,
     dHeures:          '',
+    templateId:       null,   // ← replaces sessionType
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
@@ -77,7 +78,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       setSelectedDays([]);
       setSelectedParticipants([]);
       setCreatedSession(null);
-      setFormData({ referenceSession:'', idFormateur:null, dHeures:'' });
+      setFormData({ referenceSession:'', idFormateur:null, dHeures:'', templateId:null });
       setError('');
       return;
     }
@@ -96,6 +97,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
             referenceSession: initialData.referenceSession ?? '',
             idFormateur:      initialData.idFormateur      ?? null,
             dHeures:          initialData.dHeures          ?? '',
+            templateId:       null,
           });
           // Pre-select formation
           const formation = f.find(x => x.id === initialData.formationId);
@@ -168,6 +170,15 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       });
 
       setCreatedSession(created);
+
+      if (formData.templateId) {
+        try {
+          await cloneCriteresFromTemplate(created.idSession, formData.templateId);
+        } catch {
+          showSnackbar?.("Session created, but the criteria template couldn't be copied — add criteria manually.", 'warning');
+        }
+      }
+
       onCreated?.();
       setStep(3);
     } catch (err) {

@@ -28,7 +28,7 @@ function convertMonthLabelToParam(label) {
   return monthMap[monthStr] ? `${yearStr}-${monthMap[monthStr]}` : '';
 }
 
-export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedYears = [] }) {
+export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedYears = [], departementId = null }) {
   const theme = useTheme();
   const { state: { fontFamily } } = useConfig();
 
@@ -57,7 +57,8 @@ export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedY
           entrepriseId,
           effectivePeriod,
           monthParam,
-          selectedYears   // ← passed to backend
+          selectedYears,   // ← passed to backend
+          departementId
         );
         setChartData(data);
       } catch (err) {
@@ -69,7 +70,7 @@ export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedY
     };
 
     fetchGrowth();
-  }, [entrepriseId, period, drilldownMonth, selectedYears]);
+  }, [entrepriseId, period, drilldownMonth, selectedYears, departementId]);
 
   const safeCategories = useMemo(() => chartData?.categories || [], [chartData]);
   const safeSeries     = useMemo(() => chartData?.series     || [], [chartData]);
@@ -118,7 +119,7 @@ export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedY
       },
       yaxis: {
         title: {
-          text: 'Heures',
+          text: 'Heures-Participants',
           style: { color: theme.vars?.palette.text.primary ?? theme.palette.text.primary },
         },
         labels: {
@@ -132,10 +133,10 @@ export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedY
           formatter: (val, opts) => {
             const label     = opts?.w?.globals?.labels?.[opts.dataPointIndex];
             const formation = label && chartData?.topFormationsByMonth?.[label];
-            if (!formation) return `${val} h`;
+            if (!formation) return `${val} heures-participants`;
             return opts.seriesIndex === 0
-              ? `${formation}: ${val} h`
-              : `Autres: ${val} h`;
+              ? `${formation}: ${val} heures-participants`
+              : `Autres: ${val} heures-participants`;
           },
         },
       },
@@ -163,8 +164,11 @@ export default function TotalGrowthBarChart({ isLoading, entrepriseId, selectedY
         {/* Header */}
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <Stack spacing={0.5}>
-            <Typography variant="subtitle2">Heures de formation</Typography>
+            <Typography variant="subtitle2">Heures-Participants de formation</Typography>
             <Typography variant="h3">{totalHours.toLocaleString()} h</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Heures de formation × nombre de participants
+            </Typography>
             {subtitle && (
               <Typography variant="body2" color="text.secondary">
                 {subtitle}
@@ -219,4 +223,5 @@ TotalGrowthBarChart.propTypes = {
   isLoading: PropTypes.bool,
   entrepriseId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   selectedYears: PropTypes.arrayOf(PropTypes.number),
+  departementId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };

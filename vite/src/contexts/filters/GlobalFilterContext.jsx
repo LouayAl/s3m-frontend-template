@@ -1,9 +1,9 @@
-// frontend-template/vite/src/contexts/filters/GlobalFilterContext.jsx
 import { createContext, useContext, useState } from 'react';
 import PropTypes from 'prop-types';
 
 const ENTREPRISE_KEY = 'globalFilter.entrepriseId';
 const YEARS_KEY = 'globalFilter.years';
+const DEPARTEMENT_KEY = 'globalFilter.departementId';
 
 const readJson = (key, fallback) => {
   try {
@@ -23,10 +23,17 @@ export function GlobalFilterProvider({ children }) {
   const [selectedYears, setSelectedYearsState] = useState(() =>
     readJson(YEARS_KEY, [2026])
   );
+  const [selectedDepartementId, setSelectedDepartementIdState] = useState(() =>
+    readJson(DEPARTEMENT_KEY, '')
+  );
 
   const setSelectedEntrepriseId = (id) => {
     setSelectedEntrepriseIdState(id);
     localStorage.setItem(ENTREPRISE_KEY, JSON.stringify(id));
+    // A department belongs to one entreprise — a stale departementId from
+    // the previous entreprise would silently scope the new one's KPIs wrong.
+    setSelectedDepartementIdState('');
+    localStorage.setItem(DEPARTEMENT_KEY, JSON.stringify(''));
   };
 
   const setSelectedYears = (years) => {
@@ -34,9 +41,21 @@ export function GlobalFilterProvider({ children }) {
     localStorage.setItem(YEARS_KEY, JSON.stringify(years));
   };
 
+  const setSelectedDepartementId = (id) => {
+    setSelectedDepartementIdState(id);
+    localStorage.setItem(DEPARTEMENT_KEY, JSON.stringify(id));
+  };
+
   return (
     <GlobalFilterContext.Provider
-      value={{ selectedEntrepriseId, setSelectedEntrepriseId, selectedYears, setSelectedYears }}
+      value={{
+        selectedEntrepriseId,
+        setSelectedEntrepriseId,
+        selectedYears,
+        setSelectedYears,
+        selectedDepartementId,
+        setSelectedDepartementId,
+      }}
     >
       {children}
     </GlobalFilterContext.Provider>

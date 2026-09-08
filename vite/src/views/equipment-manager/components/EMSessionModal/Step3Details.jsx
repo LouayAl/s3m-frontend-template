@@ -1,9 +1,12 @@
-import { Box, Typography, TextField, MenuItem, Grid } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, TextField, MenuItem, Grid, ListSubheader } from '@mui/material';
 import PersonOutlinedIcon     from '@mui/icons-material/PersonOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import BusinessOutlinedIcon   from '@mui/icons-material/BusinessOutlined';
 import LockOutlinedIcon       from '@mui/icons-material/LockOutlined';
+import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import { useAuth } from '../../../../contexts/auth/AuthContext';
+import { listCritereTemplates } from '../../../../api/emApi';
 
 export default function Step3Details({
   formData, onChange,
@@ -11,6 +14,14 @@ export default function Step3Details({
   selectedFormation, selectedDays,
 }) {
   const { user } = useAuth();
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    listCritereTemplates().then(setTemplates).catch(() => setTemplates([]));
+  }, []);
+
+  const upskillingTemplates = templates.filter((t) => t.type === 'UPSKILLING');
+  const trainingTemplates   = templates.filter((t) => t.type === 'TRAINING');
 
   const count     = selectedDays.length;
   const dateDebut = count > 0 ? selectedDays[0] : null;
@@ -68,6 +79,30 @@ export default function Step3Details({
 
       {/* ── Editable fields ──────────────────────────────────────────────── */}
       <Grid container spacing={2}>
+
+        {/* Evaluation criteria template — pick by name */}
+        <Grid item xs={12}>
+          <TextField
+            select fullWidth
+            label="Evaluation criteria template"
+            value={formData.templateId ?? ''}
+            onChange={e => onChange('templateId', e.target.value || null)}
+            InputProps={{
+              startAdornment: <AssignmentOutlinedIcon sx={{ fontSize:18, color:'text.secondary', mr:1 }} />,
+            }}
+            helperText="Pick a template to auto-fill this session's evaluation questions."
+          >
+            <MenuItem value=""><em>None — I'll set up criteria manually</em></MenuItem>
+            <ListSubheader>Upskilling</ListSubheader>
+            {upskillingTemplates.map(t => (
+              <MenuItem key={t.id} value={t.id}>{t.nom}</MenuItem>
+            ))}
+            <ListSubheader>Training</ListSubheader>
+            {trainingTemplates.map(t => (
+              <MenuItem key={t.id} value={t.id}>{t.nom}</MenuItem>
+            ))}
+          </TextField>
+        </Grid>
 
         {/* Référence */}
         <Grid item xs={12}>

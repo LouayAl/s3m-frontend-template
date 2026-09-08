@@ -10,6 +10,7 @@ import PeopleOutlinedIcon     from '@mui/icons-material/PeopleOutlined';
 import SchoolOutlinedIcon     from '@mui/icons-material/SchoolOutlined';
 import EventNoteOutlinedIcon  from '@mui/icons-material/EventNoteOutlined';
 import FactCheckOutlinedIcon  from '@mui/icons-material/FactCheckOutlined';
+import ChecklistOutlinedIcon  from '@mui/icons-material/ChecklistOutlined';
 import MenuIcon               from '@mui/icons-material/Menu';
 import LogoutOutlinedIcon     from '@mui/icons-material/LogoutOutlined';
 import { useAuth } from 'contexts/auth/AuthContext';
@@ -42,6 +43,7 @@ const NAV = [
     section: 'Évaluations',
     items: [
       { label: 'Evaluations', icon: <FactCheckOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/evaluations' },
+      { label: 'Criteria Templates', icon: <ChecklistOutlinedIcon sx={{ fontSize: 18 }} />, path: '/em/critere-templates' },
     ],
   },
 ];

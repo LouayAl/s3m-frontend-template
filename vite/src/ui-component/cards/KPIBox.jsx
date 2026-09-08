@@ -27,7 +27,7 @@ export default function KPIBox({ title, value, color = "#2381C0" }) {
       }}
     >
       <h4 style={{ color: "#16496E", marginBottom: 8 }}>{title}</h4>
-      <p style={{ fontSize: 24, fontWeight: "bold", color: "#16496E", margin: 0 }}>{value}</p>
+      <div style={{ fontSize: 24, fontWeight: "bold", color: "#16496E", margin: 0 }}>{value}</div>
     </div>
   );
 }

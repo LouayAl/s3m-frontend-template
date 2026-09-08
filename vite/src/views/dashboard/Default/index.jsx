@@ -15,6 +15,7 @@ import CspPieChart from './CspPieChart';
 import RemboursementPieChart from './RemboursementPieChart';
 import YearFilter from './YearFilter';
 import EntrepriseFilter from './EntrepriseFilter';
+import DepartementFilter from './DepartementFilter';
 
 import { gridSpacing } from 'store/constant';
 import { useAuth } from 'contexts/auth/AuthContext';
@@ -23,6 +24,7 @@ import { getAllEntreprises } from 'api/entrepriseApi';
 import DashboardSkeleton from './DashboardSkeleton';
 import EmptyDashboardState from './EmptyDashboardState';
 import { useGlobalFilter } from 'contexts/filters/GlobalFilterContext';
+import { getDepartementsByEntreprise } from 'api/departementApi';
 
 import VisibiliteSection from './VisibiliteSection';
 
@@ -36,11 +38,23 @@ export default function Dashboard() {
   const [entreprises, setEntreprises] = useState([]);
   const [entreprisesLoading, setEntreprisesLoading] = useState(false);
 
-  const { selectedEntrepriseId, setSelectedEntrepriseId, selectedYears, setSelectedYears } = useGlobalFilter();
+  const {
+    selectedEntrepriseId, setSelectedEntrepriseId,
+    selectedYears, setSelectedYears,
+    selectedDepartementId, setSelectedDepartementId,
+  } = useGlobalFilter();
+
   const [availableYears, setAvailableYears] = useState([]);
   const [yearsLoading, setYearsLoading] = useState(true);
   const effectiveEntrepriseId = isAdmin ? (selectedEntrepriseId || null) : user?.entrepriseId;
 
+  // Only admin drives this filter from the UI — a department manager's scope
+  // is already enforced server-side from their JWT, so we simply don't send
+  // anything for them (undefined, not null — see kpiApi appendIfPresent).
+  const effectiveDepartementId = isAdmin ? (selectedDepartementId || null) : undefined;
+
+  const [departements, setDepartements] = useState([]);
+  const [departementsLoading, setDepartementsLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -52,12 +66,25 @@ export default function Dashboard() {
       .finally(() => setEntreprisesLoading(false));
   }, [isAdmin]);
 
-  // ── Fetch available years once ────────────────────────────────────────────
+  // ── Fetch departments for the selected entreprise (Admin only) ───────────
+  useEffect(() => {
+    if (!isAdmin || !effectiveEntrepriseId) {
+      setDepartements([]);
+      return;
+    }
+    setDepartementsLoading(true);
+    getDepartementsByEntreprise(effectiveEntrepriseId)
+      .then((data) => setDepartements(Array.isArray(data) ? data : []))
+      .catch(() => setDepartements([]))
+      .finally(() => setDepartementsLoading(false));
+  }, [isAdmin, effectiveEntrepriseId]);
+
+  // ── Fetch available years (depends on entreprise + department) ───────────
   useEffect(() => {
     if (effectiveEntrepriseId === undefined) return;
 
     setYearsLoading(true);
-    getAvailableYears(effectiveEntrepriseId)
+    getAvailableYears(effectiveEntrepriseId, effectiveDepartementId)
       .then((years) => {
         setAvailableYears(years);
         if (!years.includes(2026)) {
@@ -66,21 +93,21 @@ export default function Dashboard() {
       })
       .catch(() => setAvailableYears([]))
       .finally(() => setYearsLoading(false));
-  }, [effectiveEntrepriseId]);
+  }, [effectiveEntrepriseId, effectiveDepartementId]);
 
-  // ── Fetch KPIs whenever clientId or selectedYears changes ─────────────────
+  // ── Fetch KPIs (depends on entreprise + years + department) ──────────────
   const fetchKpis = useCallback(async () => {
     if (effectiveEntrepriseId === undefined) return;
 
     try {
-      const data = await getClientKpis(effectiveEntrepriseId, selectedYears);
+      const data = await getClientKpis(effectiveEntrepriseId, selectedYears, effectiveDepartementId);
       setKpis(data);
     } catch {
       setKpis(null);
     } finally {
       setLoading(false);
     }
-  }, [effectiveEntrepriseId, selectedYears]);
+  }, [effectiveEntrepriseId, selectedYears, effectiveDepartementId]);
 
   useEffect(() => {
     setLoading(true);
@@ -90,7 +117,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchKpis]);
 
-  // ── Year change handler ───────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleYearsChange = (years) => {
     setSelectedYears(years);
   };
@@ -98,6 +125,10 @@ export default function Dashboard() {
   const handleEntrepriseChange = (entrepriseId) => {
     setSelectedEntrepriseId(entrepriseId);
     setSelectedYears([2026]);
+  };
+
+  const handleDepartementChange = (departementId) => {
+    setSelectedDepartementId(departementId);
   };
 
   // ── Render guards ─────────────────────────────────────────────────────────
@@ -121,7 +152,7 @@ export default function Dashboard() {
   return (
     <Grid container spacing={gridSpacing}>
 
-      {/* ── Year filter bar ─────────────────────────────────────────────── */}
+      {/* ── Filter bar ───────────────────────────────────────────────────── */}
       <Grid size={12}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
           {isAdmin && (
@@ -130,6 +161,14 @@ export default function Dashboard() {
               selectedEntrepriseId={selectedEntrepriseId}
               onChange={handleEntrepriseChange}
               loading={entreprisesLoading}
+            />
+          )}
+          {isAdmin && effectiveEntrepriseId && (
+            <DepartementFilter
+              departements={departements}
+              selectedDepartementId={selectedDepartementId}
+              onChange={handleDepartementChange}
+              loading={departementsLoading}
             />
           )}
           <YearFilter
@@ -141,7 +180,7 @@ export default function Dashboard() {
         </Stack>
       </Grid>
 
-      <VisibiliteSection entrepriseId={effectiveEntrepriseId} />
+      <VisibiliteSection entrepriseId={effectiveEntrepriseId} departementId={effectiveDepartementId} />
 
       {/* ── Top KPI cards ────────────────────────────────────────────────── */}
       <Grid size={12}>
@@ -183,15 +222,11 @@ export default function Dashboard() {
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            {/*
-              Pass selectedYears so the growth chart re-fetches when the
-              year filter changes. The chart manages its own period/drilldown
-              state internally.
-            */}
             <TotalGrowthBarChart
               isLoading={isLoading}
               entrepriseId={effectiveEntrepriseId}
               selectedYears={selectedYears}
+              departementId={effectiveDepartementId}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>

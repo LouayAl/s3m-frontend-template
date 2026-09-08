@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -10,7 +11,7 @@ import PlanifiedSessionsCalendar from './PlanifiedSessionsCalendar';
 
 
 
-export default function VisibiliteSection({ entrepriseId }) {
+export default function VisibiliteSection({ entrepriseId, departementId = null }) {
   const [period, setPeriod] = useState(presetRange(7));
   const [kpis, setKpis] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -19,9 +20,9 @@ export default function VisibiliteSection({ entrepriseId }) {
   const [modalSessions, setModalSessions] = useState([]);
 
   useEffect(() => {
-    getVisibiliteKpis(entrepriseId, period.start, period.end).then(setKpis).catch(() => setKpis(null));
-    getVisibiliteSessions(entrepriseId, period.start, period.end).then(setSessions).catch(() => setSessions([]));
-  }, [entrepriseId, period.start, period.end]);
+    getVisibiliteKpis(entrepriseId, period.start, period.end, departementId).then(setKpis).catch(() => setKpis(null));
+    getVisibiliteSessions(entrepriseId, period.start, period.end, departementId).then(setSessions).catch(() => setSessions([]));
+  }, [entrepriseId, period.start, period.end, departementId]);
 
   const openModal = (title, list) => {
     setModalTitle(title);
@@ -59,7 +60,7 @@ export default function VisibiliteSection({ entrepriseId }) {
             </div>
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <PlanifiedSessionsCalendar entrepriseId={entrepriseId} />
+            <PlanifiedSessionsCalendar entrepriseId={entrepriseId} departementId={departementId} />
           </Grid>
         </Grid>
       </Stack>
@@ -73,3 +74,8 @@ export default function VisibiliteSection({ entrepriseId }) {
     </Grid>
   );
 }
+
+VisibiliteSection.propTypes = {
+  entrepriseId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  departementId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+};

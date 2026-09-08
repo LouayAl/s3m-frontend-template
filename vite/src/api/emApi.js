@@ -54,3 +54,21 @@ export const getEmFormations = () =>
 // FIX: was using undefined `api` instead of `axiosInstance`
 export const getEmEmployes = () =>
     axiosInstance.get('/em/employes').then(r => r.data);
+
+export const listCritereTemplates = (type = null) =>
+    axiosInstance.get('/em/critere-templates', { params: type ? { type } : {} }).then(r => r.data);
+
+export const createCritereTemplate = (nom, type) =>
+    axiosInstance.post('/em/critere-templates', { nom, type }).then(r => r.data);
+
+export const deleteCritereTemplate = (templateId) =>
+    axiosInstance.delete(`/em/critere-templates/${templateId}`).then(r => r.data);
+
+export const getCritereTemplateEntries = (templateId) =>
+    axiosInstance.get(`/em/critere-templates/${templateId}/entries`).then(r => r.data);
+
+export const saveCritereTemplateEntries = (templateId, entries) =>
+    axiosInstance.put(`/em/critere-templates/${templateId}/entries`, { entries }).then(r => r.data);
+
+export const cloneCriteresFromTemplate = (sessionId, templateId) =>
+    axiosInstance.post(`/em/sessions/${sessionId}/criteres/clone-from-template`, null, { params: { templateId } }).then(r => r.data);

@@ -85,7 +85,7 @@ function SessionPickersDay(props) {
   );
 }
 
-export default function PlanifiedSessionsCalendar({ entrepriseId }) {
+export default function PlanifiedSessionsCalendar({ entrepriseId, departementId = null }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [monthAnchor, setMonthAnchor] = useState(new Date());
@@ -99,16 +99,15 @@ export default function PlanifiedSessionsCalendar({ entrepriseId }) {
   const fetchMonth = useCallback(
     (anchor) => {
       if (entrepriseId === undefined) return;
-      // Pad ±7 days so sessions from adjacent-month grid cells (shown by the calendar) also highlight correctly
       const start = subDays(startOfMonth(anchor), 7);
       const end = addDays(endOfMonth(anchor), 7);
       setLoading(true);
-      getCalendarSessions(entrepriseId, format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'))
+      getCalendarSessions(entrepriseId, format(start, 'yyyy-MM-dd'), format(end, 'yyyy-MM-dd'), departementId)
         .then((data) => setSessions(Array.isArray(data) ? data : []))
         .catch(() => setSessions([]))
         .finally(() => setLoading(false));
     },
-    [entrepriseId]
+    [entrepriseId, departementId]
   );
 
   useEffect(() => {

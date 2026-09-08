@@ -9,9 +9,14 @@ function buildYearsParams(years = []) {
   return params;
 }
 
-export const getClientKpis = async (entrepriseId, years = []) => {
+function appendIfPresent(params, key, value) {
+  if (value !== null && value !== undefined && value !== '') params.append(key, value);
+}
+
+export const getClientKpis = async (entrepriseId, years = [], departementId = null) => {
   try {
     const params = buildYearsParams(years);
+    appendIfPresent(params, 'departementId', departementId);
     const url = entrepriseId == null ? "/admin/kpis" : `/clients/${entrepriseId}/kpis`;
     const response = await api.get(url, { params });
     return response.data;
@@ -21,10 +26,12 @@ export const getClientKpis = async (entrepriseId, years = []) => {
   }
 };
 
-export const getAvailableYears = async (entrepriseId) => {
+export const getAvailableYears = async (entrepriseId, departementId = null) => {
   try {
+    const params = new URLSearchParams();
+    appendIfPresent(params, 'departementId', departementId);
     const url = entrepriseId == null ? "/admin/kpis/years" : `/clients/${entrepriseId}/kpis/years`;
-    const response = await api.get(url);
+    const response = await api.get(url, { params });
     return (response.data ?? []).filter((y) => y != null);
   } catch (error) {
     console.error("Failed to fetch available years:", error);
@@ -38,12 +45,14 @@ export const getAvailableYears = async (entrepriseId) => {
  * @param {string}   period        - "monthly" | "yearly" | "daily"
  * @param {string}   month         - "YYYY-MM" (required for daily)
  * @param {number[]} years         - selected years from the filter
+ * @param {number}   departementId - optional department scope (Admin only)
  */
 export const getClientTotalGrowth = async (
   entrepriseId,
   period = "monthly",
   month = "",
-  years = []
+  years = [],
+  departementId = null
 ) => {
   if (period === "daily" && !month) throw new Error("Month is required for daily period");
 
@@ -54,6 +63,7 @@ export const getClientTotalGrowth = async (
     if (Array.isArray(years) && years.length > 0) {
       years.filter((y) => y != null).forEach((y) => params.append("years", y));
     }
+    appendIfPresent(params, 'departementId', departementId);
 
     const url = entrepriseId == null
       ? "/admin/kpis/total-growth"
@@ -80,25 +90,28 @@ export const getClientTotalGrowth = async (
   }
 };
 
-
-export const getVisibiliteKpis = async (clientId, start, end) => {
+export const getVisibiliteKpis = async (clientId, start, end, departementId = null) => {
   const path = clientId ? `/clients/${clientId}/kpis/visibilite` : `/admin/kpis/visibilite`;
-  const res = await api.get(path, { params: { start, end } });
+  const params = { start, end };
+  if (departementId !== null && departementId !== '') params.departementId = departementId;
+  const res = await api.get(path, { params });
   return res.data;
 };
 
-export const getVisibiliteSessions = async (clientId, start, end) => {
+export const getVisibiliteSessions = async (clientId, start, end, departementId = null) => {
   const path = clientId ? `/clients/${clientId}/kpis/visibilite/sessions` : `/admin/kpis/visibilite/sessions`;
-  const res = await api.get(path, { params: { start, end } });
+  const params = { start, end };
+  if (departementId !== null && departementId !== '') params.departementId = departementId;
+  const res = await api.get(path, { params });
   return res.data;
 };
 
-export const getCalendarSessions = async (clientId, start, end) => {
+export const getCalendarSessions = async (clientId, start, end, departementId = null) => {
   const path = clientId
     ? `/clients/${clientId}/kpis/visibilite/calendar-sessions`
     : `/admin/kpis/visibilite/calendar-sessions`;
-  const res = await api.get(path, { params: { start, end } });
+  const params = { start, end };
+  if (departementId !== null && departementId !== '') params.departementId = departementId;
+  const res = await api.get(path, { params });
   return res.data;
 };
-
-

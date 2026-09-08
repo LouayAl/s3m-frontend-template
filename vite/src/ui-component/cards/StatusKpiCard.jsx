@@ -6,6 +6,7 @@ import Avatar from '@mui/material/Avatar';
 import CardMedia from '@mui/material/CardMedia';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 
 import MainCard from 'ui-component/cards/MainCard';
@@ -48,11 +49,26 @@ function getVariantStyles(theme, variant) {
   }
 }
 
-export default function StatusKpiCard({ isLoading, variant, title, totalHeures, totalSessions, totalParticipants }) {
+export default function StatusKpiCard({
+  isLoading,
+  variant,
+  title,
+  totalHeures,
+  totalSessions,
+  totalParticipants,
+  sessionHeures,
+  nbParticipants
+}) {
   const theme = useTheme();
   const styles = getVariantStyles(theme, variant);
 
   if (isLoading) return <SkeletonEarningCard />;
+
+  const hasBreakdown = sessionHeures != null && nbParticipants != null;
+  const heuresLabel = 'Heures-Participants';
+  const heuresTooltip = hasBreakdown
+    ? `${sessionHeures.toLocaleString()} h de session × ${nbParticipants.toLocaleString()} participants`
+    : `${heuresLabel} = heures de formation × nombre de participants`;
 
   return (
     <MainCard
@@ -96,12 +112,14 @@ export default function StatusKpiCard({ isLoading, variant, title, totalHeures, 
             <Avatar variant="rounded" sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: styles.avatarBg }}>
               <CardMedia sx={{ width: 16, height: 16 }} component="img" src={HoursIcon} alt="Heures" />
             </Avatar>
-            <Box>
-              <Typography sx={{ fontSize: '1.375rem', fontWeight: 500, color: styles.textColor, lineHeight: 1.2 }}>
-                {totalHeures?.toLocaleString() ?? 0} h
-              </Typography>
-              <Typography sx={{ fontSize: '0.75rem', color: styles.subTextColor }}>Heures de formation</Typography>
-            </Box>
+            <Tooltip title={heuresTooltip} arrow placement="right">
+              <Box>
+                <Typography sx={{ fontSize: '1.375rem', fontWeight: 500, color: styles.textColor, lineHeight: 1.2 }}>
+                  {totalHeures?.toLocaleString() ?? 0} h
+                </Typography>
+                <Typography sx={{ fontSize: '0.75rem', color: styles.subTextColor }}>{heuresLabel}</Typography>
+              </Box>
+            </Tooltip>
           </Stack>
 
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
@@ -145,5 +163,7 @@ StatusKpiCard.propTypes = {
   title: PropTypes.string,
   totalHeures: PropTypes.number,
   totalSessions: PropTypes.number,
-  totalParticipants: PropTypes.number
+  totalParticipants: PropTypes.number,
+  sessionHeures: PropTypes.number,
+  nbParticipants: PropTypes.number
 };
