@@ -268,3 +268,13 @@ export const getAllFormateurs = async () => {
     throw err;
   }
 };
+
+export const notifyFormateur = async (sessionId) => {
+  const res = await api.post(`${BASE_URL}/${sessionId}/formateur/notify`);
+  return res.data;
+};
+
+export const confirmFormateur = async (sessionId) => {
+  const res = await api.post(`${BASE_URL}/${sessionId}/formateur/confirm`);
+  return res.data;
+};

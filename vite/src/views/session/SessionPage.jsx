@@ -28,6 +28,7 @@ import QRCodeDialog from './QRCodeDialog';
 import QuizDialog from './QuizDialog';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
+import FormateurConfirmationModal from "./FormateurConfirmationModal";
 
 
 const exportButtonSx = {
@@ -45,6 +46,7 @@ const STATUS_STYLES = {
   TERMINEE:  { label: "Terminée", bg: "#F3F4F6", color: "#4B5563", dot: "#9CA3AF", border: "#E5E7EB" },
   ANNULEE:   { label: "Annulée",  bg: "#FEF2F2", color: "#B91C1C", dot: "#EF4444", border: "#FECACA" },
 };
+
 
 const StatusChip = ({ status }) => {
   const style = STATUS_STYLES[status] || {
@@ -161,6 +163,9 @@ const SessionPage = () => {
   // memory of column identity.
   const [columnWidths, setColumnWidths] = useState(() => readJson(COLUMN_WIDTHS_KEY, {}));
   const [filterModel,  setFilterModel]  = useState(() => readJson(FILTER_MODEL_KEY, { items: [] }));
+
+  const [confirmationSession, setConfirmationSession] = useState(null);
+
 
   const handleColumnWidthChange = useCallback((params) => {
     setColumnWidths((prev) => {
@@ -393,7 +398,34 @@ const SessionPage = () => {
       { field: "formation",           headerName: "Formation",    flex: 2, minWidth: 100 },
       { field: "entrepriseNom",       headerName: "Entreprise",   flex: 1, minWidth: 100, maxWidth: 200},
       { field: "fournisseurNom",      headerName: "Fournisseur",  flex: 1, minWidth: 100, maxWidth: 200},
-      { field: "formateurNomComplet", headerName: "Formateur",    flex: 1, minWidth: 140, maxWidth: 200 },
+      {
+        field: "formateurNomComplet",
+        headerName: "Formateur",
+        flex: 1, minWidth: 140, maxWidth: 200,
+        sortable: true,
+        renderCell: (params) => {
+          if (!isAdmin) return params.value || "—";
+          return (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => setConfirmationSession(params.row)}
+              sx={{
+                backgroundColor: params.row.formateurConfirme ? "#ECFDF5" : "#FEF2F2",
+                color: params.row.formateurConfirme ? "#047857" : "#B91C1C",
+                border: `1px solid ${params.row.formateurConfirme ? "#A7F3D0" : "#FECACA"}`,
+                "&:hover": {
+                  backgroundColor: params.row.formateurConfirme ? "#DCFCE7" : "#FEE2E2",
+                },
+                textTransform: "none",
+                boxShadow: "none",
+              }}
+            >
+              {params.value || "Non assigné"}
+            </Button>
+          );
+        },
+      },
       { field: "dateDebut",           headerName: "Début",        width: 120 },
       { field: "dateFin",             headerName: "Fin",          width: 120 },
       { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
@@ -428,7 +460,7 @@ const SessionPage = () => {
         ? { ...col, width: columnWidths[col.field], flex: undefined, minWidth: undefined, maxWidth: undefined }
         : col
     );
-  }, [columnWidths]);
+  }, [columnWidths, isAdmin]);
 
   const actionsColumn = {
     field: "actions",
@@ -706,6 +738,20 @@ const SessionPage = () => {
         onClose={() => setQuizSession(null)}
         session={quizSession}
       />
+
+      {isAdmin && (
+        <FormateurConfirmationModal
+          open={!!confirmationSession}
+          onClose={() => setConfirmationSession(null)}
+          session={confirmationSession}
+          onUpdated={(updated) => {
+            setSessions((prev) => prev.map((s) => (s.idSession === updated.idSession ? updated : s)));
+            setConfirmationSession(updated);
+          }}
+          showSnackbar={showSnackbar}
+        />
+      )}
+
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}>
