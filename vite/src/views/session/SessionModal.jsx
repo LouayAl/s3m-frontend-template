@@ -25,6 +25,15 @@ import {
 
 import { getFormationById } from "../../api/formationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
+import Step2Calendar from "../equipment-manager/components/EMSessionModal/Step2Calendar";
+
+
+const toLocalDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fromDateStr = (s) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d); // local date, no UTC shift
+};
 
 const SessionModal = ({
   open,
@@ -80,6 +89,9 @@ const SessionModal = ({
   // ✅ Stores session after creation
   const [createdSession, setCreatedSession] = useState(null);
 
+  const [selectedDays, setSelectedDays] = useState([]);
+
+
   // ==========================
   // ✅ LOAD LISTS ONCE
   // ==========================
@@ -120,10 +132,27 @@ const SessionModal = ({
         formationEntrepriseId: null, // filled in by the effect below once fetched
       });
 
+      const storedDays = initialData.jours?.length
+        ? initialData.jours
+        : (initialData.dateDebut && initialData.dateFin
+          ? (() => {
+              const days = [];
+              const cursor = fromDateStr(initialData.dateDebut);
+              const end = fromDateStr(initialData.dateFin);
+              while (cursor <= end) {
+                days.push(new Date(cursor));
+                cursor.setDate(cursor.getDate() + 1);
+              }
+              return days;
+            })()
+          : []);
+      setSelectedDays(storedDays.map(day => typeof day === "string" ? fromDateStr(day) : day));
+
       setCreatedSession(null);
     } else {
       // CREATE MODE → reset clean
       setFormData(emptyForm);
+      setSelectedDays([]);
       setCreatedSession(null);
     }
   }, [open, initialData]);
@@ -178,7 +207,7 @@ const SessionModal = ({
     Boolean(formData.idEntreprise) &&
     formData.formationEntrepriseId != null &&
     Number(formData.formationEntrepriseId) !== Number(formData.idEntreprise);
-
+  
   // ==========================
   // ✅ SAVE SESSION
   // ==========================
@@ -191,6 +220,12 @@ const SessionModal = ({
       return;
     }
 
+    const days = [...selectedDays].sort((a, b) => a - b);
+    if (!days.length) {
+      showSnackbar("Veuillez sélectionner au moins un jour de formation.", "error");
+      return;
+    }
+
     // Validation only for CREATE
     if (!isEdit && !createdSession) {
       if (
@@ -198,8 +233,7 @@ const SessionModal = ({
         !formData.idEntreprise ||
         !formData.idFournisseur ||
         !formData.idFormateur ||
-        !formData.dateDebut ||
-        !formData.dateFin
+        !days.length
       ) {
         showSnackbar("Veuillez remplir tous les champs obligatoires.", "error");
         return;
@@ -207,19 +241,15 @@ const SessionModal = ({
     }
 
     // Date validation
-    if (formData.dateFin < formData.dateDebut) {
-      showSnackbar("La date de fin doit être après la date de début.", "error");
-      return;
-    }
-
     const payload = {
       referenceSession: formData.referenceSession,
       idFormation: formData.idFormation,
       idEntreprise: formData.idEntreprise,
       idFournisseur: formData.idFournisseur,
       idFormateur: formData.idFormateur,
-      dateDebut: formData.dateDebut,
-      dateFin: formData.dateFin,
+      dateDebut: toLocalDateStr(days[0]),
+      dateFin: toLocalDateStr(days[days.length - 1]),
+      jours: days.map(toLocalDateStr),
       dHeures: Number(formData.dHeures),
       dJours: Number(formData.dJours),
       statut: formData.statut,
@@ -398,46 +428,7 @@ const SessionModal = ({
             ))}
           </TextField>
 
-          {/* Dates */}
-          <TextField
-            type="date"
-            label="Date début"
-            InputLabelProps={{ shrink: true }}
-            value={formData.dateDebut}
-            onChange={(e) => {
-              const newStart = e.target.value;
-
-              setFormData((prev) => ({
-                ...prev,
-                dateDebut: newStart,
-
-                // ✅ Reset dateFin if it's before the new dateDebut
-                dateFin:
-                  prev.dateFin && prev.dateFin < newStart
-                    ? ""
-                    : prev.dateFin,
-              }));
-            }}
-          />
-
-          <TextField
-            type="date"
-            label="Date fin"
-            InputLabelProps={{ shrink: true }}
-
-            // ✅ Prevent selecting before dateDebut
-            inputProps={{
-              min: formData.dateDebut || "",
-            }}
-
-            value={formData.dateFin}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                dateFin: e.target.value,
-              }))
-            }
-          />
+          <Step2Calendar selectedDays={selectedDays} onDaysChange={setSelectedDays} />
 
           {/* Lieu ← new */}
           <TextField

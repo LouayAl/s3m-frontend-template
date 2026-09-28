@@ -404,18 +404,29 @@ const SessionPage = () => {
         flex: 1, minWidth: 140, maxWidth: 200,
         sortable: true,
         renderCell: (params) => {
-          if (!isAdmin) return params.value || "—";
+          const internalTrainer = params.row.idEntreprise != null && params.row.idFournisseur != null &&
+            Number(params.row.idEntreprise) === Number(params.row.idFournisseur);
+          const trainerConfirmedForDisplay = Boolean(params.row.formateurConfirme) ||
+            (params.row.statut === "TERMINEE" && internalTrainer);
+          const requiresConfirmation = ["PLANIFIEE", "EN_COURS"].includes(params.row.statut) ||
+            (params.row.statut === "TERMINEE" && !trainerConfirmedForDisplay);
+          const trainerColor = trainerConfirmedForDisplay ? "#047857" : requiresConfirmation ? "#B91C1C" : "#4B5563";
+          if (!isAdmin) return (
+            <Box component="span" sx={{ color: trainerColor }}>
+              {params.value || "—"}
+            </Box>
+          );
           return (
             <Button
               size="small"
               variant="contained"
               onClick={() => setConfirmationSession(params.row)}
               sx={{
-                backgroundColor: params.row.formateurConfirme ? "#ECFDF5" : "#FEF2F2",
-                color: params.row.formateurConfirme ? "#047857" : "#B91C1C",
-                border: `1px solid ${params.row.formateurConfirme ? "#A7F3D0" : "#FECACA"}`,
+                backgroundColor: trainerConfirmedForDisplay ? "#ECFDF5" : requiresConfirmation ? "#FEF2F2" : "#F3F4F6",
+                color: trainerColor,
+                border: `1px solid ${trainerConfirmedForDisplay ? "#A7F3D0" : requiresConfirmation ? "#FECACA" : "#E5E7EB"}`,
                 "&:hover": {
-                  backgroundColor: params.row.formateurConfirme ? "#DCFCE7" : "#FEE2E2",
+                  backgroundColor: trainerConfirmedForDisplay ? "#DCFCE7" : requiresConfirmation ? "#FEE2E2" : "#E5E7EB",
                 },
                 textTransform: "none",
                 boxShadow: "none",

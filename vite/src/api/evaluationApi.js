@@ -26,8 +26,9 @@ export const getSatisfactionKpis = async (sessionId) => {
   return res.data;
 };
 
-export const getAllSessionsEvaluationSummary = async () => {
-  const res = await api.get(`/evaluation-a-chaud/summary`);
+export const getAllSessionsEvaluationSummary = async (entrepriseId) => {
+  const params = entrepriseId ? { entrepriseId } : {};
+  const res = await api.get(`/evaluation-a-chaud/summary`, { params });
   return res.data;
 };
 

@@ -110,7 +110,7 @@ export default function EvaluationPanel({
 
   const handleSave = async () => {
     if (!selectedParticipant || !currentEval) return;
-    const ok = await onSave({
+    await onSave({
       employeId:   selectedParticipant.idEmploye,
       jour:        activeDay,
       presence:    currentEval.presence,
@@ -118,7 +118,8 @@ export default function EvaluationPanel({
       ratings:     currentEval.ratings,
       dureeHeures: currentEval.dureeHeures ?? null,
     });
-    if (ok) setSelectedParticipant(null);
+    // Keep the form mounted after saving; the updated evaluation is reflected
+    // immediately in the participant chip and can be reviewed or edited again.
   };
 
   const toggleCategory = (cat) => {

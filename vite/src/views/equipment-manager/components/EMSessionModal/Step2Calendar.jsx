@@ -85,6 +85,7 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
           selected={selectedDays}
           onDayClick={handleDayClick}
           showOutsideDays
+          defaultMonth={selectedDays[0]}
           numberOfMonths={1}
           styles={{
             root: {
