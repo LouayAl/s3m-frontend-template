@@ -133,19 +133,33 @@ export default function EMDashboard() {
   );
 
   const calendarEvents = plannedSessions
-  .filter(s => s.dateDebut != null && s.dateFin != null)
-  .map((s) => {
-    const end = parseLocalDate(s.dateFin);
-    end.setDate(end.getDate() + 1); // ← react-big-calendar end is exclusive
-    return {
-      title:     s.formation,
-      start:     parseLocalDate(s.dateDebut),
-      end,
-      sessionId: s.idSession,
-      resource:  s,
-    };
-  });
+    .filter(s => s.dateDebut != null && s.dateFin != null)
+    .flatMap((s) => {
+      const selectedDays = Array.isArray(s.jours) && s.jours.length
+        ? s.jours
+        : (() => {
+            const days = [];
+            const start = parseLocalDate(s.dateDebut);
+            const end = parseLocalDate(s.dateFin);
+            for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+              days.push(new Date(day));
+            }
+            return days;
+          })();
 
+      return selectedDays.map((day) => {
+        const start = typeof day === 'string' ? parseLocalDate(day) : new Date(day);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        return {
+          title: s.formation,
+          start,
+          end,
+          sessionId: s.idSession,
+          resource: s,
+        };
+      });
+    });
 
   if (loading) return <Box sx={{ p: 3 }}><LinearProgress /></Box>;
 

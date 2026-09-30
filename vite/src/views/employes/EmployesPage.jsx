@@ -28,6 +28,7 @@ const EmployesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const isVisitor = useIsVisitor();
+  const canImport = ["ADMIN", "EQUIPMENT_MANAGER", "ADMIN_FINANCE"].includes(user?.role);
 
   const [employes,        setEmployes]        = useState([]);
   const [loading,         setLoading]         = useState(true);
@@ -286,7 +287,7 @@ const EmployesPage = () => {
                   Créer Employé
                 </Button>
               )}
-              {!isVisitor && (
+              {!isVisitor && canImport && (
               <Button variant="contained" component="label" sx={importButtonSx}>
                 Importer Excel
                 <input type="file" hidden accept=".xlsx,.xls" onChange={handleImportExcel} />

@@ -113,6 +113,7 @@ const SessionPage = () => {
   const { user }  = useAuth();
   const isAdmin   = user?.role === "ADMIN";
   const isAdminFinance = user?.role === "ADMIN_FINANCE"; // read-only sessions + invoicing toggle only
+  const isChefDepartement = user?.role === "CHEF_DEPARTEMENT";
 
   const [sessions,      setSessions]      = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -535,14 +536,23 @@ const SessionPage = () => {
 
   const columns = useMemo(() => {
     if (isAdminFinance) return [...baseColumns, factureColumn];
-    if (isVisitor) return baseColumns;
+    if (isVisitor || isChefDepartement) return baseColumns;
     return [...baseColumns, actionsColumn];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseColumns, isAdminFinance, isVisitor]);
+  }, [baseColumns, isAdminFinance, isVisitor, isChefDepartement]);
 
-  // Row highlight for invoiced sessions, finance view only.
-  const getRowClassName = (params) =>
-    isAdminFinance && params.row.facture ? "row-facture-done" : "";
+  // Shared status colors: only finance can change the invoice state, but every
+  // reader can see whether the row is incomplete, ready, or already invoiced.
+  const getRowClassName = ({ row }) => {
+    if (row.facture) return "row-session-invoiced";
+    const trainerName = (row.formateurNomComplet || "").trim().toLocaleLowerCase();
+    const supplierName = (row.fournisseurNom || "").trim().toLocaleLowerCase();
+    const externalTrainerNeedsConfirmation = trainerName === "formateur externe"
+      && (!supplierName || supplierName === "s3m");
+    const trainerMissing = !row.idFormateur || externalTrainerNeedsConfirmation;
+    const incomplete = trainerMissing || !(row.participantsCount > 0);
+    return incomplete ? "row-session-incomplete" : "row-session-ready";
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -621,7 +631,7 @@ const SessionPage = () => {
             )}
 
             <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {!isVisitor && !isAdminFinance && (
+              {!isVisitor && !isAdminFinance && !isChefDepartement && (
                 <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
                   Créer session
                 </Button>
@@ -643,6 +653,18 @@ const SessionPage = () => {
           </Grid>
 
           <Box sx={{ height: "70vh" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", mb: 1.5 }} aria-label="Légende de l'état des sessions">
+              {[
+                { label: "Données manquantes ou formateur externe", color: "#F97316" },
+                { label: "Données complètes", color: "#60A5FA" },
+                { label: "Facturée", color: "#22C55E" },
+              ].map((item) => (
+                <Box key={item.label} sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                  <Box component="span" sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: item.color }} />
+                  <Typography variant="caption" color="text.secondary">{item.label}</Typography>
+                </Box>
+              ))}
+            </Box>
             <DataGrid
               rows={sessions}
               columns={columns}
@@ -667,8 +689,16 @@ const SessionPage = () => {
                 },
               }}
               sx={{
-                "& .row-facture-done": {
-                  backgroundColor: "#F0FDF4",
+                "& .row-session-incomplete": {
+                  backgroundColor: "#FFF7ED !important",
+                  "&:hover": { backgroundColor: "#FFEDD5 !important" },
+                },
+                "& .row-session-ready": {
+                  backgroundColor: "#EFF6FF !important",
+                  "&:hover": { backgroundColor: "#DBEAFE !important" },
+                },
+                "& .row-session-invoiced": {
+                  backgroundColor: "#F0FDF4 !important",
                   "&:hover": { backgroundColor: "#DCFCE7 !important" },
                 },
               }}
@@ -688,7 +718,7 @@ const SessionPage = () => {
       </Dialog>
 
       {/* Session modal */}
-      {!isVisitor && !isAdminFinance && (
+      {!isVisitor && !isAdminFinance && !isChefDepartement && (
         <SessionModal
           open={openSessionModal}
           onClose={() => setOpenSessionModal(false)}
@@ -733,7 +763,8 @@ const SessionPage = () => {
               onClose={() => setOpenParticipantsPanel(false)}
               onUpdated={() => fetchSessions(false)}
               showSnackbar={showSnackbar}
-              readOnly={isVisitor || isAdminFinance}
+              readOnly={(isVisitor || isAdminFinance) && !isChefDepartement}
+              addOnly={false}
             />
           )}
         </DialogContent>

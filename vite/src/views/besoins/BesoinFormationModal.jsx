@@ -10,6 +10,7 @@ import {
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { createBesoin, updateBesoin } from "../../api/besoinFormationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
+import { useAuth } from "../../contexts/auth/AuthContext";
 
 const emptyForm = {
   idEntreprise: "",
@@ -64,6 +65,8 @@ const NUMERIC_FIELDS = new Set(["nbCadre", "nbTam", "nbPro", "priorite", "budget
 
 const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData = null }) => {
   const isEdit = Boolean(initialData);
+  const { user } = useAuth();
+  const isChef = user?.role === "CHEF_DEPARTEMENT";
 
   const [formData, setFormData] = useState(emptyForm);
   const [entreprises, setEntreprises] = useState([]);
@@ -76,8 +79,8 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    getAllEntreprises().then(setEntreprises).catch(() => {});
-  }, []);
+    if (!isChef) getAllEntreprises().then(setEntreprises).catch(() => {});
+  }, [isChef]);
 
   useEffect(() => {
     if (!open) return;
@@ -101,12 +104,12 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
         remarques: initialData.remarques || "",
       });
     } else {
-      setFormData(emptyForm);
+      setFormData({ ...emptyForm, idEntreprise: isChef ? (user?.entrepriseId ?? "") : "" });
     }
     setImportRows([]);
     setPickerOpen(false);
     setSelectedRows(new Set());
-  }, [open, isEdit, initialData]);
+  }, [open, isEdit, initialData, isChef, user?.entrepriseId]);
 
   const handleChange = (field) => (e) =>
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -327,7 +330,9 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
         ? await updateBesoin(initialData.id, payload)
         : await createBesoin(payload);
 
-      showSnackbar(isEdit ? "Besoin mis à jour avec succès !" : "Besoin créé avec succès !");
+      showSnackbar(isEdit ? "Besoin mis à jour avec succès !" : isChef
+        ? "Demande envoyée à l'administrateur pour validation."
+        : "Besoin créé avec succès !");
       onSave(saved);
     } catch (err) {
       showSnackbar(
@@ -346,14 +351,14 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
       >
         {isEdit ? "Modifier un Besoin de Formation" : "Nouveau Besoin de Formation"}
 
-        <Button
+        {!isChef && <Button
           size="small"
           variant="outlined"
           startIcon={<UploadFileIcon />}
           onClick={handleImportClick}
         >
           Importer depuis Excel
-        </Button>
+        </Button>}
         <input
           type="file"
           accept=".xlsx,.xls"
@@ -365,7 +370,7 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
 
       <DialogContent>
         <Grid container spacing={2} mt={0.5}>
-          <Grid size={{ xs: 12, md: 6 }}>
+          {!isChef && <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               select fullWidth required
               label="Entreprise"
@@ -378,16 +383,21 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
                 </MenuItem>
               ))}
             </TextField>
-          </Grid>
+          </Grid>}
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          {!isChef && <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               label="Département"
               value={formData.dept}
               onChange={handleChange("dept")}
             />
-          </Grid>
+          </Grid>}
+          {isChef && <Grid size={{ xs: 12 }}>
+            <Typography variant="body2" color="text.secondary">
+              Cette demande sera rattachée à votre entreprise et département et envoyée à l'administrateur pour décision.
+            </Typography>
+          </Grid>}
 
           <Grid size={{ xs: 12 }}>
             <TextField

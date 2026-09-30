@@ -45,6 +45,11 @@ export const updateBesoin = async (id, payload) => {
   }
 };
 
+export const decideBesoin = async (id, status, rejectionReason = null) => {
+  const res = await api.patch(`${BASE_URL}/${id}/decision`, { status, rejectionReason });
+  return res.data;
+};
+
 export const deleteBesoin = async (id) => {
   try {
     const res = await api.delete(`${BASE_URL}/${id}`);

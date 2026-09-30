@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import {
   Box, Typography, Card, CardContent,
   TextField, Grid, Stack, IconButton, MenuItem,
-  Snackbar, Alert, Dialog, DialogTitle,
+  Snackbar, Alert, Dialog, DialogTitle, Chip,
   DialogContent, DialogContentText, DialogActions, Button,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import EditIcon   from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import BesoinFormationModal from "./BesoinFormationModal";
-import { getAllBesoins, deleteBesoin } from "../../api/besoinFormationApi";
+import { getAllBesoins, deleteBesoin, decideBesoin } from "../../api/besoinFormationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
@@ -28,6 +30,8 @@ const BesoinsFormationPage = () => {
   const { user } = useAuth();
   const canEdit  = CAN_MUTATE.has(user?.role);
   const isAdmin  = user?.role === "ADMIN";
+  const isChef = user?.role === "CHEF_DEPARTEMENT";
+  const canCreateRequest = isAdmin || isChef;
 
   const [besoins, setBesoins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,8 @@ const BesoinsFormationPage = () => {
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedBesoinId, setSelectedBesoinId] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
@@ -107,7 +113,11 @@ const BesoinsFormationPage = () => {
   const baseColumns = [
     // Entreprise column only makes sense once an admin can browse across companies
     ...(isAdmin ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 }] : []),
-    { field: "dept",               headerName: "Dept",              width: 100 },
+    { field: "dept",               headerName: "Dept",              width: 130 },
+    { field: "demandeur",          headerName: "Demandeur",          width: 160 },
+    { field: "status",             headerName: "Statut",             width: 140,
+      renderCell: ({ value }) => <Chip size="small" label={{ PENDING: "En attente", APPROVED: "Approuvée", REJECTED: "Refusée" }[value] || value || "Approuvée"}
+        color={value === "REJECTED" ? "error" : value === "PENDING" ? "warning" : "success"} /> },
     { field: "intitule",           headerName: "Besoin en Formation", flex: 1.5, minWidth: 220, renderCell: truncatedCell },
     { field: "populationCible",    headerName: "Population cible",  width: 150 },
     { field: "nbCadre",            headerName: "Cadre",             width: 90 },
@@ -120,13 +130,22 @@ const BesoinsFormationPage = () => {
     { field: "indicateursSucces",  headerName: "Indicateurs de succès", flex: 1, minWidth: 180, renderCell: truncatedCell },
     { field: "evaluation",         headerName: "Evaluation",        flex: 1, minWidth: 150, renderCell: truncatedCell },
     { field: "budgetEstimatif",    headerName: "Budget Estimatif",  width: 140 },
+    { field: "rejectionReason",    headerName: "Motif du refus",    flex: 1, minWidth: 180, renderCell: truncatedCell },
     { field: "remarques",          headerName: "Remarques",         flex: 1, minWidth: 180, renderCell: truncatedCell },
   ];
 
   const actionsColumn = {
-    field: "actions", headerName: "Actions", width: 120, sortable: false,
+    field: "actions", headerName: "Actions", width: 190, sortable: false,
     renderCell: (params) => (
       <Stack direction="row" spacing={1}>
+        {isAdmin && params.row.status === "PENDING" && <>
+          <IconButton color="success" size="small" title="Approuver" onClick={() => handleDecision(params.row, "APPROVED")}>
+            <CheckCircleOutlineIcon />
+          </IconButton>
+          <IconButton color="error" size="small" title="Refuser" onClick={() => { setRejectTarget(params.row); setRejectionReason(""); }}>
+            <HighlightOffIcon />
+          </IconButton>
+        </>}
         <IconButton color="primary" size="small" onClick={() => handleModalOpen(params.row)}>
           <EditIcon />
         </IconButton>
@@ -138,6 +157,18 @@ const BesoinsFormationPage = () => {
   };
 
   const columns = canEdit ? [...baseColumns, actionsColumn] : baseColumns;
+
+  const handleDecision = async (besoin, status, reason = null) => {
+    try {
+      const updated = await decideBesoin(besoin.id, status, reason);
+      setBesoins(prev => prev.map(item => item.id === updated.id ? updated : item));
+      setRejectTarget(null);
+      setRejectionReason("");
+      showSnackbar(status === "APPROVED" ? "Demande approuvée." : "Demande refusée; le motif a été communiqué.");
+    } catch (err) {
+      showSnackbar(err.response?.data?.message || "Impossible de traiter la demande.", "error");
+    }
+  };
 
   const filteredRows = besoins.filter(b =>
     b.intitule?.toLowerCase().includes(search.toLowerCase()) ||
@@ -180,7 +211,7 @@ const BesoinsFormationPage = () => {
               </Grid>
             )}
 
-            {canEdit && (
+            {canCreateRequest && (
               <Grid size={{ xs: 12, md: isAdmin ? 5 : 6 }}
                 sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
                 <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
@@ -213,16 +244,33 @@ const BesoinsFormationPage = () => {
         </CardContent>
       </Card>
 
-      {/* Modal — only rendered when canEdit to prevent any bypass */}
-      {canEdit && (
+      {/* Department heads may submit; only admins can edit or delete needs. */}
+      {canCreateRequest && (
         <BesoinFormationModal
           open={modalOpen}
           onClose={handleModalClose}
           onSave={handleSave}
           showSnackbar={showSnackbar}
           initialData={editingBesoin}
+          isChef={isChef}
         />
       )}
+
+      <Dialog open={!!rejectTarget} onClose={() => setRejectTarget(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Refuser la demande</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            Indiquez le motif du refus. Le chef de département pourra le consulter avant d'envoyer une nouvelle demande.
+          </DialogContentText>
+          <TextField autoFocus fullWidth multiline minRows={3} label="Motif du refus" value={rejectionReason}
+            onChange={e => setRejectionReason(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectTarget(null)}>Annuler</Button>
+          <Button color="error" variant="contained" disabled={!rejectionReason.trim()}
+            onClick={() => handleDecision(rejectTarget, "REJECTED", rejectionReason.trim())}>Refuser la demande</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={openDeleteDialog} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmation de suppression</DialogTitle>

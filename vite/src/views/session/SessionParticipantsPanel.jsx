@@ -26,7 +26,7 @@ import jsPDF       from "jspdf";
 import autoTable   from "jspdf-autotable";
 
 // readOnly={true} → VISITOR: can see list + presence, but cannot edit
-const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly = false }) => {
+const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly = false, addOnly = false }) => {
   const theme    = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -150,6 +150,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
     { field: "prenom",    headerName: "Prénom",    flex: 1 },
     { field: "cin",       headerName: "CIN",       flex: 1 },
     { field: "matricule", headerName: "Matricule", flex: 1 },
+    { field: "departementNom", headerName: "Département", flex: 1.2, minWidth: 140 },
   ];
 
   const actionsColumn = {
@@ -161,7 +162,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
     ),
   };
 
-  const columns = readOnly ? baseColumns : [...baseColumns, actionsColumn];
+  const columns = readOnly || addOnly ? baseColumns : [...baseColumns, actionsColumn];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -196,7 +197,7 @@ const SessionParticipantsPanel = ({ session, onUpdated, showSnackbar, readOnly =
                 Ajouter des participants
               </Button>
             )}
-            {!readOnly && (
+            {!readOnly && !addOnly && (
               <Button variant="outlined" color="error" startIcon={<GroupRemoveIcon />}
                 onClick={() => setConfirmRemoveAllOpen(true)}>
                 Tout supprimer

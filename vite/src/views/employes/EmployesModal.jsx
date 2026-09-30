@@ -48,12 +48,13 @@ const EmployeModal = ({ open, onClose, onSave, showSnackbar, initialData }) => {
      ✅ LOAD ENTREPRISES ONCE
   ========================== */
   useEffect(() => {
+    if (!open) return;
     getAllEntreprises()
       .then(setEntreprises)
       .catch(() =>
         showSnackbar("Error loading companies", "error")
       );
-  }, [showSnackbar]);
+  }, [open, showSnackbar]);
 
   /* ==========================
      ✅ RESET + PREFILL ON OPEN

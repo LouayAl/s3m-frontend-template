@@ -1,17 +1,9 @@
 import { Box, Typography, Chip, Button } from '@mui/material';
 import { DayPicker } from 'react-day-picker';
-import { fr } from 'react-day-picker/locale';
 import 'react-day-picker/style.css';
 
 // ── Helper: format date as YYYY-MM-DD using LOCAL time (no UTC shift) ────────
-function toLocalDateStr(d) {
-  const year  = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day   = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-export default function Step2Calendar({ selectedDays, onDaysChange }) {
+export default function Step2Calendar({ selectedDays, onDaysChange, maxDays = null, onLimitReached }) {
   const count     = selectedDays.length;
   const dateDebut = count > 0 ? selectedDays[0] : null;
   const dateFin   = count > 0 ? selectedDays[count - 1] : null;
@@ -19,14 +11,12 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
   const fmt = (d) =>
     d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
 
-  const handleDayClick = (day) => {
-    const dayStr = toLocalDateStr(day);
-    const exists = selectedDays.some(d => toLocalDateStr(d) === dayStr);
-    if (exists) {
-      onDaysChange(selectedDays.filter(d => toLocalDateStr(d) !== dayStr));
-    } else {
-      onDaysChange([...selectedDays, day].sort((a, b) => a - b));
+  const handleSelection = (days = []) => {
+    if (maxDays != null && days.length > maxDays) {
+      onLimitReached?.();
+      return;
     }
+    onDaysChange([...days].sort((a, b) => a - b));
   };
 
   const handleClear = () => onDaysChange([]);
@@ -80,10 +70,9 @@ export default function Step2Calendar({ selectedDays, onDaysChange }) {
         },
       }}>
         <DayPicker
-          key={count === 0 ? 'empty' : 'filled'}
           mode="multiple"
           selected={selectedDays}
-          onDayClick={handleDayClick}
+          onSelect={handleSelection}
           showOutsideDays
           defaultMonth={selectedDays[0]}
           numberOfMonths={1}

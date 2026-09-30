@@ -27,12 +27,22 @@ import { getCalendarSessions } from 'api/kpiApi';
 function buildSessionsByDate(sessions) {
   const map = {};
   sessions.forEach((s) => {
-    const start = s.dateDebut ? new Date(s.dateDebut) : null;
+    const parseLocalDate = (value) => {
+      if (!value) return null;
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+    const start = parseLocalDate(s.dateDebut);
     if (!start || !isValid(start)) return;
-    const end = s.dateFin ? new Date(s.dateFin) : start;
-    const rangeEnd = isValid(end) && end >= start ? end : start;
+    const selectedDays = Array.isArray(s.jours) && s.jours.length
+      ? s.jours.map(parseLocalDate).filter(day => day && isValid(day))
+      : (() => {
+          const end = parseLocalDate(s.dateFin) || start;
+          const rangeEnd = isValid(end) && end >= start ? end : start;
+          return eachDayOfInterval({ start, end: rangeEnd });
+        })();
 
-    eachDayOfInterval({ start, end: rangeEnd }).forEach((day) => {
+    selectedDays.forEach((day) => {
       const key = format(day, 'yyyy-MM-dd');
       if (!map[key]) map[key] = [];
       map[key].push(s);

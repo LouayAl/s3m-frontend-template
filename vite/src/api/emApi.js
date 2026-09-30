@@ -10,6 +10,9 @@ export const getEmDashboard = () =>
 export const getEmSessions = () =>
     axiosInstance.get('/em/sessions').then(r => r.data);
 
+export const createEmSession = (payload) =>
+    axiosInstance.post('/em/sessions', payload).then(r => r.data);
+
 // Sessions where logged-in user is the formateur
 export const getMySessionsAsTrainer = () =>
     axiosInstance.get('/em/sessions/my').then(r => r.data);

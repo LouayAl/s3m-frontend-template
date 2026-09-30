@@ -226,6 +226,7 @@ const ParticipantsModal = ({
     },
     { field: "nom",       headerName: "Nom",       flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
     { field: "prenom",    headerName: "Prenom",    flex: 1, minWidth: 120, headerAlign: "center", align: "center" },
+    { field: "departementNom", headerName: "Département", flex: 1, minWidth: 140, headerAlign: "center", align: "center" },
     // Entreprise column only makes sense once an admin can browse across companies
     ...(isAdmin
       ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 140, headerAlign: "center", align: "center" }]

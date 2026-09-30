@@ -18,8 +18,8 @@ import Step3Details      from './Step3Details';
 import Step4Participants from './Step4Participants';
 
 import { useAuth } from '../../../../contexts/auth/AuthContext';
-import { getEmFormations, cloneCriteresFromTemplate }          from '../../../../api/emApi';       // ← scoped + template clone
-import { getAllFormateurs, createSession, updateParticipants, updateSession } from '../../../../api/sessionApi';
+import { getEmFormations, cloneCriteresFromTemplate, createEmSession } from '../../../../api/emApi';
+import { getAllFormateurs, updateParticipants, updateSession } from '../../../../api/sessionApi';
 import { getEmEmployes }                                      from '../../../../api/employeApi';  // ← scoped
 import { getAllEntreprises } from '../../../../api/entrepriseApi';
 const STEPS = ['Training Course', 'Days', 'Details', 'Participants'];
@@ -34,6 +34,38 @@ function toLocalDateStr(d) {
 function parseLocalDate(str) {
   const [y, m, d] = str.split('-').map(Number);
   return new Date(y, m - 1, d);
+}
+
+function getInitialSessionDays(session) {
+  const storedDays = Array.isArray(session.jours) && session.jours.length
+    ? session.jours.map(day => typeof day === 'string' ? parseLocalDate(day) : new Date(day))
+    : (() => {
+        if (!session.dateDebut || !session.dateFin) return [];
+        const days = [];
+        const start = parseLocalDate(session.dateDebut);
+        const end = parseLocalDate(session.dateFin);
+        for (let day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+          days.push(new Date(day));
+        }
+        return days;
+      })();
+
+  // Older EM saves persisted the full date range even when dJours was shorter.
+  // Recover weekdays only when they exactly match the saved duration.
+  const expectedDays = Number(session.dJours);
+  const isFullContiguousRange = storedDays.length > expectedDays
+    && storedDays.every((day, index) => {
+      if (index === 0) return true;
+      const nextDay = new Date(storedDays[index - 1]);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return toLocalDateStr(nextDay) === toLocalDateStr(day);
+    });
+  const weekdays = storedDays.filter(day => day.getDay() !== 0 && day.getDay() !== 6);
+  if (expectedDays > 0 && isFullContiguousRange && weekdays.length === expectedDays) {
+    return weekdays;
+  }
+
+  return storedDays;
 }
 
 export default function EMSessionModal({ open, onClose, onCreated, showSnackbar, initialData }) {
@@ -103,15 +135,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
           const formation = f.find(x => x.id === initialData.formationId);
           if (formation) setSelectedFormation(formation);
           // Pre-fill days from date range
-          if (initialData.dateDebut && initialData.dateFin) {
-            const days  = [];
-            const start = parseLocalDate(initialData.dateDebut); // ← fixed
-            const end   = parseLocalDate(initialData.dateFin);   // ← fixed
-            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                days.push(new Date(d));
-            }
-            setSelectedDays(days);
-          }
+          setSelectedDays(getInitialSessionDays(initialData));
           setStep(2); // skip to details in edit mode
         }
       })
@@ -157,13 +181,14 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       const dateDebut = toLocalDateStr(sortedDays[0]);
       const dateFin   = toLocalDateStr(sortedDays[sortedDays.length - 1]);
 
-      const created = await createSession({
+      const created = await createEmSession({
         idFormation:      selectedFormation.id,
         idEntreprise:     entrepriseId,   // ← from auth, never from a dropdown
         idFournisseur:    entrepriseId,   // ← same: EM company is always fournisseur
         idFormateur:      formData.idFormateur ?? null,
         dateDebut,
         dateFin,
+        jours:            sortedDays.map(toLocalDateStr),
         dJours:           selectedDays.length,
         dHeures:          Number(formData.dHeures),
         referenceSession: formData.referenceSession,
@@ -204,6 +229,7 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
         idFormateur:   formData.idFormateur ?? null,
         dateDebut,
         dateFin,
+        jours:         sortedDays.map(toLocalDateStr),
         dJours:        selectedDays.length,
         dHeures:       Number(formData.dHeures),
         statut:        initialData.statut,
@@ -253,10 +279,26 @@ export default function EMSessionModal({ open, onClose, onCreated, showSnackbar,
       formations={formations}
       loading={loadingData}
       selectedFormation={selectedFormation}
-      onSelect={setSelectedFormation}
+      onSelect={(formation) => {
+        setSelectedFormation(formation);
+        setSelectedDays([]);
+        setFormData((prev) => ({
+          ...prev,
+          dHeures: formation?.dureeHeures ?? '',
+        }));
+      }}
     />,
     <Step2Calendar
       selectedDays={selectedDays}
+      maxDays={selectedFormation?.dureeJours != null && Number.isFinite(Number(selectedFormation.dureeJours))
+        ? Math.ceil(Number(selectedFormation.dureeJours))
+        : null}
+      onLimitReached={() => showSnackbar?.(
+        selectedFormation?.dureeJours
+          ? `This training course is limited to ${selectedFormation.dureeJours} day(s).`
+          : 'Set the training course duration in days before selecting session dates.',
+        'warning'
+      )}
       onDaysChange={setSelectedDays}
     />,
     <Step3Details

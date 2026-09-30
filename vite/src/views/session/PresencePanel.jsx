@@ -337,6 +337,7 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
                 <TableRow sx={{ bgcolor: "action.hover" }}>
                   <TableCell sx={{ fontWeight: 700 }}>Nom</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Prénom</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Département</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>CIN</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Matricule</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700 }}>Présence</TableCell>
@@ -352,6 +353,7 @@ export default function PresencePanel({ session, readOnly = false, showSnackbar 
                     >
                       <TableCell>{p.nom}</TableCell>
                       <TableCell>{p.prenom}</TableCell>
+                      <TableCell>{p.departementNom || "—"}</TableCell>
                       <TableCell>{p.cin || "—"}</TableCell>
                       <TableCell>{p.matricule || "—"}</TableCell>
                       <TableCell align="center">

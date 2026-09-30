@@ -90,6 +90,7 @@ const SessionModal = ({
   const [createdSession, setCreatedSession] = useState(null);
 
   const [selectedDays, setSelectedDays] = useState([]);
+  const [calendarWarning, setCalendarWarning] = useState("");
 
 
   // ==========================
@@ -118,6 +119,7 @@ const SessionModal = ({
   // ==========================
   useEffect(() => {
     if (!open) return;
+    setCalendarWarning("");
 
     if (isEdit) {
       // EDIT MODE → preload values
@@ -170,6 +172,8 @@ const SessionModal = ({
         setFormData((prev) => ({
           ...prev,
           formationEntrepriseId: f?.entrepriseId ?? null,
+          dHeures: Number(prev.dHeures) > 0 ? prev.dHeures : (f?.dureeHeures ?? ""),
+          dJours: Number(prev.dJours) > 0 ? prev.dJours : (f?.dureeJours ?? ""),
         }));
       })
       .catch(() => {
@@ -177,6 +181,13 @@ const SessionModal = ({
         // admin re-selects a formation manually.
       });
   }, [open, isEdit, initialData]);
+
+  const formationDurationDays = Number(formData.dJours);
+  const hasFormationDuration = formData.idFormation != null &&
+    Number.isFinite(formationDurationDays) && formationDurationDays > 0;
+  const maxSelectableDays = formData.idFormation == null
+    ? null
+    : hasFormationDuration ? Math.ceil(formationDurationDays) : 0;
 
   // ==========================
   // ✅ AUTO REFERENCE GENERATION
@@ -221,8 +232,17 @@ const SessionModal = ({
     }
 
     const days = [...selectedDays].sort((a, b) => a - b);
+    if (formData.idFormation && !hasFormationDuration) {
+      showSnackbar("La durée de cette formation n'est pas renseignée. Corrigez-la dans le catalogue avant de créer la session.", "error");
+      return;
+    }
     if (!days.length) {
       showSnackbar("Veuillez sélectionner au moins un jour de formation.", "error");
+      return;
+    }
+    if (maxSelectableDays > 0 && days.length > maxSelectableDays) {
+      setCalendarWarning(`La formation dure ${formData.dJours} jour(s). Retirez des dates pour continuer.`);
+      showSnackbar(`Impossible de sélectionner plus de ${maxSelectableDays} jours pour cette formation.`, "error");
       return;
     }
 
@@ -428,7 +448,39 @@ const SessionModal = ({
             ))}
           </TextField>
 
-          <Step2Calendar selectedDays={selectedDays} onDaysChange={setSelectedDays} />
+          <TextField
+            label="Durée de la formation (heures)"
+            type="number"
+            value={formData.dHeures ?? ""}
+            InputProps={{ readOnly: true }}
+            helperText="Récupérée depuis la formation sélectionnée"
+          />
+          <TextField
+            label="Durée de la formation (jours)"
+            type="number"
+            value={formData.dJours ?? ""}
+            InputProps={{ readOnly: true }}
+            helperText="Le nombre de dates sélectionnées ne peut pas dépasser cette durée"
+          />
+          {formData.idFormation && !hasFormationDuration && (
+            <Alert severity="error">
+              La durée de cette formation est absente ou égale à 0. La sélection de jours et l'enregistrement sont bloqués jusqu'à ce que sa durée soit renseignée dans le catalogue.
+            </Alert>
+          )}
+          {calendarWarning && <Alert severity="warning">{calendarWarning}</Alert>}
+          <Step2Calendar
+            selectedDays={selectedDays}
+            maxDays={maxSelectableDays}
+            onLimitReached={() => setCalendarWarning(
+              hasFormationDuration
+                ? `La durée de la formation est de ${formData.dJours} jour(s).`
+                : "Sélectionnez une formation avec une durée en jours renseignée."
+            )}
+            onDaysChange={(days) => {
+              setSelectedDays(days);
+              setCalendarWarning("");
+            }}
+          />
 
           {/* Lieu ← new */}
           <TextField
@@ -467,6 +519,8 @@ const SessionModal = ({
           open={openFormationModal}
           onClose={() => setOpenFormationModal(false)}
           onFormationSelected={(formation) => {
+            setSelectedDays([]);
+            setCalendarWarning("");
             setFormData((prev) => ({
               ...prev,
               idFormation: formation.id,

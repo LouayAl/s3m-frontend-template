@@ -21,7 +21,7 @@ function MenuList() {
   const lastItem = null;
 
   // Filter quiz-securite out for users who are not entreprise 42
-  const filteredItems = menuItems.items.map(item => {
+  let filteredItems = menuItems.items.map(item => {
     if (item.id !== 'session') return item;
     return {
       ...item,
@@ -30,6 +30,10 @@ function MenuList() {
       ),
     };
   });
+  if (user?.role === 'CHEF_DEPARTEMENT') {
+    const chefSections = new Set(['dashboard', 'session', 'employe', 'besoin']);
+    filteredItems = filteredItems.filter(item => chefSections.has(item.id));
+  }
 
   let lastItemIndex = filteredItems.length - 1;
   let remItems = [];
