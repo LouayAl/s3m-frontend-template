@@ -26,6 +26,7 @@ import {
 import { getFormationById } from "../../api/formationApi";
 import { getAllEntreprises } from "../../api/entrepriseApi";
 import Step2Calendar from "../equipment-manager/components/EMSessionModal/Step2Calendar";
+import { useAuth } from "../../contexts/auth/AuthContext";
 
 
 const toLocalDateStr = (d) =>
@@ -43,6 +44,10 @@ const SessionModal = ({
   initialData = null,
 }) => {
   const isEdit = Boolean(initialData);
+  const { user } = useAuth();
+  const isManager = user?.role === "MANAGER";
+  const isAdmin = user?.role === "ADMIN";
+  const [showAllFormateurs, setShowAllFormateurs] = useState(false);
 
   // ==========================
   // ✅ DEFAULT EMPTY FORM
@@ -55,7 +60,7 @@ const SessionModal = ({
     // cross-check against idEntreprise below, never sent to the backend as-is.
     formationEntrepriseId: null,
 
-    idEntreprise: null,
+    idEntreprise: isManager ? (user?.entrepriseId ?? null) : null,
     entreprise: "",
 
     idFournisseur: null,
@@ -120,6 +125,8 @@ const SessionModal = ({
   useEffect(() => {
     if (!open) return;
     setCalendarWarning("");
+    setShowAllFormateurs(false);
+
 
     if (isEdit) {
       // EDIT MODE → preload values
@@ -127,7 +134,7 @@ const SessionModal = ({
         ...emptyForm,
         ...initialData,
         idFormation: Number(initialData.idFormation),
-        idEntreprise: Number(initialData.idEntreprise),
+        idEntreprise: isManager ? (user?.entrepriseId ?? null) : Number(initialData.idEntreprise),
         idFournisseur: Number(initialData.idFournisseur),
         idFormateur: Number(initialData.idFormateur),
         participants: initialData.participants || [],
@@ -153,11 +160,14 @@ const SessionModal = ({
       setCreatedSession(null);
     } else {
       // CREATE MODE → reset clean
-      setFormData(emptyForm);
+      setFormData({
+        ...emptyForm,
+        idEntreprise: isManager ? (user?.entrepriseId ?? null) : null,
+      });
       setSelectedDays([]);
       setCreatedSession(null);
     }
-  }, [open, initialData]);
+  }, [open, initialData, isManager, user?.entrepriseId]);
 
   // ==========================
   // ✅ EDIT MODE: fetch the pre-selected formation's OWN entreprise, so we can
@@ -264,7 +274,7 @@ const SessionModal = ({
     const payload = {
       referenceSession: formData.referenceSession,
       idFormation: formData.idFormation,
-      idEntreprise: formData.idEntreprise,
+      idEntreprise: isManager ? user?.entrepriseId : formData.idEntreprise,
       idFournisseur: formData.idFournisseur,
       idFormateur: formData.idFormateur,
       dateDebut: toLocalDateStr(days[0]),
@@ -351,6 +361,43 @@ const SessionModal = ({
     }
   };
 
+    // Formateur belongs to the entreprise or the fournisseur.
+  // Same company for both → ids collapse to one → internal session, only that company's formateurs.
+ 
+  const isFormateurAllowed = (f, entId, fouId) => {
+    // Formateurs without an entreprise are always allowed.
+    if (f.entrepriseId == null) return true;
+
+    const allowedIds = [entId, fouId]
+      .filter((id) => id != null && id !== "")
+      .map(Number);
+
+    return allowedIds.includes(Number(f.entrepriseId));
+  };
+
+
+  
+  const formateurOptions = formateurs.filter((f) => {
+    if (f.actif === false) return false;
+    if (showAllFormateurs) return true;
+    if (Number(f.idFormateur) === Number(formData.idFormateur)) return true; // keep current choice
+    return isFormateurAllowed(f, formData.idEntreprise, formData.idFournisseur);
+  });
+
+
+  // Apply a change to entreprise/fournisseur and drop the formateur if no longer valid
+  const updateParties = (patch) =>
+    setFormData((prev) => {
+      const next = { ...prev, ...patch };
+      if (next.idFormateur && !showAllFormateurs) {
+        const current = formateurs.find((f) => Number(f.idFormateur) === Number(next.idFormateur));
+        if (current && !isFormateurAllowed(current, next.idEntreprise, next.idFournisseur)) {
+          next.idFormateur = null;
+        }
+      }
+      return next;
+    });
+
   // ==========================
   // ✅ RENDER
   // ==========================
@@ -395,17 +442,20 @@ const SessionModal = ({
           />
 
           {/* Entreprise */}
+          {isManager ? (
+            <TextField
+              label="Entreprise"
+              value={entreprises.find((en) => Number(en.idEntreprise) === Number(user?.entrepriseId))?.nomEntreprise || ""}
+              fullWidth
+              disabled
+            />
+          ) : (
           <TextField
             select
             label="Entreprise"
             value={formData.idEntreprise || ""}
             error={entrepriseMismatch}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                idEntreprise: Number(e.target.value),
-              }))
-            }
+            onChange={(e) => updateParties({ idEntreprise: Number(e.target.value) })}
           >
             {entreprises.map((en) => (
               <MenuItem key={en.idEntreprise} value={en.idEntreprise}>
@@ -413,14 +463,14 @@ const SessionModal = ({
               </MenuItem>
             ))}
           </TextField>
+          )}
 
-          {/* Fournisseur */}
           {/* Fournisseur */}
           <TextField
             select
             label="Fournisseur"
             value={formData.idFournisseur || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, idFournisseur: Number(e.target.value) }))}
+            onChange={(e) => updateParties({ idFournisseur: Number(e.target.value) })}
           >
             {fournisseurs.map((en) => (   // was entreprises.map
               <MenuItem key={en.idEntreprise} value={en.idEntreprise}>
@@ -440,13 +490,28 @@ const SessionModal = ({
                 idFormateur: Number(e.target.value),
               }))
             }
+            helperText={
+              showAllFormateurs
+                ? "Tous les formateurs sont affichés"
+                : "Formateurs de l'entreprise / du fournisseur sélectionné"
+            }
           >
-            {formateurs.map((f) => (
+            {formateurOptions.map((f) => (
               <MenuItem key={f.idFormateur} value={f.idFormateur}>
                 {f.nom} {f.prenom}
+                {f.entrepriseNom ? ` — ${f.entrepriseNom}` : ""}
               </MenuItem>
             ))}
           </TextField>
+          {isAdmin && (
+            <Button
+              size="small"
+              sx={{ alignSelf: "flex-end", textTransform: "none", mt: "-8px !important" }}
+              onClick={() => setShowAllFormateurs((v) => !v)}
+            >
+              {showAllFormateurs ? "Filtrer par entreprise" : "Afficher tous les formateurs"}
+            </Button>
+          )}
 
           <TextField
             label="Durée de la formation (heures)"

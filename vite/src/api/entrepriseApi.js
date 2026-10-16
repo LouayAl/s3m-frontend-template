@@ -15,6 +15,11 @@ export const getAllEntreprises = async (type) => {
   }
 };
 
+export const getEntrepriseById = async (id) => {
+  const res = await api.get(`${BASE_URL}/${id}`);
+  return res.data;
+};
+
 // ✅ Search entreprises by keyword
 export const searchEntreprises = async (keyword) => {
   try {

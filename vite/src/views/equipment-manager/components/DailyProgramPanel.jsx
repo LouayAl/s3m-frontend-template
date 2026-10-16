@@ -16,9 +16,14 @@ const toInputDateTime = (value) => {
   return value.length > 16 ? value.slice(0, 16) : value;
 };
 
-const getDayDate = (sessionDateDebut, day) => {
-  if (!sessionDateDebut || !day) return '';
-  const date = new Date(`${sessionDateDebut}T00:00:00`);
+const getDayDate = (session, day) => {
+  if (!session || !day) return '';
+  const selectedDate = session.jours?.[day - 1];
+  if (selectedDate) return typeof selectedDate === 'string'
+    ? selectedDate
+    : `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+  if (!session.dateDebut) return '';
+  const date = new Date(`${session.dateDebut}T00:00:00`);
   date.setDate(date.getDate() + day - 1);
   const y  = date.getFullYear();
   const m  = String(date.getMonth() + 1).padStart(2, '0');
@@ -102,7 +107,12 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
   const [message,     setMessage]     = useState(null);
 
   useEffect(() => {
-    if (!sessionId || !activeDay) return;
+    if (!sessionId || !activeDay) {
+      setRows([]);
+      setCommentaire('');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setMessage(null);
     getDailyProgram(sessionId, activeDay)
@@ -119,7 +129,7 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
   }, [sessionId, activeDay]);
 
   const handleAddRow = () => {
-    const dayDate = getDayDate(session?.dateDebut, activeDay);
+    const dayDate = getDayDate(session, activeDay);
     setRows(prev => [
       ...prev,
       emptyRow(
@@ -172,10 +182,10 @@ export default function DailyProgramPanel({ sessionId, activeDay, session, canEd
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              Daily Schedule — Day {activeDay}
+              Daily activities — Day {activeDay}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Activities and remarks specific to this day.
+              Activities and comments are shared across the session.
             </Typography>
           </Box>
           {canEdit && (

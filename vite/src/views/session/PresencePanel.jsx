@@ -13,19 +13,17 @@ import DownloadIcon     from "@mui/icons-material/Download";
 import HelpOutlineIcon  from "@mui/icons-material/HelpOutline";
 import * as XLSX from "xlsx";
 import { getSessionDays, getRecordedDays, getPresenceForDay, savePresence } from "../../api/presenceApi";
+import { formatDateDDMMYYYY } from "../../utils/dateFormat";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" });
+  return formatDateDDMMYYYY(iso);
 }
 
 // Shorter, spreadsheet-friendly date format for column headers (e.g. "24/07/2025")
 function formatDateShort(iso) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("fr-FR");
+  return formatDateDDMMYYYY(iso);
 }
 
 function statusIcon(present) {

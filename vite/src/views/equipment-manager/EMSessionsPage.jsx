@@ -18,6 +18,7 @@ import EMSessionParticipantsPanel from './components/EMSessionParticipantsPanel'
 
 import { deleteSession, addParticipantsToSession, removeParticipantsFromSession } from '../../api/sessionApi';
 import { getEmSessions } from '../../api/emApi';
+import { formatDateDDMMYYYY } from '../../utils/dateFormat';
 
 const STATUT_LABELS = { EN_COURS:'In progress', PLANIFIEE:'Scheduled', TERMINEE:'Completed', ANNULEE:'Cancelled' };
 const STATUT_COLORS = { EN_COURS:'success',  PLANIFIEE:'warning',   TERMINEE:'default',  ANNULEE:'error'  };
@@ -127,8 +128,8 @@ export default function EMSessionsPage() {
     { field:'formation',           headerName:'Formation',    flex:2, minWidth:160 },
     { field:'entrepriseNom',       headerName:'Enterprise',   flex:1.5, minWidth:130 },
     { field:'formateurNomComplet', headerName:'Trainer',      flex:1.5, minWidth:130 },
-    { field:'dateDebut',           headerName:'Start',        flex:1, minWidth:110 },
-    { field:'dateFin',             headerName:'End',          flex:1, minWidth:110 },
+    { field:'dateDebut',           headerName:'Start',        flex:1, minWidth:110, renderCell: p => formatDateDDMMYYYY(p.value) },
+    { field:'dateFin',             headerName:'End',          flex:1, minWidth:110, renderCell: p => formatDateDDMMYYYY(p.value) },
     { field:'dJours',              headerName:'Duration (days)',    flex:0.8, minWidth:80, type:'number' },
     {
       field: 'statut', headerName: 'Status', flex:1, minWidth:110,

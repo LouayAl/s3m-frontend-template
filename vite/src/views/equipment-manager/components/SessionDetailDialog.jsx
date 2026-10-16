@@ -12,6 +12,7 @@ import AssessmentOutlinedIcon  from '@mui/icons-material/AssessmentOutlined';
 import RatingBadge             from './RatingBadge';
 import ParticipantProgressDialog from './ParticipantProgressDialog';
 import { getSessionStats }     from '../../../api/emApi';
+import { formatDateDDMMYYYY, parseLocalDate } from '../../../utils/dateFormat';
 
 const STATUS_CONFIG = {
   EN_COURS:  { label: 'In Progress',  color: 'success' },
@@ -50,7 +51,7 @@ export default function SessionDetailDialog({ open, onClose, session }) {
   });
 
   const today    = new Date();
-  const start    = new Date(session.dateDebut);
+  const start    = parseLocalDate(session.dateDebut) ?? new Date();
   const diffDays = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
   const joursAtteint = Math.min(Math.max(diffDays, 0), duree);
   const pct      = duree ? Math.round((joursAtteint / duree) * 100) : 0;
@@ -63,7 +64,7 @@ export default function SessionDetailDialog({ open, onClose, session }) {
             {session.formation}
           </Typography>
           <Typography variant="caption" sx={{ opacity:0.85 }}>
-            {session.referenceSession} · {session.dateDebut} → {session.dateFin} · {duree} days
+            {session.referenceSession} · {formatDateDDMMYYYY(session.dateDebut)} → {formatDateDDMMYYYY(session.dateFin)} · {duree} days
           </Typography>
         </DialogTitle>
 

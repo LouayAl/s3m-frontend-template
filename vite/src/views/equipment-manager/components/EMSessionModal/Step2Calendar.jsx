@@ -9,7 +9,7 @@ export default function Step2Calendar({ selectedDays, onDaysChange, maxDays = nu
   const dateFin   = count > 0 ? selectedDays[count - 1] : null;
 
   const fmt = (d) =>
-    d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    d ? d.toLocaleDateString('fr-FR') : '—';
 
   const handleSelection = (days = []) => {
     if (maxDays != null && days.length > maxDays) {

@@ -32,6 +32,8 @@ export const getSessionsPaginated = async ({
   sortDir = "desc",
   filterField = null,
   filterValue = null,
+  startDate = null,
+  endDate = null,
 } = {}) => {
   try {
     const params = { page, size, sortBy, sortDir };
@@ -40,6 +42,8 @@ export const getSessionsPaginated = async ({
     if (years?.length)  params.years        = years.join(",");
     if (statuts?.length) params.statuts     = statuts.join(",");
     if (facture !== null && facture !== undefined) params.facture = facture;
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
     if (filterField && filterValue)  {
       params.filterField = filterField;
       params.filterValue = filterValue;

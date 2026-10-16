@@ -311,7 +311,7 @@ export default function EvaluationPanel({
             {/* ── Hours + Minutes picker ───────────────────────────────────── */}
             <Box sx={{ mb:2 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
-                Duration of presence
+                Training duration
               </Typography>
               <HoursMinutesPicker
                 value={currentEval.dureeHeures ?? null}

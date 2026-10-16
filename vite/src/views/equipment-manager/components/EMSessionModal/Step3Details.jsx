@@ -27,7 +27,7 @@ export default function Step3Details({
   const dateDebut = count > 0 ? selectedDays[0] : null;
   const dateFin   = count > 0 ? selectedDays[count - 1] : null;
   const fmt = (d) =>
-    d ? d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+    d ? d.toLocaleDateString('fr-FR') : '—';
 
   return (
     <Box sx={{ display:'flex', flexDirection:'column', gap:2.5 }}>

@@ -29,6 +29,9 @@ import QuizDialog from './QuizDialog';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 import FormateurConfirmationModal from "./FormateurConfirmationModal";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
+import { formatDateDDMMYYYY, parseLocalDate } from "../../utils/dateFormat";
 
 
 const exportButtonSx = {
@@ -99,12 +102,61 @@ const StatusChip = ({ status }) => {
 const COLUMN_WIDTHS_KEY = "sessionGrid.columnWidths";
 const FILTER_MODEL_KEY  = "sessionGrid.filterModel";
 
+const getSessionCalendarDays = (session) => {
+  if (Array.isArray(session?.jours) && session.jours.length) {
+    return session.jours.map(parseLocalDate).filter(Boolean);
+  }
+  const start = parseLocalDate(session?.dateDebut);
+  const end = parseLocalDate(session?.dateFin);
+  if (!start || !end || end < start) return [];
+  const days = [];
+  for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+    days.push(new Date(day));
+  }
+  return days;
+};
+
 const readJson = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
+  }
+};
+
+const toISODate = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const PERIOD_OPTIONS = [
+  { value: "",       label: "Toutes les dates" },
+  { value: "week",   label: "Cette semaine" },
+  { value: "2weeks", label: "2 semaines (cette + prochaine)" },
+  { value: "month",  label: "Ce mois" },
+  { value: "custom", label: "Période personnalisée" },
+];
+
+const computePeriod = (preset, customStart, customEnd) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+
+  switch (preset) {
+    case "week":
+      return { startDate: toISODate(monday), endDate: toISODate(addDays(monday, 6)) };
+    case "2weeks":
+      return { startDate: toISODate(monday), endDate: toISODate(addDays(monday, 13)) };
+    case "month":
+      return {
+        startDate: toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
+        endDate:   toISODate(new Date(today.getFullYear(), today.getMonth() + 1, 0)),
+      };
+    case "custom":
+      return { startDate: customStart || null, endDate: customEnd || null };
+    default:
+      return { startDate: null, endDate: null };
   }
 };
 
@@ -134,11 +186,22 @@ const SessionPage = () => {
   const [entreprises,        setEntreprises]        = useState([]);
   // const [filterEntrepriseId, setFilterEntrepriseId] = useState(""); // '' = all
   const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId, selectedYears, setSelectedYears, } = useGlobalFilter();
+    // ── Period filter (on dateDebut) ──
+  const [periodPreset, setPeriodPreset] = useState("");
+  const [customStart,  setCustomStart]  = useState("");
+  const [customEnd,    setCustomEnd]    = useState("");
+  const periodInvalid = periodPreset === "custom" && customStart && customEnd && customStart > customEnd;
+  const { startDate, endDate } = useMemo(() => {
+    if (periodInvalid) return { startDate: null, endDate: null };
+    return computePeriod(periodPreset, customStart, customEnd);
+  }, [periodPreset, customStart, customEnd, periodInvalid]);
+  const periodActive = Boolean(startDate || endDate);
   const [openSessionModal,  setOpenSessionModal]  = useState(false);
   const [editingSession,    setEditingSession]    = useState(null);
 
   const [openDeleteDialog,  setOpenDeleteDialog]  = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
 
   const [openParticipantsModal, setOpenParticipantsModal] = useState(false);
   const [openParticipantsPanel, setOpenParticipantsPanel] = useState(false);
@@ -166,6 +229,7 @@ const SessionPage = () => {
   const [filterModel,  setFilterModel]  = useState(() => readJson(FILTER_MODEL_KEY, { items: [] }));
 
   const [confirmationSession, setConfirmationSession] = useState(null);
+  const [dateCalendarSession, setDateCalendarSession] = useState(null);
 
 
   const handleColumnWidthChange = useCallback((params) => {
@@ -225,7 +289,10 @@ const SessionPage = () => {
         search:       search.trim(),
         sortBy,
         sortDir,
-        years:        selectedYears,
+                // When a period is active it overrides the year filter (a week can span two years)
+        years:        periodActive ? [] : selectedYears,
+        startDate,
+        endDate,
         // Only pass entrepriseId for ADMIN/ADMIN_FINANCE (scoping for others is done server-side via JWT)
         entrepriseId: (isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined,
         statuts:      isAdminFinance ? statutFilter : undefined,
@@ -240,8 +307,7 @@ const SessionPage = () => {
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [paginationModel, sortModel, search, selectedYears, isAdmin, isAdminFinance, filterEntrepriseId, statutFilter, factureFilter, filterModel]);
-
+  }, [paginationModel, sortModel, search, selectedYears, isAdmin, isAdminFinance, filterEntrepriseId, statutFilter, factureFilter, filterModel, startDate, endDate, periodActive]);
   useEffect(() => { fetchSessions(true); }, [fetchSessions]);
 
   useEffect(() => {
@@ -281,8 +347,14 @@ const SessionPage = () => {
       showSnackbar("Impossible de supprimer cette session.", "error");
     } finally {
       setOpenDeleteDialog(false);
+      setSelectedSessionId(null);
+      setDeleteConfirmationText("");
     }
   };
+
+  const selectedSession = sessions.find((session) => session.idSession === selectedSessionId);
+  const deleteConfirmationMatches = Boolean(selectedSession?.referenceSession)
+    && deleteConfirmationText.trim() === selectedSession.referenceSession;
 
   // ── Facturation toggle (ADMIN_FINANCE only) ──────────────────────────────
   const handleToggleFacture = async (sessionId) => {
@@ -305,7 +377,9 @@ const SessionPage = () => {
         page: 0, size: 10000,
         search: search.trim(),
         sortBy, sortDir,
-        years: selectedYears,
+        years: periodActive ? [] : selectedYears,
+        startDate,
+        endDate,
         entrepriseId: (isAdmin || isAdminFinance) ? (filterEntrepriseId || null) : undefined,
         statuts:      isAdminFinance ? statutFilter : undefined,
         facture:      isAdminFinance && factureFilter !== "" ? factureFilter === "true" : undefined,
@@ -320,8 +394,8 @@ const SessionPage = () => {
         "Entreprise":          s.entrepriseNom,
         "Fournisseur":         s.fournisseurNom,
         "Formateur":           s.formateurNomComplet,
-        "Date début":          s.dateDebut,
-        "Date fin":            s.dateFin,
+        "Date début":          formatDateDDMMYYYY(s.dateDebut),
+        "Date fin":            formatDateDDMMYYYY(s.dateFin),
         "Durée (h)":           s.dHeures,
         "Durée (j)":           s.dJours,
         "Lieu":                s.lieu || "",
@@ -438,8 +512,24 @@ const SessionPage = () => {
           );
         },
       },
-      { field: "dateDebut",           headerName: "Début",        width: 120 },
-      { field: "dateFin",             headerName: "Fin",          width: 120 },
+      ...["dateDebut", "dateFin"].map((field) => ({
+        field,
+        headerName: field === "dateDebut" ? "Début" : "Fin",
+        width: 130,
+        renderCell: (params) => isAdminFinance ? (
+          <Button
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation();
+              setDateCalendarSession(params.row);
+            }}
+            sx={{ minWidth: 0, px: 0.5, textTransform: "none" }}
+            aria-label={`Voir les jours de la session ${params.row.referenceSession}`}
+          >
+            {formatDateDDMMYYYY(params.value)}
+          </Button>
+        ) : formatDateDDMMYYYY(params.value),
+      })),
       { field: "dHeures",             headerName: "Durée (h)",    width: 110 },
       { field: "dJours",              headerName: "Durée (j)",    width: 100 },
       { field: "lieu",                headerName: "Lieu",         minWidth: 140 },
@@ -472,7 +562,7 @@ const SessionPage = () => {
         ? { ...col, width: columnWidths[col.field], flex: undefined, minWidth: undefined, maxWidth: undefined }
         : col
     );
-  }, [columnWidths, isAdmin]);
+  }, [columnWidths, isAdmin, isAdminFinance]);
 
   const actionsColumn = {
     field: "actions",
@@ -487,6 +577,7 @@ const SessionPage = () => {
 
         <IconButton color="error" size="small" onClick={() => {
           setSelectedSessionId(params.row.idSession);
+          setDeleteConfirmationText("");
           setOpenDeleteDialog(true);
         }}>
           <DeleteIcon />
@@ -630,29 +721,82 @@ const SessionPage = () => {
               </Grid>
             )}
 
-            <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-              {!isVisitor && !isAdminFinance && !isChefDepartement && (
-                <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
-                  Créer session
-                </Button>
-              )}
-              <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
-                Export Excel
-              </Button>
+                        {/* Period filter (dateDebut) */}
+            <Grid size={{ xs: 12, md: 2.5 }}>
+              <TextField
+                select fullWidth
+                label="Période (date début)"
+                value={periodPreset}
+                onChange={(e) => { setPeriodPreset(e.target.value); resetToFirstPage(); }}
+              >
+                {PERIOD_OPTIONS.map((o) => (
+                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                ))}
+              </TextField>
             </Grid>
 
-            <Grid size={{ xs: 12, md: "grow" }}
-              sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
-              <YearFilter
-                availableYears={availableYears}
-                selectedYears={selectedYears}
-                onChange={(years) => { setSelectedYears(years); resetToFirstPage(); }}
-                loading={loading}
-              />
-            </Grid>
+            {periodPreset === "custom" && (
+              <>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Du"
+                    value={customStart}
+                    onChange={(e) => { setCustomStart(e.target.value); resetToFirstPage(); }}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Au"
+                    value={customEnd}
+                    onChange={(e) => { setCustomEnd(e.target.value); resetToFirstPage(); }}
+                    error={Boolean(periodInvalid)}
+                    helperText={periodInvalid ? "Doit être après « Du »" : undefined}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  />
+                </Grid>
+              </>
+            )}
+
+            <Grid size={{ xs: 12, md: "auto" }} sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+  {!isVisitor && !isAdminFinance && !isChefDepartement && (
+    <Button variant="contained" onClick={() => { setEditingSession(null); setOpenSessionModal(true); }}>
+      Créer session
+    </Button>
+  )}
+  <Button variant="contained" sx={exportButtonSx} onClick={handleExportExcel}>
+    Export Excel
+  </Button>
+</Grid>
+
+{(isAdmin || isAdminFinance) ? (
+  <Grid size={12} sx={{ display: "flex", justifyContent: "flex-end" }}>
+    <YearFilter
+      availableYears={availableYears}
+      selectedYears={selectedYears}
+      onChange={(years) => { setSelectedYears(years); resetToFirstPage(); }}
+      loading={loading}
+      orientation="horizontal"
+    />
+  </Grid>
+) : (
+  <Grid size={{ xs: 12, md: "grow" }}
+    sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+    <YearFilter
+      availableYears={availableYears}
+      selectedYears={selectedYears}
+      onChange={(years) => { setSelectedYears(years); resetToFirstPage(); }}
+      loading={loading}
+    />
+  </Grid>
+)}
           </Grid>
 
-          <Box sx={{ height: "70vh" }}>
+          <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", mb: 1.5 }} aria-label="Légende de l'état des sessions">
               {[
                 { label: "Données manquantes ou formateur externe", color: "#F97316" },
@@ -668,6 +812,7 @@ const SessionPage = () => {
             <DataGrid
               rows={sessions}
               columns={columns}
+              autoHeight
               getRowId={row => row.idSession}
               loading={loading}
               pageSizeOptions={[10, 20, 50, 100]}
@@ -707,13 +852,74 @@ const SessionPage = () => {
         </CardContent>
       </Card>
 
-      {/* Delete dialog */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Confirmation de suppression</DialogTitle>
-        <DialogContent>Êtes-vous sûr de vouloir supprimer cette session ?</DialogContent>
+      <Dialog
+        open={Boolean(dateCalendarSession)}
+        onClose={() => setDateCalendarSession(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          Jours sélectionnés — {dateCalendarSession?.referenceSession}
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", justifyContent: "center" }}>
+          <Box sx={{
+            "& .rdp": { margin: 0 },
+            "& .rdp-day_button": { borderRadius: "8px", width: 36, height: 36, fontSize: 13 },
+            "& .rdp-selected .rdp-day_button": {
+              backgroundColor: "#60A5FA",
+              color: "#fff",
+              fontWeight: 700,
+              border: "none",
+            },
+          }}>
+            <DayPicker
+              key={dateCalendarSession?.idSession}
+              mode="multiple"
+              selected={getSessionCalendarDays(dateCalendarSession)}
+              onSelect={() => {}}
+              defaultMonth={getSessionCalendarDays(dateCalendarSession)[0]}
+              showOutsideDays
+              styles={{ root: { "--rdp-accent-color": "#60A5FA", "--rdp-accent-background-color": "#DBEAFE" } }}
+            />
+          </Box>
+        </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Annuler</Button>
-          <Button color="error" variant="contained" onClick={handleDelete}>Supprimer</Button>
+          <Button onClick={() => setDateCalendarSession(null)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => {
+        setOpenDeleteDialog(false);
+        setSelectedSessionId(null);
+        setDeleteConfirmationText("");
+      }}>
+        <DialogTitle>Suppression définitive de la session</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            Cette action est irréversible. La session et toutes ses données associées
+            (participants, présences, évaluations, quiz et historique) seront supprimées.
+          </Typography>
+          <Typography sx={{ mb: 1 }}>
+            Pour confirmer, saisissez la référence <strong>{selectedSession?.referenceSession}</strong>.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Référence de la session"
+            value={deleteConfirmationText}
+            onChange={(event) => setDeleteConfirmationText(event.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenDeleteDialog(false);
+            setSelectedSessionId(null);
+            setDeleteConfirmationText("");
+          }}>Annuler</Button>
+          <Button color="error" variant="contained" onClick={handleDelete} disabled={!deleteConfirmationMatches}>
+            Supprimer définitivement
+          </Button>
         </DialogActions>
       </Dialog>
 

@@ -6,6 +6,7 @@ import {
 import SearchIcon        from '@mui/icons-material/Search';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
+import { formatDateDDMMYYYY } from '../../../../utils/dateFormat';
 
 const STATUS_CONFIG = {
   EN_COURS:  { label: 'In progress',  color: 'success' },
@@ -129,7 +130,7 @@ export default function SessionStep({ sessions, loading, selectedSession, onSele
               {/* Dates + participants */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.75 }}>
                 <Typography variant="caption" color="text.secondary">
-                  {s.dateDebut} → {s.dateFin} · {s.dJours}j
+                  {formatDateDDMMYYYY(s.dateDebut)} → {formatDateDDMMYYYY(s.dateFin)} · {s.dJours}j
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <GroupOutlinedIcon sx={{ fontSize: 13, color: 'text.secondary' }} />

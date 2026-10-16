@@ -45,8 +45,18 @@ export const updateBesoin = async (id, payload) => {
   }
 };
 
-export const decideBesoin = async (id, status, rejectionReason = null) => {
-  const res = await api.patch(`${BASE_URL}/${id}/decision`, { status, rejectionReason });
+export const decideBesoin = async (id, status, rejectionReason = null, intitule = null) => {
+  const res = await api.patch(`${BASE_URL}/${id}/decision`, { status, rejectionReason, intitule });
+  return res.data;
+};
+
+export const submitBesoinDraft = async (id) => {
+  const res = await api.patch(`${BASE_URL}/${id}/submit`);
+  return res.data;
+};
+
+export const submitBesoinDrafts = async (ids) => {
+  const res = await api.patch(`${BASE_URL}/submit/bulk`, { ids });
   return res.data;
 };
 

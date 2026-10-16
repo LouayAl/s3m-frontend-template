@@ -1,4 +1,5 @@
 import { Box, Card, CardContent, Grid, LinearProgress, Typography } from '@mui/material';
+import { formatDateDDMMYYYY } from '../../../utils/dateFormat';
 
 export default function SessionInfoCard({ session, activeDay }) {
   const duree       = Number(session.dJours);
@@ -20,7 +21,7 @@ export default function SessionInfoCard({ session, activeDay }) {
           <Grid size={{ xs: 12, sm: 3 }}>
             <Typography variant="caption" color="text.secondary">Dates</Typography>
             <Typography variant="body2" fontWeight={600}>
-              {session.dateDebut} → {session.dateFin}
+              {formatDateDDMMYYYY(session.dateDebut)} → {formatDateDDMMYYYY(session.dateFin)}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 3 }}>

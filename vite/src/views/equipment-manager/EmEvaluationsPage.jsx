@@ -10,6 +10,7 @@ import SessionDetailDialog from './components/SessionDetailDialog';
 import { getEmSessions, getMySessionsAsTrainer } from '../../api/emApi';
 import AddEvaluationModal from './components/AddEvaluationModal';
 import { useAuth } from '../../contexts/auth/AuthContext';
+import { formatDateDDMMYYYY, parseLocalDate } from '../../utils/dateFormat';
 
 const STATUS_CONFIG = {
   EN_COURS:  { label: 'In Progress',  color: 'success' },
@@ -142,7 +143,7 @@ export default function EMEvaluationsPage() {
               <TableBody>
                 {filtered.map(s => {
                   const today        = new Date();
-                  const start        = new Date(s.dateDebut);
+                  const start        = parseLocalDate(s.dateDebut);
                   const duree        = Number(s.dJours);
                   const diffDays     = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
                   const joursAtteint = Math.min(Math.max(diffDays, 0), duree);
@@ -161,7 +162,7 @@ export default function EMEvaluationsPage() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption" color="text.secondary">
-                          {s.dateDebut} → {s.dateFin}
+                          {formatDateDDMMYYYY(s.dateDebut)} → {formatDateDDMMYYYY(s.dateFin)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">

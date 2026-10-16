@@ -13,6 +13,7 @@ import { getEmSessions, getEmFormations }   from '../../api/emApi';
 import AddIcon                              from '@mui/icons-material/Add';
 import FormationsModal                      from '../formations/FormationsModal';
 import { useAuth }                          from '../../contexts/auth/AuthContext';
+import { formatDateDDMMYYYY, parseLocalDate } from '../../utils/dateFormat';
 
 
 const STATUS_CONFIG = {
@@ -246,7 +247,7 @@ export default function EMFormationsPage() {
                   {selectedFormation.sessions.map((s) => {
                     const duree        = Number(s.dJours);
                     const today        = new Date();
-                    const start        = new Date(s.dateDebut);
+                    const start        = parseLocalDate(s.dateDebut);
                     const diffDays     = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
                     const joursAtteint = Math.min(Math.max(diffDays, 0), duree);
                     const pct          = duree ? Math.round((joursAtteint / duree) * 100) : 0;
@@ -257,7 +258,7 @@ export default function EMFormationsPage() {
                         onClick={() => handleSessionClick(s.idSession)}
                       >
                         <TableCell>{s.referenceSession}</TableCell>
-                        <TableCell sx={{ fontSize:12 }}>{s.dateDebut} → {s.dateFin}</TableCell>
+                        <TableCell sx={{ fontSize:12 }}>{formatDateDDMMYYYY(s.dateDebut)} → {formatDateDDMMYYYY(s.dateFin)}</TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={0.5} alignItems="center">
                             <GroupOutlinedIcon sx={{ fontSize:14, color:'text.secondary' }} />

@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Grid, TextField, MenuItem,
+  Autocomplete, Button, Grid, TextField, MenuItem,
   List, ListItemButton, ListItemIcon, ListItemText, Checkbox,
-  Divider, Typography, Box, CircularProgress,
+  Divider, Typography, Box, CircularProgress, Stack,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { createBesoin, updateBesoin } from "../../api/besoinFormationApi";
-import { getAllEntreprises } from "../../api/entrepriseApi";
+import { getAllFormations } from "../../api/formationApi";
+import { getAllEntreprises, getEntrepriseById } from "../../api/entrepriseApi";
+import { getDepartementById, getDepartementsByEntreprise } from "../../api/departementApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 
 const emptyForm = {
@@ -63,13 +65,24 @@ const HEADER_MAP = {
 
 const NUMERIC_FIELDS = new Set(["nbCadre", "nbTam", "nbPro", "priorite", "budgetEstimatif"]);
 
-const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData = null }) => {
-  const isEdit = Boolean(initialData);
+const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData = null, duplicate = false }) => {
+  const isEdit = Boolean(initialData) && !duplicate;
   const { user } = useAuth();
   const isChef = user?.role === "CHEF_DEPARTEMENT";
+  const isManager = user?.role === "MANAGER";
+  const isRequester = isChef || user?.role === "MANAGER";
+  const isScopedCreator = isRequester;
+  const lockRequesterScope = isEdit && Boolean(initialData?.demandeur);
+  const [assignedDepartementName, setAssignedDepartementName] = useState("");
 
   const [formData, setFormData] = useState(emptyForm);
   const [entreprises, setEntreprises] = useState([]);
+  const [departements, setDepartements] = useState([]);
+  const [assignedEntrepriseName, setAssignedEntrepriseName] = useState("");
+  const [formations, setFormations] = useState([]);
+  const [formationsLoading, setFormationsLoading] = useState(false);
+  const [formationInput, setFormationInput] = useState("");
+  const [isNewFormation, setIsNewFormation] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -79,13 +92,59 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    if (!isChef) getAllEntreprises().then(setEntreprises).catch(() => {});
-  }, [isChef]);
+    if (isScopedCreator) {
+      if (!user?.entrepriseId) {
+        setAssignedEntrepriseName("");
+        return;
+      }
+      getEntrepriseById(user.entrepriseId)
+        .then((entreprise) => setAssignedEntrepriseName(entreprise.nomEntreprise || ""))
+        .catch(() => setAssignedEntrepriseName(""));
+      return;
+    }
+    getAllEntreprises().then(setEntreprises).catch(() => {});
+  }, [isScopedCreator, user?.entrepriseId]);
+
+  useEffect(() => {
+    if (!isScopedCreator || !user?.departementId) {
+      setAssignedDepartementName("");
+      return;
+    }
+    getDepartementById(user.departementId)
+      .then((departement) => setAssignedDepartementName(departement.nom || ""))
+      .catch(() => setAssignedDepartementName(""));
+  }, [isScopedCreator, user?.departementId]);
+
+  useEffect(() => {
+    if (isScopedCreator || !formData.idEntreprise) {
+      setDepartements([]);
+      return;
+    }
+
+    let active = true;
+    getDepartementsByEntreprise(formData.idEntreprise)
+      .then((items) => {
+        if (active) setDepartements(items);
+      })
+      .catch(() => {
+        if (active) setDepartements([]);
+      });
+    return () => { active = false; };
+  }, [formData.idEntreprise, isScopedCreator]);
+
+  useEffect(() => {
+    if (!open) return;
+    setFormationsLoading(true);
+    getAllFormations()
+      .then(setFormations)
+      .catch(() => showSnackbar("Erreur lors du chargement des formations.", "error"))
+      .finally(() => setFormationsLoading(false));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
 
-    if (isEdit && initialData) {
+    if ((isEdit || duplicate) && initialData) {
       setFormData({
         idEntreprise: initialData.entrepriseId ?? "",
         dept: initialData.dept || "",
@@ -103,13 +162,21 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
         budgetEstimatif: initialData.budgetEstimatif ?? "",
         remarques: initialData.remarques || "",
       });
+      setFormationInput(initialData.intitule || "");
+      setIsNewFormation(Boolean(initialData.nouvelleFormation));
     } else {
-      setFormData({ ...emptyForm, idEntreprise: isChef ? (user?.entrepriseId ?? "") : "" });
+      setFormData({
+        ...emptyForm,
+        idEntreprise: isScopedCreator ? (user?.entrepriseId ?? "") : "",
+        dept: isScopedCreator ? assignedDepartementName : "",
+      });
+      setFormationInput("");
+      setIsNewFormation(false);
     }
     setImportRows([]);
     setPickerOpen(false);
     setSelectedRows(new Set());
-  }, [open, isEdit, initialData, isChef, user?.entrepriseId]);
+  }, [open, isEdit, duplicate, initialData, isScopedCreator, user?.entrepriseId, assignedDepartementName]);
 
   const handleChange = (field) => (e) =>
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -306,10 +373,20 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
       return;
     }
 
+    if (isNewFormation && !formData.intitule.trim()) {
+      showSnackbar("Veuillez saisir le nom de la nouvelle formation.", "error");
+      return;
+    }
+    if (!isNewFormation && !formations.some((formation) => formation.module === formData.intitule)) {
+      showSnackbar("Veuillez choisir une formation dans la liste.", "error");
+      return;
+    }
+
     const payload = {
-      idEntreprise: Number(formData.idEntreprise),
-      dept: formData.dept || null,
-      intitule: formData.intitule,
+      idEntreprise: Number(isScopedCreator ? user?.entrepriseId : formData.idEntreprise),
+      dept: (isScopedCreator ? assignedDepartementName : formData.dept) || null,
+      intitule: formData.intitule.trim(),
+      nouvelleFormation: isNewFormation,
       populationCible: formData.populationCible || null,
       nbCadre: formData.nbCadre === "" ? null : Number(formData.nbCadre),
       nbTam: formData.nbTam === "" ? null : Number(formData.nbTam),
@@ -330,9 +407,9 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
         ? await updateBesoin(initialData.id, payload)
         : await createBesoin(payload);
 
-      showSnackbar(isEdit ? "Besoin mis à jour avec succès !" : isChef
-        ? "Demande envoyée à l'administrateur pour validation."
-        : "Besoin créé avec succès !");
+      showSnackbar(isChef
+        ? "Brouillon enregistre. Vous pourrez le modifier avant de l envoyer a l administrateur."
+        : isEdit ? "Besoin mis a jour avec succes !" : "Besoin cree avec succes !");
       onSave(saved);
     } catch (err) {
       showSnackbar(
@@ -349,9 +426,9 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
       <DialogTitle
         sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}
       >
-        {isEdit ? "Modifier un Besoin de Formation" : "Nouveau Besoin de Formation"}
+        {isEdit ? "Modifier un Besoin de Formation" : duplicate ? "Dupliquer un Besoin de Formation" : "Nouveau Besoin de Formation"}
 
-        {!isChef && <Button
+        {!isRequester && <Button
           size="small"
           variant="outlined"
           startIcon={<UploadFileIcon />}
@@ -370,12 +447,19 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
 
       <DialogContent>
         <Grid container spacing={2} mt={0.5}>
-          {!isChef && <Grid size={{ xs: 12, md: 6 }}>
+          {isScopedCreator || lockRequesterScope ? <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              disabled
+              label="Entreprise"
+              value={isScopedCreator ? assignedEntrepriseName || (user?.entrepriseId ? "Chargement..." : "Entreprise non définie") : initialData?.entrepriseNom || ""}
+            />
+          </Grid> : <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               select fullWidth required
               label="Entreprise"
               value={formData.idEntreprise}
-              onChange={handleChange("idEntreprise")}
+              onChange={(event) => setFormData((prev) => ({ ...prev, idEntreprise: event.target.value, dept: "" }))}
             >
               {entreprises.map((en) => (
                 <MenuItem key={en.idEntreprise} value={en.idEntreprise}>
@@ -385,27 +469,102 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
             </TextField>
           </Grid>}
 
-          {!isChef && <Grid size={{ xs: 12, md: 6 }}>
+          {isScopedCreator || lockRequesterScope ? <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              disabled
+              label="Département"
+              value={isScopedCreator ? assignedDepartementName || (user?.departementId ? "Chargement..." : "Département non défini") : initialData?.dept || ""}
+            />
+          </Grid> : <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               label="Département"
               value={formData.dept}
               onChange={handleChange("dept")}
-            />
+              disabled={!formData.idEntreprise}
+              select
+            >
+              <MenuItem value=""><em>{formData.idEntreprise ? "Sélectionner un département" : "Sélectionnez d’abord une entreprise"}</em></MenuItem>
+              {departements.map((departement) => (
+                <MenuItem key={departement.id} value={departement.nom}>{departement.nom}</MenuItem>
+              ))}
+            </TextField>
           </Grid>}
           {isChef && <Grid size={{ xs: 12 }}>
             <Typography variant="body2" color="text.secondary">
-              Cette demande sera rattachée à votre entreprise et département et envoyée à l'administrateur pour décision.
+              Ce besoin sera enregistré en brouillon. Vous pourrez le modifier puis l'envoyer à l'administrateur.
+            </Typography>
+          </Grid>}
+          {isManager && !isEdit && <Grid size={{ xs: 12 }}>
+            <Typography variant="body2" color="text.secondary">
+              Le besoin sera ajouté immédiatement aux besoins approuvés de votre département.
             </Typography>
           </Grid>}
 
           <Grid size={{ xs: 12 }}>
-            <TextField
-              fullWidth required
-              label="Besoin en formation (intitulé)"
-              value={formData.intitule}
-              onChange={handleChange("intitule")}
-            />
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">
+              {isNewFormation ? (
+                <TextField
+                  fullWidth
+                  required
+                  label="Nouvelle formation"
+                  placeholder="Saisissez le nom de la formation"
+                  value={formData.intitule}
+                  onChange={event => {
+                    const intitule = event.target.value;
+                    setFormationInput(intitule);
+                    setFormData(prev => ({ ...prev, intitule }));
+                  }}
+                />
+              ) : (
+                <Autocomplete
+                  fullWidth
+                  options={formations}
+                  loading={formationsLoading}
+                  value={formations.find((formation) => formation.module === formData.intitule) || null}
+                  inputValue={formationInput}
+                  getOptionLabel={(formation) => typeof formation === "string" ? formation : formation.module || ""}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  onInputChange={(_, value, reason) => {
+                    setFormationInput(value);
+                    if (reason === "clear") {
+                      setFormData((prev) => ({ ...prev, intitule: "" }));
+                    }
+                  }}
+                  onChange={(_, formation) => {
+                    const intitule = formation?.module || "";
+                    setFormationInput(intitule);
+                    setFormData((prev) => ({ ...prev, intitule }));
+                  }}
+                  renderOption={(props, formation) => (
+                    <li {...props} key={formation.id}>
+                      <Box>
+                        <Typography variant="body2">{formation.module}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {[formation.referenceFormation, formation.entrepriseNom, formation.familleFormation, formation.sousFamille]
+                            .filter(Boolean).join(" · ")}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField {...params} required label="Formation" placeholder="Tapez pour rechercher une formation" />
+                  )}
+                />
+              )}
+              <Button
+                variant={isNewFormation ? "text" : "outlined"}
+                onClick={() => {
+                  setIsNewFormation(value => !value);
+                  setFormData(prev => ({ ...prev, intitule: "" }));
+                  setFormationInput("");
+                }}
+                sx={{ minWidth: 128, whiteSpace: "nowrap" }}
+              >
+                {isNewFormation ? "Choisir une formation" : "Autre"}
+              </Button>
+            </Stack>
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
@@ -519,8 +678,8 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
 
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {isEdit ? "Mettre à jour" : "Créer"}
+        <Button variant="contained" onClick={handleSave} disabled={saving || formationsLoading}>
+          {isChef ? "Enregistrer le brouillon" : isEdit ? "Mettre à jour" : "Créer"}
         </Button>
       </DialogActions>
 

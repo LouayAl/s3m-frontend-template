@@ -28,7 +28,7 @@ const EmployesPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const isVisitor = useIsVisitor();
-  const canImport = ["ADMIN", "EQUIPMENT_MANAGER", "ADMIN_FINANCE"].includes(user?.role);
+  const canImport = ["ADMIN", "EQUIPMENT_MANAGER"].includes(user?.role);
 
   const [employes,        setEmployes]        = useState([]);
   const [loading,         setLoading]         = useState(true);

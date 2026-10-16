@@ -9,7 +9,7 @@ import Tooltip from '@mui/material/Tooltip';
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
 
 /**
- * YearFilter — horizontal row of toggle chips, one per available year.
+ * YearFilter — toggle chips for all years or individual years.
  *
  * Props:
  *   availableYears  number[]   all years returned by the API
@@ -17,8 +17,9 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
  *   onChange        (years: number[]) => void
  *   loading         boolean
  */
-export default function YearFilter({ availableYears = [], selectedYears = [], onChange, loading = false }) {
+export default function YearFilter({ availableYears = [], selectedYears = [], onChange, loading = false, orientation = 'horizontal' }) {
   const theme = useTheme();
+  const vertical = orientation === 'vertical';
 
   const toggle = (year) => {
     const next = selectedYears.includes(year)
@@ -36,10 +37,10 @@ export default function YearFilter({ availableYears = [], selectedYears = [], on
 
   return (
     <Stack
-      direction="row"
+      direction={vertical ? 'column' : 'row'}
       spacing={1}
       sx={{
-        alignItems: 'center',
+        alignItems: vertical ? 'stretch' : 'center',
         flexWrap: 'wrap',
         gap: 1,
         py: 1,
@@ -49,10 +50,11 @@ export default function YearFilter({ availableYears = [], selectedYears = [], on
           ? theme.vars.palette.background.default
           : theme.palette.background.default,
         border: `1px solid ${theme.vars ? theme.vars.palette.divider : theme.palette.divider}`,
+        ...(vertical && { width: '100%', boxSizing: 'border-box' }),
       }}
     >
       {/* Icon label */}
-      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 0.5 }}>
+      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: vertical ? 0 : 0.5 }}>
         <CalendarTodayOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
         <Typography variant="caption" color="text.secondary" fontWeight={600}>
           Année
@@ -74,7 +76,7 @@ export default function YearFilter({ availableYears = [], selectedYears = [], on
               onClick={selectAll}
               color={isAllSelected ? 'primary' : 'default'}
               variant={isAllSelected ? 'filled' : 'outlined'}
-              sx={{ fontWeight: isAllSelected ? 700 : 400, borderRadius: 2 }}
+              sx={{ fontWeight: isAllSelected ? 700 : 400, borderRadius: 2, ...(vertical && { width: '100%' }) }}
             />
           </Tooltip>
 
@@ -89,7 +91,7 @@ export default function YearFilter({ availableYears = [], selectedYears = [], on
                 onClick={() => toggle(year)}
                 color={active ? 'primary' : 'default'}
                 variant={active ? 'filled' : 'outlined'}
-                sx={{ fontWeight: active ? 700 : 400, borderRadius: 2 }}
+                sx={{ fontWeight: active ? 700 : 400, borderRadius: 2, ...(vertical && { width: '100%' }) }}
               />
             );
           })}
@@ -104,4 +106,5 @@ YearFilter.propTypes = {
   selectedYears: PropTypes.arrayOf(PropTypes.number),
   onChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
+  orientation: PropTypes.oneOf(['horizontal', 'vertical']),
 };

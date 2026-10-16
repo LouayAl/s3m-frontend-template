@@ -11,6 +11,7 @@ import TableContainer from '@mui/material/TableContainer';
 import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
+import { formatDateDDMMYYYY } from '../../../utils/dateFormat';
 
 export default function VisibiliteSessionsModal({ open, onClose, title, sessions }) {
   return (
@@ -43,7 +44,7 @@ export default function VisibiliteSessionsModal({ open, onClose, title, sessions
                     <TableCell>{s.moduleFormation}</TableCell>
                     <TableCell>{s.formateur}</TableCell>
                     <TableCell>{s.entreprise}</TableCell>
-                    <TableCell>{s.dateDebut} — {s.dateFin}</TableCell>
+                    <TableCell>{formatDateDDMMYYYY(s.dateDebut)} — {formatDateDDMMYYYY(s.dateFin)}</TableCell>
                     <TableCell>{s.lieu || '—'}</TableCell>
                     <TableCell align="center">
                       <Chip
