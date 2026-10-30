@@ -19,8 +19,8 @@ import { getAllEntreprises } from "../../api/entrepriseApi";
 import { useAuth } from "../../contexts/auth/AuthContext";
 import { useGlobalFilter } from "../../contexts/filters/GlobalFilterContext";
 
-// Only ADMIN can create/edit/delete training-needs entries
-const CAN_MUTATE = new Set(["ADMIN"]);
+// Admins and managers share training-needs management privileges.
+const CAN_MUTATE = new Set(["ADMIN", "MANAGER"]);
 
 // A small helper so long free-text columns (Objectifs, Compétences ciblées...)
 // show a native tooltip with the full text on hover instead of overflowing.
@@ -31,17 +31,16 @@ const truncatedCell = (params) => (
 const BesoinsFormationPage = () => {
   const { user } = useAuth();
   const canEdit  = CAN_MUTATE.has(user?.role);
-  const isAdmin  = user?.role === "ADMIN";
-  const isManager = user?.role === "MANAGER";
+  const canManage = canEdit;
   const isChef = user?.role === "CHEF_DEPARTEMENT";
-  const isRequester = isChef || user?.role === "MANAGER";
-  const canCreateRequest = isAdmin || isRequester;
+  const isRequester = isChef;
+  const canCreateRequest = canManage || isRequester;
 
   const [besoins, setBesoins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
 
-  // Admin-only: entreprise filter dropdown
+  // Admin/manager: entreprise filter dropdown
   const [entreprises,        setEntreprises]        = useState([]);
   const { selectedEntrepriseId: filterEntrepriseId, setSelectedEntrepriseId: setFilterEntrepriseId } = useGlobalFilter();
   const [modalOpen,     setModalOpen]     = useState(false);
@@ -61,21 +60,21 @@ const BesoinsFormationPage = () => {
   const showSnackbar        = (message, severity = "success") => setSnackbar({ open: true, message, severity });
   const handleCloseSnackbar = () => setSnackbar(prev => ({ ...prev, open: false }));
 
-  // ── Load entreprises for admin dropdown ──────────────────────────────────
+  // ── Load entreprises for admin/manager dropdown ──────────────────────────────────
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canManage) return;
     getAllEntreprises('CLIENT')
       .then(setEntreprises)
       .catch(() => showSnackbar("Erreur chargement entreprises", "error"));
-  }, [isAdmin]);
+  }, [canManage]);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
-  useEffect(() => { fetchBesoins(); }, [filterEntrepriseId, isAdmin]);
+  useEffect(() => { fetchBesoins(); }, [filterEntrepriseId, canManage]);
 
   const fetchBesoins = async () => {
     try {
       setLoading(true);
-      const data = await getAllBesoins(isAdmin ? (filterEntrepriseId || null) : undefined);
+      const data = await getAllBesoins(canManage ? (filterEntrepriseId || null) : undefined);
       setBesoins(data);
     } catch {
       showSnackbar("Erreur lors du chargement des besoins de formation.", "error");
@@ -173,8 +172,8 @@ const BesoinsFormationPage = () => {
         />
       ) : null,
     }] : []),
-    // Entreprise column only makes sense once an admin can browse across companies
-    ...(isAdmin ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 }] : []),
+    // Entreprise column only makes sense once an admin or manager can browse across companies
+    ...(canManage ? [{ field: "entrepriseNom", headerName: "Entreprise", flex: 1, minWidth: 150 }] : []),
     { field: "dept",               headerName: "Dept",              width: 130 },
     { field: "demandeur",          headerName: "Demandeur",          width: 160 },
     { field: "status",             headerName: "Statut",             width: 140,
@@ -200,10 +199,10 @@ const BesoinsFormationPage = () => {
   ];
 
   const actionsColumn = {
-    field: "actions", headerName: "Actions", width: isAdmin || isManager ? 250 : isRequester ? 170 : 80, sortable: false,
+    field: "actions", headerName: "Actions", width: canManage ? 250 : isRequester ? 170 : 80, sortable: false,
     renderCell: (params) => (
       <Stack direction="row" spacing={1}>
-        {(isAdmin || (isManager && params.row.demandeurRole === "CHEF_DEPARTEMENT")) && isPending(params.row) && <>
+        {canManage && isPending(params.row) && <>
           <IconButton color="success" size="small" title="Approuver" onClick={() => {
             if (params.row.nouvelleFormation) {
               setReviewTarget(params.row);
@@ -218,18 +217,6 @@ const BesoinsFormationPage = () => {
             <HighlightOffIcon />
           </IconButton>
         </>}
-        {isManager && params.row.demandeurRole === "CHEF_DEPARTEMENT" && isPending(params.row) && (
-          <>
-            <IconButton color="primary" size="small" title="Modifier la demande envoyée"
-              onClick={() => handleModalOpen(params.row)}>
-              <EditIcon />
-            </IconButton>
-            <IconButton color="error" size="small" title="Supprimer la demande envoyée"
-              onClick={() => handleOpenDeleteDialog(params.row.id)}>
-              <DeleteIcon />
-            </IconButton>
-          </>
-        )}
         {isOwnDraft(params.row) && <IconButton color="success" size="small" title="Envoyer la demande à l’administrateur"
           onClick={async () => {
             try {
@@ -241,7 +228,7 @@ const BesoinsFormationPage = () => {
               showSnackbar(err.response?.data?.message || "Impossible d’envoyer la demande.", "error");
             }
           }}><SendIcon /></IconButton>}
-        {(isAdmin || isRequester) && (
+        {(canManage || isRequester) && (
           <IconButton color="primary" size="small" title="Dupliquer le besoin"
             onClick={() => handleModalOpen(params.row, true)}>
             <ContentCopyIcon />
@@ -250,7 +237,7 @@ const BesoinsFormationPage = () => {
         {isOwnDraft(params.row) && <IconButton color="primary" size="small" title="Modifier le brouillon" onClick={() => handleModalOpen(params.row)}>
           <EditIcon />
         </IconButton>}
-        {isAdmin && <>
+        {canManage && <>
           <IconButton color="primary" size="small" title="Modifier le besoin" onClick={() => handleModalOpen(params.row)}>
             <EditIcon />
           </IconButton>
@@ -290,7 +277,7 @@ const BesoinsFormationPage = () => {
       <Card>
         <CardContent>
           <Grid container spacing={2} mb={2} alignItems="center">
-            <Grid size={{ xs: 12, md: isAdmin ? 4 : 6 }}>
+            <Grid size={{ xs: 12, md: canManage ? 4 : 6 }}>
               <TextField
                 fullWidth
                 label="Rechercher par intitulé ou département"
@@ -299,8 +286,8 @@ const BesoinsFormationPage = () => {
               />
             </Grid>
 
-            {/* Entreprise dropdown — ADMIN only */}
-            {isAdmin && (
+            {/* Entreprise dropdown — ADMIN and MANAGER */}
+            {canManage && (
               <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   select fullWidth
@@ -319,7 +306,7 @@ const BesoinsFormationPage = () => {
             )}
 
             {canCreateRequest && (
-              <Grid size={{ xs: 12, md: isAdmin ? 5 : 6 }}
+              <Grid size={{ xs: 12, md: canManage ? 5 : 6 }}
                 sx={{ display: "flex", justifyContent: "flex-start", gap: 1, flexWrap: "wrap" }}>
                 <Button variant="contained" color="primary" onClick={() => handleModalOpen()}>
                   Nouveau Besoin
@@ -377,7 +364,7 @@ const BesoinsFormationPage = () => {
         </CardContent>
       </Card>
 
-      {/* Department heads may submit; only admins can edit or delete needs. */}
+      {/* Department heads may submit; admins and managers can edit or delete needs. */}
       {canCreateRequest && (
         <BesoinFormationModal
           open={modalOpen}

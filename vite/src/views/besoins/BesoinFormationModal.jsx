@@ -69,9 +69,7 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
   const isEdit = Boolean(initialData) && !duplicate;
   const { user } = useAuth();
   const isChef = user?.role === "CHEF_DEPARTEMENT";
-  const isManager = user?.role === "MANAGER";
-  const isRequester = isChef || user?.role === "MANAGER";
-  const isScopedCreator = isRequester;
+  const isScopedCreator = isChef;
   const lockRequesterScope = isEdit && Boolean(initialData?.demandeur);
   const [assignedDepartementName, setAssignedDepartementName] = useState("");
 
@@ -428,7 +426,7 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
       >
         {isEdit ? "Modifier un Besoin de Formation" : duplicate ? "Dupliquer un Besoin de Formation" : "Nouveau Besoin de Formation"}
 
-        {!isRequester && <Button
+        {!isChef && <Button
           size="small"
           variant="outlined"
           startIcon={<UploadFileIcon />}
@@ -496,11 +494,7 @@ const BesoinFormationModal = ({ open, onClose, onSave, showSnackbar, initialData
               Ce besoin sera enregistré en brouillon. Vous pourrez le modifier puis l'envoyer à l'administrateur.
             </Typography>
           </Grid>}
-          {isManager && !isEdit && <Grid size={{ xs: 12 }}>
-            <Typography variant="body2" color="text.secondary">
-              Le besoin sera ajouté immédiatement aux besoins approuvés de votre département.
-            </Typography>
-          </Grid>}
+
 
           <Grid size={{ xs: 12 }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems="stretch">
